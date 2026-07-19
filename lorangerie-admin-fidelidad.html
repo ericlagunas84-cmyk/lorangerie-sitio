@@ -177,10 +177,34 @@ async function cargarPedidosPendientes(){
       <td>${p.horario_recogida || '—'}</td>
       <td>${new Date(p.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
       <td style="white-space:nowrap;">
+        <button class="btn btn-ghost" style="padding:8px 12px;font-size:12.5px;" onclick="verDetallePedido(${p.id}, this)">Ver detalle</button>
         <button class="btn btn-primary" style="padding:8px 14px;font-size:12.5px;" onclick="activarPedido(${p.id})">Entregado</button>
         <button class="btn btn-ghost" style="padding:8px 14px;font-size:12.5px;" onclick="cancelarPedido(${p.id})">Cancelar</button>
       </td>
+    </tr>
+    <tr id="detalle-${p.id}" style="display:none;">
+      <td colspan="6" style="background:var(--surface-low);"><div id="detalle-body-${p.id}" class="muted">Cargando…</div></td>
     </tr>`).join('');
+}
+
+/* Muestra u oculta el detalle de platillos de un pedido */
+async function verDetallePedido(id, btn){
+  const row = document.getElementById(`detalle-${id}`);
+  const abierto = row.style.display !== 'none';
+  if (abierto){ row.style.display = 'none'; btn.textContent = 'Ver detalle'; return; }
+
+  row.style.display = 'table-row';
+  btn.textContent = 'Ocultar detalle';
+  const { data, error } = await sb.rpc('admin_detalle_pedido', { p_pedido: id });
+  const body = document.getElementById(`detalle-body-${id}`);
+  if (error){ body.textContent = 'Error: ' + error.message; return; }
+  if (!data || !data.length){ body.textContent = 'Sin platillos registrados.'; return; }
+  body.innerHTML = data.map(item => `
+    <div style="padding:4px 0;">
+      <b>${item.cantidad}×</b> ${item.nombre}
+      ${item.opciones ? `<span class="muted"> — ${item.opciones}</span>` : ''}
+      <span style="float:right;">$${Number(item.precio_unitario * item.cantidad).toFixed(2)}</span>
+    </div>`).join('');
 }
 
 async function activarPedido(id){
