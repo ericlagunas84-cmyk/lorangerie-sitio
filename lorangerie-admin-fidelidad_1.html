@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>L'Orangerie — Panel de Fidelidad (Admin)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --surface:#fff8f3; --surface-low:#faf2ec; --paper:#FDFBF7;
+    --on:#1e1b17; --on-var:#434842; --outline:#c3c8c0;
+    --primary:#4f6050; --primary-dark:#3a4b3c; --gold:#C5A028; --gold-dark:#735c00;
+    --danger:#a33; --radius:6px; --serif:'Playfair Display',serif; --sans:'Hanken Grotesk',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--surface);color:var(--on);font-family:var(--sans);}
+  h1,h2,h3{font-family:var(--serif);margin:0;}
+  .topbar{background:var(--primary-dark);color:#fff;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;}
+  .topbar h1{font-size:20px;color:#fff;}
+  .wrap{max-width:1000px;margin:0 auto;padding:28px;}
+  .card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:24px;margin-bottom:24px;}
+  .card h2{font-size:18px;margin-bottom:16px;}
+  label{display:block;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--on-var);margin:12px 0 6px;}
+  input,select,textarea{width:100%;padding:11px 13px;border:1px solid var(--outline);border-radius:var(--radius);font-family:var(--sans);font-size:14px;background:#fff;}
+  textarea{min-height:70px;resize:vertical;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:var(--sans);font-weight:600;font-size:14px;border:none;border-radius:var(--radius);padding:12px 22px;cursor:pointer;}
+  .btn-primary{background:var(--primary);color:#fff;} .btn-primary:hover{background:var(--primary-dark);}
+  .btn-ghost{background:var(--surface-low);color:var(--primary-dark);border:1px solid var(--outline);}
+  .row{display:flex;gap:14px;flex-wrap:wrap;}
+  .row > *{flex:1;min-width:150px;}
+  .saldo-box{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border-radius:12px;padding:22px;text-align:center;margin-bottom:16px;}
+  .saldo-box .num{font-family:var(--serif);font-weight:700;font-size:44px;line-height:1;}
+  .saldo-box .lbl{font-size:12px;opacity:.9;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px;}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--outline);}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--on-var);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
+  .b-activo{background:#e3efe4;color:#2f5e34;} .b-pendiente{background:#fdf1d6;color:#7a5c00;}
+  .b-canjeado{background:#eae6f7;color:#4b3c8c;} .b-expirado,.b-cancelado{background:#f0e3e3;color:#8c3c3c;}
+  .msg{padding:11px 14px;border-radius:var(--radius);font-size:13px;margin-top:14px;}
+  .msg-ok{background:#e3efe4;color:#2f5e34;} .msg-err{background:#f0e3e3;color:#8c3c3c;}
+  .muted{color:var(--on-var);font-size:13px;}
+  .login-gate{max-width:380px;margin:80px auto;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>L'Orangerie · Fidelidad</h1>
+  <span id="adminEmail" class="muted" style="color:rgba(255,255,255,.8);"></span>
+</div>
+
+<!-- Login de administrador -->
+<div class="wrap login-gate" id="loginGate">
+  <div class="card">
+    <h2>Acceso de personal</h2>
+    <p class="muted">Inicia sesión con tu cuenta autorizada.</p>
+    <label>Correo</label>
+    <input type="email" id="admEmail" placeholder="admin@lorangerie.com">
+    <label>Contraseña</label>
+    <input type="password" id="admPass">
+    <button class="btn btn-primary" style="width:100%;margin-top:18px;" onclick="adminLogin()">Entrar</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- Panel principal -->
+<div class="wrap" id="panel" style="display:none;">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Pedidos pendientes de recoger</h2>
+      <button class="btn btn-ghost" onclick="cargarPedidosPendientes()">↻ Actualizar</button>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Cliente</th><th>Total</th><th>Horario</th><th>Recibido</th><th></th></tr></thead>
+      <tbody id="pedidosTable"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Buscar cliente</h2>
+    <div class="row">
+      <input type="text" id="buscarInput" placeholder="Correo del cliente">
+      <button class="btn btn-primary" style="flex:0 0 auto;" onclick="buscarCliente()">Buscar</button>
+    </div>
+    <div id="buscarMsg"></div>
+  </div>
+
+  <div id="clienteCard" style="display:none;">
+    <div class="card">
+      <h2 id="clienteNombre"></h2>
+      <p class="muted" id="clienteCorreo"></p>
+      <div class="saldo-box" style="margin-top:16px;">
+        <div class="num" id="clienteSaldo">0</div>
+        <div class="lbl">puntos disponibles · <span id="clienteValor">$0.00</span></div>
+      </div>
+
+      <h3 style="font-size:15px;margin:20px 0 8px;">Ajuste manual de puntos</h3>
+      <div class="row">
+        <div style="flex:0 0 130px;">
+          <label>Tipo</label>
+          <select id="ajTipo"><option value="suma">Sumar</option><option value="resta">Restar</option></select>
+        </div>
+        <div style="flex:0 0 130px;">
+          <label>Cantidad</label>
+          <input type="number" id="ajCantidad" min="1" placeholder="0">
+        </div>
+        <div style="flex:1;">
+          <label>Motivo (obligatorio)</label>
+          <input type="text" id="ajMotivo" placeholder="Ej. Compensación por queja">
+        </div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="aplicarAjuste()">Aplicar ajuste</button>
+      <div id="ajMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Historial de movimientos</h2>
+      <table>
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Estado</th><th style="text-align:right;">Puntos</th></tr></thead>
+        <tbody id="histTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* Reemplaza con las credenciales de tu proyecto */
+const SUPABASE_URL  = "https://ijxihmmbufoagibdskza.supabase.co";
+const SUPABASE_ANON = "sb_publishable_oXyHnZYo0zuizNaGsnRqLw_aEiRRmTQ";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let clienteActual = null; // { id, email, nombre }
+
+function showMsg(el, text, ok){
+  el.innerHTML = `<div class="msg ${ok?'msg-ok':'msg-err'}">${text}</div>`;
+}
+
+async function adminLogin(){
+  const email = document.getElementById('admEmail').value.trim();
+  const password = document.getElementById('admPass').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error){ showMsg(document.getElementById('loginMsg'), error.message, false); return; }
+  // Verificar rol admin (debe existir en user_metadata o en una tabla de roles)
+  const rol = data.user.user_metadata?.rol;
+  if (rol !== 'admin'){
+    showMsg(document.getElementById('loginMsg'), 'Esta cuenta no tiene permisos de administrador.', false);
+    await sb.auth.signOut();
+    return;
+  }
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
+  document.getElementById('adminEmail').textContent = data.user.email;
+  await cargarPedidosPendientes();
+}
+
+/* Carga la lista de pedidos que faltan por recoger */
+async function cargarPedidosPendientes(){
+  const tbody = document.getElementById('pedidosTable');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Cargando…</td></tr>';
+  const { data, error } = await sb.rpc('admin_pedidos_pendientes');
+  if (error){
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">Error: ${error.message}</td></tr>`;
+    return;
+  }
+  if (!data || !data.length){
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">No hay pedidos pendientes. 🎉</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(p => `
+    <tr>
+      <td>#${p.id}</td>
+      <td>${p.cliente_email}</td>
+      <td>$${Number(p.total_a_pagar).toFixed(2)}</td>
+      <td>${p.horario_recogida || '—'}</td>
+      <td>${new Date(p.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-primary" style="padding:8px 14px;font-size:12.5px;" onclick="activarPedido(${p.id})">Entregado</button>
+        <button class="btn btn-ghost" style="padding:8px 14px;font-size:12.5px;" onclick="cancelarPedido(${p.id})">Cancelar</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function activarPedido(id){
+  if (!confirm(`¿Confirmar que el pedido #${id} ya fue entregado? Esto activa los puntos del cliente.`)) return;
+  const { error } = await sb.rpc('admin_activar_pedido', { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  await cargarPedidosPendientes();
+}
+
+async function cancelarPedido(id){
+  if (!confirm(`¿Cancelar el pedido #${id}? Esto anula los puntos ganados y repone los puntos canjeados, si los hubo.`)) return;
+  const { error } = await sb.rpc('admin_cancelar_pedido', { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  await cargarPedidosPendientes();
+}
+
+/* Busca al cliente por correo usando una RPC admin (ver nota SQL abajo) */
+async function buscarCliente(){
+  const email = document.getElementById('buscarInput').value.trim();
+  if (!email) return;
+  const { data, error } = await sb.rpc('admin_buscar_cliente', { p_email: email });
+  if (error || !data || !data.length){
+    showMsg(document.getElementById('buscarMsg'), 'Cliente no encontrado.', false);
+    document.getElementById('clienteCard').style.display = 'none';
+    return;
+  }
+  clienteActual = data[0];
+  document.getElementById('buscarMsg').innerHTML = '';
+  document.getElementById('clienteCard').style.display = 'block';
+  document.getElementById('clienteNombre').textContent = clienteActual.nombre || clienteActual.email;
+  document.getElementById('clienteCorreo').textContent = clienteActual.email;
+  await refrescarCliente();
+}
+
+async function refrescarCliente(){
+  // saldo
+  const { data: s } = await sb.rpc('admin_saldo_cliente', { p_usuario: clienteActual.id });
+  const saldo = s?.[0]?.saldo_disponible ?? 0;
+  document.getElementById('clienteSaldo').textContent = saldo;
+  document.getElementById('clienteValor').textContent = '$' + (saldo*0.05).toFixed(2);
+  // historial
+  const { data: h } = await sb.rpc('admin_historial_cliente', { p_usuario: clienteActual.id });
+  const badge = { activo:'b-activo', pendiente:'b-pendiente', canjeado:'b-canjeado', expirado:'b-expirado', cancelado:'b-cancelado' };
+  document.getElementById('histTable').innerHTML = (h||[]).map(m => `
+    <tr>
+      <td>${new Date(m.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'2-digit'})}</td>
+      <td>${m.concepto}</td>
+      <td><span class="badge ${badge[m.estado]||''}">${m.estado}</span></td>
+      <td style="text-align:right;font-weight:600;color:${m.tipo==='suma'?'var(--primary-dark)':'var(--gold-dark)'};">${m.tipo==='suma'?'+':'−'}${m.puntos}</td>
+    </tr>`).join('') || '<tr><td colspan="4" class="muted">Sin movimientos.</td></tr>';
+}
+
+async function aplicarAjuste(){
+  const tipo = document.getElementById('ajTipo').value;
+  const cantidad = parseInt(document.getElementById('ajCantidad').value, 10);
+  const motivo = document.getElementById('ajMotivo').value.trim();
+  const msg = document.getElementById('ajMsg');
+  if (!cantidad || cantidad <= 0){ showMsg(msg, 'Ingresa una cantidad válida.', false); return; }
+  if (!motivo){ showMsg(msg, 'El motivo es obligatorio.', false); return; }
+
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.rpc('ajuste_manual', {
+    p_usuario: clienteActual.id,
+    p_tipo: tipo,
+    p_puntos: cantidad,
+    p_motivo: motivo,
+    p_admin: sess.session.user.email,
+  });
+  if (error){ showMsg(msg, error.message, false); return; }
+  showMsg(msg, `Ajuste aplicado: ${tipo==='suma'?'+':'−'}${cantidad} pts.`, true);
+  document.getElementById('ajCantidad').value = '';
+  document.getElementById('ajMotivo').value = '';
+  await refrescarCliente();
+}
+</script>
+
+</body>
+</html>
