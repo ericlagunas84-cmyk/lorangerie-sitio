@@ -68,6 +68,17 @@
 <!-- Panel principal -->
 <div class="wrap" id="panel" style="display:none;">
   <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Pedidos pendientes de recoger</h2>
+      <button class="btn btn-ghost" onclick="cargarPedidosPendientes()">↻ Actualizar</button>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Cliente</th><th>Total</th><th>Horario</th><th>Recibido</th><th></th></tr></thead>
+      <tbody id="pedidosTable"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
     <h2>Buscar cliente</h2>
     <div class="row">
       <input type="text" id="buscarInput" placeholder="Correo del cliente">
@@ -142,6 +153,48 @@ async function adminLogin(){
   document.getElementById('loginGate').style.display = 'none';
   document.getElementById('panel').style.display = 'block';
   document.getElementById('adminEmail').textContent = data.user.email;
+  await cargarPedidosPendientes();
+}
+
+/* Carga la lista de pedidos que faltan por recoger */
+async function cargarPedidosPendientes(){
+  const tbody = document.getElementById('pedidosTable');
+  tbody.innerHTML = '<tr><td colspan="6" class="muted">Cargando…</td></tr>';
+  const { data, error } = await sb.rpc('admin_pedidos_pendientes');
+  if (error){
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">Error: ${error.message}</td></tr>`;
+    return;
+  }
+  if (!data || !data.length){
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">No hay pedidos pendientes. 🎉</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(p => `
+    <tr>
+      <td>#${p.id}</td>
+      <td>${p.cliente_email}</td>
+      <td>$${Number(p.total_a_pagar).toFixed(2)}</td>
+      <td>${p.horario_recogida || '—'}</td>
+      <td>${new Date(p.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-primary" style="padding:8px 14px;font-size:12.5px;" onclick="activarPedido(${p.id})">Entregado</button>
+        <button class="btn btn-ghost" style="padding:8px 14px;font-size:12.5px;" onclick="cancelarPedido(${p.id})">Cancelar</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function activarPedido(id){
+  if (!confirm(`¿Confirmar que el pedido #${id} ya fue entregado? Esto activa los puntos del cliente.`)) return;
+  const { error } = await sb.rpc('admin_activar_pedido', { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  await cargarPedidosPendientes();
+}
+
+async function cancelarPedido(id){
+  if (!confirm(`¿Cancelar el pedido #${id}? Esto anula los puntos ganados y repone los puntos canjeados, si los hubo.`)) return;
+  const { error } = await sb.rpc('admin_cancelar_pedido', { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  await cargarPedidosPendientes();
 }
 
 /* Busca al cliente por correo usando una RPC admin (ver nota SQL abajo) */
