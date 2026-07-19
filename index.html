@@ -4,6 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>L'Orangerie — Sabor e arte en cada bocado</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4A5D4A">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="L'Orangerie">
+<meta name="mobile-web-app-capable" content="yes">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -469,9 +480,13 @@
           <span id="userChipNameMobile">Sophie</span>
         </button>
         <a href="#menu" class="mobile-order-btn">Pide y Recoge en Sucursal</a>
+        <button class="mobile-order-btn" id="installBtnMobile" onclick="installPWA()" style="display:none;cursor:pointer;">📲 Instalar app</button>
       </div>
     </nav>
     <div class="nav-actions">
+      <button class="icon-btn" id="installBtn" onclick="installPWA()" aria-label="Instalar app" style="display:none;">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v13m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+      </button>
       <button class="icon-btn" onclick="openSearch()" aria-label="Buscar platillos">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
       </button>
@@ -1041,6 +1056,19 @@ let sb = null;
 if (SUPABASE_LISTO && window.supabase){
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 }
+</script>
+
+<!-- Google Sheets (menú editable) -->
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script>
+/* ============================================================
+   CONFIGURACIÓN DEL MENÚ EN GOOGLE SHEETS
+   Pega aquí el link "Publicar en la web" de tu hoja, en formato CSV.
+   Instrucciones completas en GUIA-MENU-SHEETS.html
+   ============================================================ */
+const SHEET_CSV_URL = "PEGA_AQUI_TU_LINK_CSV";
+
+const SHEET_LISTO = SHEET_CSV_URL.startsWith("http");
 </script>
 
 <script>
@@ -2125,13 +2153,95 @@ function closeDailyModal(){
   document.getElementById('dailyOverlay').classList.remove('show');
 }
 
-renderCatTabs();
-renderMenu();
-renderTop5();
-renderDailyStrip();
-renderTestimonios();
-updateAuthUI();
-restaurarSesion();
+/* ---------- menú editable desde Google Sheets ---------- */
+async function cargarMenuDesdeSheet(){
+  if (!SHEET_LISTO) return; // sin Sheet configurado: se queda con el menú local de respaldo
+  try {
+    const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+    if (!res.ok) throw new Error('No se pudo descargar el Sheet (HTTP ' + res.status + ')');
+    const csvText = await res.text();
+    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+    const catKeys = CATEGORIES.map(c => c.key);
+    const nuevos = [];
+
+    for (const row of parsed.data){
+      const id = (row.id || '').trim();
+      const categoria = (row.categoria || '').trim();
+      const nombre = (row.nombre || '').trim();
+      const precio = parseFloat(row.precio);
+      // Fila inválida (falta algo esencial o la categoría no existe) -> se ignora, no rompe el resto
+      if (!id || !nombre || isNaN(precio) || !catKeys.includes(categoria)) continue;
+      nuevos.push({
+        id,
+        category: categoria,
+        name: nombre,
+        price: precio,
+        desc: (row.descripcion || '').trim(),
+        badge: (row.badge || '').trim() || undefined,
+        customizable: /^(si|sí|true|1)$/i.test((row.personalizable || '').trim()) || undefined,
+      });
+    }
+
+    if (nuevos.length){
+      MENU.length = 0;
+      MENU.push(...nuevos);
+      console.log('Menú cargado desde Google Sheets:', nuevos.length, 'platillos.');
+    } else {
+      console.warn('El Sheet respondió pero no tenía filas válidas; se usa el menú local.');
+    }
+  } catch(err){
+    console.warn('No se pudo cargar el menú desde Google Sheets, se usa el menú local:', err);
+  }
+}
+
+(async function initSitio(){
+  await cargarMenuDesdeSheet(); // si hay Sheet configurado, reemplaza el menú antes de pintar nada
+  renderCatTabs();
+  renderMenu();
+  renderTop5();
+  renderDailyStrip();
+  renderTestimonios();
+  updateAuthUI();
+  restaurarSesion();
+})();
+</script>
+
+<!-- Registro del Service Worker (PWA) -->
+<script>
+if ('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(() => console.log('Service Worker registrado — el sitio ya funciona como app instalable.'))
+      .catch(err => console.warn('No se pudo registrar el Service Worker:', err));
+  });
+}
+
+/* Botón "Instalar app" — solo aparece cuando el navegador confirma que se puede instalar */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('installBtn');
+  const btnMobile = document.getElementById('installBtnMobile');
+  if (btn) btn.style.display = 'flex';
+  if (btnMobile) btnMobile.style.display = 'block';
+});
+async function installPWA(){
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  const btn = document.getElementById('installBtn');
+  const btnMobile = document.getElementById('installBtnMobile');
+  if (btn) btn.style.display = 'none';
+  if (btnMobile) btnMobile.style.display = 'none';
+}
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('installBtn');
+  const btnMobile = document.getElementById('installBtnMobile');
+  if (btn) btn.style.display = 'none';
+  if (btnMobile) btnMobile.style.display = 'none';
+});
 </script>
 
 </body>
