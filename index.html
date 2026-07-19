@@ -1902,7 +1902,14 @@ async function confirmOrder(){
     } catch(e){
       console.error('Error al procesar el pedido:', e);
       if (btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido para recoger'; }
-      alert('No pudimos confirmar tu pedido: ' + e.message + '\nIntenta de nuevo en un momento.');
+      let errBox = document.getElementById('orderErrorBox');
+      if (!errBox){
+        errBox = document.createElement('div');
+        errBox.id = 'orderErrorBox';
+        errBox.style.cssText = 'background:#f6e5e5;color:#8c3c3c;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;';
+        document.getElementById('drawerFoot').appendChild(errBox);
+      }
+      errBox.textContent = 'No pudimos confirmar tu pedido: ' + e.message + ' — Intenta de nuevo en un momento.';
     }
     return;
   }
