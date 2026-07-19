@@ -1875,54 +1875,67 @@ function pickupSlotsHTML(){
 
 async function confirmOrder(){
   const sub = subtotal();
-  const earn = Math.floor(sub);
-  const orderNum = Math.floor(1000 + Math.random()*9000);
+  const pickupTimeVal = document.getElementById('pickupTime')?.value || 'Lo antes posible';
+  const btn = document.querySelector('#drawerFoot .btn-primary');
+  if (btn){ btn.disabled = true; btn.textContent = 'Procesando…'; }
 
-  // Recalcular canje con la regla oficial (100 pts = $5), acotado
-  let ptsUsados = 0, descuento = 0, remaining = sub;
+  // ---------- Modo real: Supabase conectado y sesión iniciada ----------
+  if (SUPABASE_LISTO && sb && user){
+    try {
+      const { data: sess } = await sb.auth.getSession();
+      const token = sess?.session?.access_token;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/process-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+          items: cart.map(c => ({ id: c.id, qty: c.qty, opts: c.opts || null })),
+          puntos_a_usar: pointsToApply,
+          horario_recogida: pickupTimeVal,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'No se pudo procesar el pedido.');
+
+      await cargarDatosUsuario((await sb.auth.getSession()).data.session.user);
+      updateAuthUI();
+      renderConfirmacion(data.pedido_id, data.subtotal, data.descuento_aplicado, data.total_a_pagar, data.puntos_ganados, data.puntos_canjeados);
+    } catch(e){
+      console.error('Error al procesar el pedido:', e);
+      if (btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido para recoger'; }
+      alert('No pudimos confirmar tu pedido: ' + e.message + '\nIntenta de nuevo en un momento.');
+    }
+    return;
+  }
+
+  // ---------- Modo demo (sin backend conectado) ----------
+  const earn = Math.floor(sub);
+  let ptsUsados = 0, descuento = 0;
   if (user && pointsToApply >= 100){
     const maxDescuento = Math.floor(sub / 5) * 5;
     const maxPtsUtiles = Math.min(user.points, maxDescuento / 5 * 100);
     ptsUsados = Math.min(Math.floor(pointsToApply/100)*100, Math.floor(maxPtsUtiles/100)*100);
     descuento = ptsUsados / 100 * 5;
-    remaining = Math.max(0, sub - descuento);
   }
+  if (user){ user.points = user.points - ptsUsados + earn; updateAuthUI(); }
+  const orderNum = Math.floor(1000 + Math.random()*9000);
+  renderConfirmacion(orderNum, sub, descuento, Math.max(0, sub-descuento), earn, ptsUsados);
+}
 
-  // ---------- Persistencia real en Supabase ----------
-  // NOTA: en producción, la creación del pedido y las llamadas a
-  // ganar_puntos / canjear_puntos se hacen desde el BACKEND (service_role),
-  // no desde el navegador, para que el cliente no pueda falsear montos.
-  // Aquí dejamos el punto de integración marcado.
-  if (SUPABASE_LISTO && sb && user){
-    try {
-      // Ejemplo de flujo esperado (implementar en tu backend/Edge Function):
-      // 1) crear pedido -> obtener id_pedido real
-      // 2) await sb.rpc('ganar_puntos', { p_usuario:user.authId, p_pedido:id, p_subtotal_alimentos:sub })
-      // 3) si ptsUsados>0: await sb.rpc('canjear_puntos', { ... })
-      // Al recoger/pagar: activar_puntos_pedido(id) desde el backoffice.
-      // Tras ello, refrescamos el saldo mostrado:
-      await cargarDatosUsuario((await sb.auth.getSession()).data.session.user);
-    } catch(e){ console.warn('Sync de puntos pendiente de backend:', e); }
-  } else if (user){
-    // MODO DEMO: simulamos el efecto en memoria
-    user.points = user.points - ptsUsados + earn;
-  }
-  updateAuthUI();
-
+function renderConfirmacion(pedidoId, subtotal, descuento, totalAPagar, puntosGanados, puntosCanjeados){
   const pointsSummary = user
     ? `<p style="font-size:12.5px;color:var(--on-surface-variant);margin-top:8px;">
-         ${ptsUsados > 0 ? `Usaste <b>${ptsUsados} pts</b> (−$${descuento.toFixed(2)}) · ` : ''}Saldo: <b>${user.points} pts</b></p>`
+         ${puntosCanjeados > 0 ? `Usaste <b>${puntosCanjeados} pts</b> (−$${descuento.toFixed(2)}) · ` : ''}Saldo: <b>${user.points} pts</b></p>`
     : '<p style="font-size:12.5px;color:var(--on-surface-variant);margin-top:8px;">Inicia sesión o crea tu cuenta para no perder estos puntos.</p>';
 
   document.getElementById('drawerBody').innerHTML = `
     <div class="confirm-panel">
       <div class="check"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.4"><path d="M5 13l4 4L19 7"/></svg></div>
       <h3 style="font-size:20px;">¡Merci! Pedido confirmado</h3>
-      <p style="font-size:13px;color:var(--on-surface-variant);margin:6px 0 18px;">#ORD-${orderNum} · Te avisaremos cuando esté listo para recoger.</p>
-      ${descuento > 0 ? `<div style="background:var(--surface-container-low);border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:13px;">Total a pagar al recoger: <b>$${remaining.toFixed(2)} MXN</b></div>` : ''}
+      <p style="font-size:13px;color:var(--on-surface-variant);margin:6px 0 18px;">#ORD-${pedidoId} · Te avisaremos cuando esté listo para recoger.</p>
+      ${descuento > 0 ? `<div style="background:var(--surface-container-low);border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:13px;">Total a pagar al recoger: <b>$${totalAPagar.toFixed(2)} MXN</b></div>` : ''}
       <div style="background:var(--surface-container-low);border-radius:8px;padding:16px;text-align:left;">
         <p style="font-size:12px;color:var(--on-surface-variant);margin:0 0 4px;">PROGRAMA DE FIDELIDAD</p>
-        <p style="font-family:var(--serif);font-weight:600;font-size:16px;margin:0;">+${earn} puntos por acreditar</p>
+        <p style="font-family:var(--serif);font-weight:600;font-size:16px;margin:0;">+${puntosGanados} puntos por acreditar</p>
         <p style="font-size:11px;color:var(--on-surface-variant);margin:4px 0 0;">Se activan cuando recojas tu pedido.</p>
         ${pointsSummary}
       </div>
