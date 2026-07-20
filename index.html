@@ -278,7 +278,7 @@
   .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 16px;border-bottom:1px solid var(--outline-variant);}
   .drawer-body{flex:1;overflow-y:auto;padding:18px 22px;}
   .drawer-item{display:flex;gap:12px;padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--outline-variant);}
-  .drawer-item img{width:56px;height:56px;border-radius:var(--radius);object-fit:cover;}
+  .drawer-item-icon{width:44px;height:44px;flex-shrink:0;border-radius:50%;background:var(--surface-container-low);display:flex;align-items:center;justify-content:center;font-size:20px;}
   .qty-ctrl{display:flex;align-items:center;gap:10px;background:var(--surface-container-low);border-radius:20px;padding:4px 10px;width:fit-content;}
   .qty-ctrl button{background:none;border:none;cursor:pointer;color:var(--primary);font-size:14px;width:18px;}
   .drawer-foot{padding:18px 22px 24px;border-top:1px solid var(--outline-variant);}
@@ -365,6 +365,12 @@
   .tk-ok{background:#e3efe4;color:#2f5e34;}
   .tk-err{background:#f6e5e5;color:#8c3c3c;}
   .hist-badge{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10.5px;font-weight:600;}
+  .pedido-card{border:1px solid var(--outline-variant);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+  .pedido-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px;}
+  .pedido-card-items{border-top:1px dashed var(--outline-variant);border-bottom:1px dashed var(--outline-variant);padding:10px 0;margin-bottom:10px;}
+  .pedido-item-row{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0;color:var(--on-surface-variant);}
+  .pedido-card-foot{display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+  .muted-inline{color:var(--on-surface-variant);font-style:italic;}
   .hist-activo{background:#e3efe4;color:#2f5e34;}
   .hist-pendiente{background:#fdf1d6;color:#7a5c00;}
   .hist-canjeado{background:#eae6f7;color:#4b3c8c;}
@@ -1481,7 +1487,7 @@ function closeAccount(){
   document.getElementById('accountDrawer').classList.remove('show');
 }
 
-let accountTab = 'resumen'; // 'resumen' | 'puntos'
+let accountTab = 'resumen'; // 'resumen' | 'puntos' | 'pedidos'
 function setAccountTab(t){ accountTab = t; renderAccount(); }
 
 async function renderAccount(){
@@ -1493,6 +1499,7 @@ async function renderAccount(){
     <div class="acct-tabs">
       <button class="${accountTab==='resumen'?'active':''}" onclick="setAccountTab('resumen')">Resumen</button>
       <button class="${accountTab==='puntos'?'active':''}" onclick="setAccountTab('puntos')">Mis Puntos</button>
+      <button class="${accountTab==='pedidos'?'active':''}" onclick="setAccountTab('pedidos')">Mis Pedidos</button>
     </div>`;
 
   if (accountTab === 'resumen'){
@@ -1529,6 +1536,7 @@ async function renderAccount(){
   }
 
   // Pestaña "Mis Puntos": saldo grande + historial real
+  if (accountTab === 'puntos'){
   body.innerHTML = tabs + `
     <div class="pts-hero">
       <span class="pts-hero-num">${user.points}</span>
@@ -1590,6 +1598,60 @@ async function renderAccount(){
           <div style="font-weight:600;color:${h.tipo==='suma'?'var(--primary-dark)':'var(--gold-dark)'};">${h.tipo==='suma'?'+':'−'}${h.pts} pts</div>
         </div>`).join('')
     : `<div class="empty-cart" style="padding:30px 0;">Aún no tienes movimientos.</div>`;
+  return;
+  }
+
+  // Pestaña "Mis Pedidos": historial de compras con su detalle
+  body.innerHTML = tabs + `<div id="pedidosList"><div class="empty-cart" style="padding:30px 0;">Cargando…</div></div>`;
+
+  if (!SUPABASE_LISTO || !sb){
+    document.getElementById('pedidosList').innerHTML = `<div class="empty-cart" style="padding:30px 0;">Esta sección requiere estar conectado a Supabase.</div>`;
+    return;
+  }
+
+  const { data: pedidos, error } = await sb
+    .from('ordenes')
+    .select('id, subtotal, descuento_aplicado, total_a_pagar, puntos_ganados, horario_recogida, estado, fecha_creacion, ordenes_items(nombre, cantidad, precio_unitario, opciones)')
+    .order('fecha_creacion', { ascending: false });
+
+  const listEl = document.getElementById('pedidosList');
+  if (error){
+    listEl.innerHTML = `<div class="empty-cart" style="padding:30px 0;">No pudimos cargar tus pedidos: ${error.message}</div>`;
+    return;
+  }
+  if (!pedidos || !pedidos.length){
+    listEl.innerHTML = `<div class="empty-cart" style="padding:30px 0;">Aún no has hecho ningún pedido.</div>`;
+    return;
+  }
+
+  const estadoBadge = { pendiente:'Pendiente', entregado:'Entregado', cancelado:'Cancelado' };
+  const estadoClase = { pendiente:'hist-pendiente', entregado:'hist-activo', cancelado:'hist-cancelado' };
+
+  listEl.innerHTML = pedidos.map(p => `
+    <div class="pedido-card">
+      <div class="pedido-card-head">
+        <div>
+          <b>#${p.id}</b>
+          <span class="hist-badge ${estadoClase[p.estado]||''}" style="margin-left:8px;">${estadoBadge[p.estado]||p.estado}</span>
+        </div>
+        <span style="font-size:12px;color:var(--on-surface-variant);">${new Date(p.fecha_creacion).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</span>
+      </div>
+      <div class="pedido-card-items">
+        ${(p.ordenes_items||[]).map(it => `
+          <div class="pedido-item-row">
+            <span>${it.cantidad}× ${it.nombre}${it.opciones ? ` <span class="muted-inline">— ${it.opciones}</span>` : ''}</span>
+            <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+          </div>`).join('')}
+      </div>
+      <div class="pedido-card-foot">
+        <span style="font-size:12px;color:var(--on-surface-variant);">${p.horario_recogida || ''}</span>
+        <span>
+          ${p.descuento_aplicado > 0 ? `<span style="color:var(--gold-dark);font-size:12px;">−$${Number(p.descuento_aplicado).toFixed(2)} · </span>` : ''}
+          <b>$${Number(p.total_a_pagar).toFixed(2)} MXN</b>
+        </span>
+      </div>
+    </div>
+  `).join('');
 }
 
 // ---------- Registro de ticket de sucursal ----------
@@ -1773,12 +1835,18 @@ function renderDrawer(){
     foot.innerHTML = '';
     return;
   }
+  const CATEGORY_ICONS = {
+    cafe: '☕', bebidas: '🥤', desayunos: '🍳', franceses: '🥐',
+    entradas: '🍲', pastas: '🍝', fuertes: '🍽️', hamburguesas: '🍔',
+    infantil: '🧒', postres: '🍰', extras: '➕',
+  };
+
   body.innerHTML = cart.map(c => {
     const item = MENU.find(m => m.id === c.id);
     const lineArg = c.lineId ? `,'${c.lineId}'` : '';
     return `
       <div class="drawer-item">
-        <img src="${item.img}" alt="">
+        <span class="drawer-item-icon">${CATEGORY_ICONS[item.category] || '🍴'}</span>
         <div style="flex:1;">
           <div style="display:flex;justify-content:space-between;gap:8px;">
             <span style="font-family:var(--serif);font-weight:600;font-size:14.5px;">${item.name}</span>
@@ -1835,8 +1903,21 @@ function renderDrawer(){
     totalRows += `<div class="sumrow" style="font-weight:600;font-family:var(--serif);"><span>Total</span><span>$${sub.toFixed(2)} MXN</span></div>`;
   }
 
+  let guestBlock = '';
+  if (!user){
+    guestBlock = `
+      <div class="pts-panel" style="border-color:var(--outline-variant);">
+        <label class="pts-input-label">Nombre</label>
+        <input type="text" id="guestNombre" placeholder="Tu nombre">
+        <label class="pts-input-label" style="margin-top:10px;">Correo (para confirmar tu pedido)</label>
+        <input type="email" id="guestEmail" placeholder="tucorreo@ejemplo.com" required>
+        <p class="pts-hint">Crea una cuenta para ganar puntos de fidelidad en cada pedido.</p>
+      </div>`;
+  }
+
   foot.innerHTML = `
-    <div class="points-note">🏷️ Ganarás <b>${earn} puntos</b> con este pedido.</div>
+    <div class="points-note">${user ? `🏷️ Ganarás <b>${earn} puntos</b> con este pedido.` : '🏷️ Crea una cuenta o inicia sesión para ganar puntos con este pedido.'}</div>
+    ${guestBlock}
     ${pointsBlock}
     <label class="field-label" style="font-size:12px;color:var(--on-surface-variant);">Horario para recoger (Lun–Sáb 7:30am–10pm · Dom 7:30am–1pm)</label>
     <select id="pickupTime">${pickupSlotsHTML()}</select>
@@ -1877,28 +1958,56 @@ async function confirmOrder(){
   const sub = subtotal();
   const pickupTimeVal = document.getElementById('pickupTime')?.value || 'Lo antes posible';
   const btn = document.querySelector('#drawerFoot .btn-primary');
+
+  // Si no hay sesión, el correo es obligatorio para poder mandar la confirmación
+  let guestEmail = '', guestNombre = '';
+  if (!user){
+    guestEmail = document.getElementById('guestEmail')?.value.trim() || '';
+    guestNombre = document.getElementById('guestNombre')?.value.trim() || '';
+    const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail);
+    if (!emailValido){
+      document.getElementById('guestEmail')?.focus();
+      let errBox = document.getElementById('orderErrorBox');
+      if (!errBox){
+        errBox = document.createElement('div');
+        errBox.id = 'orderErrorBox';
+        errBox.style.cssText = 'background:#f6e5e5;color:#8c3c3c;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;';
+        document.getElementById('drawerFoot').appendChild(errBox);
+      }
+      errBox.textContent = 'Escribe un correo válido para poder confirmarte el pedido.';
+      return;
+    }
+  }
+
   if (btn){ btn.disabled = true; btn.textContent = 'Procesando…'; }
 
-  // ---------- Modo real: Supabase conectado y sesión iniciada ----------
-  if (SUPABASE_LISTO && sb && user){
+  // ---------- Modo real: Supabase conectado (con o sin sesión) ----------
+  if (SUPABASE_LISTO && sb){
     try {
-      const { data: sess } = await sb.auth.getSession();
-      const token = sess?.session?.access_token;
+      const headers = { 'Content-Type': 'application/json' };
+      if (user){
+        const { data: sess } = await sb.auth.getSession();
+        headers['Authorization'] = 'Bearer ' + sess?.session?.access_token;
+      }
       const res = await fetch(`${SUPABASE_URL}/functions/v1/process-order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        headers,
         body: JSON.stringify({
           items: cart.map(c => ({ id: c.id, qty: c.qty, opts: c.opts || null })),
           puntos_a_usar: pointsToApply,
           horario_recogida: pickupTimeVal,
+          guest_email: guestEmail,
+          guest_nombre: guestNombre,
         }),
       });
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || 'No se pudo procesar el pedido.');
 
-      await cargarDatosUsuario((await sb.auth.getSession()).data.session.user);
-      updateAuthUI();
-      renderConfirmacion(data.pedido_id, data.subtotal, data.descuento_aplicado, data.total_a_pagar, data.puntos_ganados, data.puntos_canjeados);
+      if (user){
+        await cargarDatosUsuario((await sb.auth.getSession()).data.session.user);
+        updateAuthUI();
+      }
+      renderConfirmacion(data.pedido_id, data.subtotal, data.descuento_aplicado, data.total_a_pagar, data.puntos_ganados, data.puntos_canjeados, guestEmail);
     } catch(e){
       console.error('Error al procesar el pedido:', e);
       if (btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido para recoger'; }
@@ -1925,14 +2034,16 @@ async function confirmOrder(){
   }
   if (user){ user.points = user.points - ptsUsados + earn; updateAuthUI(); }
   const orderNum = Math.floor(1000 + Math.random()*9000);
-  renderConfirmacion(orderNum, sub, descuento, Math.max(0, sub-descuento), earn, ptsUsados);
+  renderConfirmacion(orderNum, sub, descuento, Math.max(0, sub-descuento), earn, ptsUsados, guestEmail);
 }
 
-function renderConfirmacion(pedidoId, subtotal, descuento, totalAPagar, puntosGanados, puntosCanjeados){
+function renderConfirmacion(pedidoId, subtotal, descuento, totalAPagar, puntosGanados, puntosCanjeados, guestEmail){
   const pointsSummary = user
     ? `<p style="font-size:12.5px;color:var(--on-surface-variant);margin-top:8px;">
          ${puntosCanjeados > 0 ? `Usaste <b>${puntosCanjeados} pts</b> (−$${descuento.toFixed(2)}) · ` : ''}Saldo: <b>${user.points} pts</b></p>`
-    : '<p style="font-size:12.5px;color:var(--on-surface-variant);margin-top:8px;">Inicia sesión o crea tu cuenta para no perder estos puntos.</p>';
+    : guestEmail
+      ? `<p style="font-size:12.5px;color:var(--on-surface-variant);margin-top:8px;">Te mandamos la confirmación a <b>${guestEmail}</b>. Crea una cuenta la próxima vez para ganar puntos.</p>`
+      : '<p style="font-size:12.5px;color:var(--on-surface-variant);margin-top:8px;">Inicia sesión o crea tu cuenta para no perder estos puntos.</p>';
 
   document.getElementById('drawerBody').innerHTML = `
     <div class="confirm-panel">
