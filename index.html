@@ -1984,7 +1984,10 @@ async function confirmOrder(){
   // ---------- Modo real: Supabase conectado (con o sin sesión) ----------
   if (SUPABASE_LISTO && sb){
     try {
-      const headers = { 'Content-Type': 'application/json' };
+      // Supabase bloquea cualquier petición sin encabezado de autorización,
+      // así que para invitados mandamos la llave pública como respaldo —
+      // la función igual sabe distinguir "con cuenta" vs "invitado" por dentro.
+      const headers = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON };
       if (user){
         const { data: sess } = await sb.auth.getSession();
         headers['Authorization'] = 'Bearer ' + sess?.session?.access_token;
