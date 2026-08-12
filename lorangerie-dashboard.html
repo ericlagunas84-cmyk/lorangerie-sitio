@@ -100,6 +100,7 @@
     <div class="nav-item active" data-tab="resumen" onclick="goTab('resumen')">📊 Resumen y Ventas</div>
     <div class="nav-item" data-tab="pedidos" onclick="goTab('pedidos')">🧾 Pedidos <span class="badge" id="badgePedidos" style="display:none;"></span></div>
     <div class="nav-item" data-tab="clientes" onclick="goTab('clientes')">👥 Clientes</div>
+    <div class="nav-item" data-tab="fidelidad" onclick="goTab('fidelidad')">🏷️ Fidelidad</div>
     <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
     <div class="nav-item" data-tab="mensajes" onclick="goTab('mensajes')">✉️ Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
     <div class="sidebar-foot">
@@ -168,6 +169,20 @@
           <thead><tr><th>Cliente</th><th>Correo</th><th>Puntos</th><th>Pedidos</th><th>Registro</th><th></th></tr></thead>
           <tbody id="clientesTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- FIDELIDAD -->
+    <div id="tab-fidelidad" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Programa de Fidelidad</h2>
+        <button class="btn btn-ghost btn-sm" onclick="cargarFidelidad()">↻ Actualizar</button>
+      </div>
+      <div class="cards-row" id="fidelidadCards"></div>
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:6px;">Puntos por vencer en los próximos 15 días</h3>
+        <p class="muted" style="font-size:12px;margin:0 0 14px;">Buen momento para avisarles a estos clientes antes de que pierdan sus puntos.</p>
+        <div id="puntosExpirarTable" class="loading">Cargando…</div>
       </div>
     </div>
 
@@ -283,6 +298,7 @@ function goTab(tab){
   if (tab === 'resumen') cargarResumen();
   if (tab === 'pedidos') cargarPedidos();
   if (tab === 'clientes') cargarClientes();
+  if (tab === 'fidelidad') cargarFidelidad();
   if (tab === 'menu') cargarMenu();
   if (tab === 'mensajes') cargarMensajes();
 }
@@ -461,6 +477,35 @@ async function ajustarPuntosCliente(userId, email){
   if (error){ alert('Error: ' + error.message); return; }
   alert('Ajuste aplicado correctamente.');
   cargarClientes();
+}
+
+/* ============================================================
+   FIDELIDAD
+   ============================================================ */
+async function cargarFidelidad(){
+  const { data: r } = await sb.rpc('admin_reporte_puntos', { p_dias: 30 });
+  const rep = r?.[0] || {};
+  document.getElementById('fidelidadCards').innerHTML = `
+    <div class="stat-card"><div class="num">${rep.puntos_en_circulacion ?? 0}</div><div class="lbl">Puntos en circulación</div></div>
+    <div class="stat-card"><div class="num">${rep.clientes_con_puntos ?? 0}</div><div class="lbl">Clientes con saldo</div></div>
+    <div class="stat-card"><div class="num">+${rep.puntos_ganados_periodo ?? 0}</div><div class="lbl">Otorgados (30 días)</div></div>
+    <div class="stat-card"><div class="num">−${rep.puntos_canjeados_periodo ?? 0}</div><div class="lbl">Canjeados (30 días)</div></div>
+    <div class="stat-card"><div class="num">${rep.puntos_expirados_periodo ?? 0}</div><div class="lbl">Expirados (30 días)</div></div>
+  `;
+
+  const { data: porVencer } = await sb.rpc('admin_puntos_por_expirar', { p_dias_ventana: 15 });
+  const el = document.getElementById('puntosExpirarTable');
+  el.innerHTML = (porVencer && porVencer.length)
+    ? `<table><thead><tr><th>Cliente</th><th>Correo</th><th>Puntos</th><th>Vencen el</th></tr></thead><tbody>
+        ${porVencer.map(p => `
+          <tr>
+            <td>${p.nombre}</td>
+            <td class="muted">${p.email}</td>
+            <td><b>${p.puntos}</b> pts</td>
+            <td class="muted">${new Date(p.fecha_expiracion).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</td>
+          </tr>`).join('')}
+       </tbody></table>`
+    : '<p class="muted">Nadie tiene puntos por vencer en los próximos 15 días. 🎉</p>';
 }
 
 /* ============================================================
