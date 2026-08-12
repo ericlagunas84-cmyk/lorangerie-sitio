@@ -911,11 +911,12 @@
           <div><h4>Teléfono / WhatsApp</h4><p>656 318 5717</p></div>
         </div>
       </div>
-      <form class="contact-form" onsubmit="event.preventDefault(); alert('Gracias, te contactaremos pronto.'); this.reset();">
-        <input type="text" placeholder="Nombre completo" required>
-        <input type="email" placeholder="Correo electrónico" required>
-        <textarea placeholder="Mensaje"></textarea>
-        <button class="btn btn-primary" style="width:100%;">Enviar</button>
+      <form class="contact-form" id="contactForm" onsubmit="enviarMensajeContacto(event)">
+        <input type="text" id="contactNombre" placeholder="Nombre completo" required>
+        <input type="email" id="contactEmail" placeholder="Correo electrónico" required>
+        <textarea id="contactMensaje" placeholder="Mensaje" required></textarea>
+        <button class="btn btn-primary" style="width:100%;" type="submit">Enviar</button>
+        <div id="contactMsg"></div>
       </form>
     </div>
   </div>
@@ -2142,6 +2143,32 @@ function performSearch(query){
       </div>
     </div>
   `).join('');
+}
+
+async function enviarMensajeContacto(e){
+  e.preventDefault();
+  const nombre = document.getElementById('contactNombre').value.trim();
+  const email = document.getElementById('contactEmail').value.trim();
+  const mensaje = document.getElementById('contactMensaje').value.trim();
+  const btn = document.querySelector('#contactForm button[type="submit"]');
+  const msgBox = document.getElementById('contactMsg');
+
+  if (!SUPABASE_LISTO || !sb){
+    msgBox.innerHTML = '<p style="color:var(--on-surface-variant);font-size:13px;margin-top:10px;">Gracias, ' + nombre + '. Te contactaremos pronto. (Modo demo: el mensaje no se guardó de verdad.)</p>';
+    document.getElementById('contactForm').reset();
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const { error } = await sb.from('mensajes_contacto').insert({ nombre, email, mensaje });
+  btn.disabled = false; btn.textContent = 'Enviar';
+
+  if (error){
+    msgBox.innerHTML = '<p style="color:#8c3c3c;font-size:13px;margin-top:10px;">No pudimos enviar tu mensaje. Intenta de nuevo o escríbenos por WhatsApp.</p>';
+    return;
+  }
+  msgBox.innerHTML = '<p style="color:var(--primary-dark);font-size:13px;margin-top:10px;">¡Gracias, ' + nombre + '! Te contactaremos pronto.</p>';
+  document.getElementById('contactForm').reset();
 }
 
 function openWhatsApp(){

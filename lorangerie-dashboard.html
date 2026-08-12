@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>L'Orangerie — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sage:#4A5D4A; --sage-dark:#384938; --gold:#C5A028; --gold-dark:#735c00;
+    --cream:#fff8f3; --paper:#FDFBF7; --low:#faf2ec; --outline:#d8dcd5;
+    --on:#1e1b17; --on-var:#434842; --danger:#8c3c3c; --danger-soft:#f6e5e5;
+    --ok:#2f5e34; --ok-soft:#e3efe4; --warn:#7a5c00; --warn-soft:#fdf1d6;
+    --radius:6px; --serif:'Playfair Display',serif; --sans:'Hanken Grotesk',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--on);font-family:var(--sans);line-height:1.5;}
+  h1,h2,h3,h4{font-family:var(--serif);margin:0;color:var(--sage-dark);}
+  a{color:var(--gold-dark);}
+  input,select,textarea{font-family:var(--sans);}
+  .btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-weight:600;font-size:13px;border:none;border-radius:var(--radius);padding:10px 18px;cursor:pointer;transition:opacity .15s;}
+  .btn:disabled{opacity:.5;cursor:default;}
+  .btn-primary{background:var(--sage);color:#fff;} .btn-primary:hover{background:var(--sage-dark);}
+  .btn-ghost{background:var(--low);color:var(--sage-dark);border:1px solid var(--outline);}
+  .btn-danger{background:var(--danger-soft);color:var(--danger);}
+  .btn-sm{padding:6px 12px;font-size:12px;}
+  input[type=text],input[type=email],input[type=number],input[type=date],select{padding:9px 12px;border:1px solid var(--outline);border-radius:var(--radius);font-size:13.5px;background:#fff;width:100%;}
+
+  /* login */
+  .login-gate{max-width:380px;margin:100px auto;padding:0 20px;}
+  .login-card{background:var(--paper);border:1px solid var(--outline);border-radius:14px;padding:28px;}
+
+  /* shell */
+  .shell{display:flex;min-height:100vh;}
+  .sidebar{width:220px;flex-shrink:0;background:var(--sage-dark);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;}
+  .sidebar-brand{padding:22px 20px;font-family:var(--serif);font-weight:700;font-size:19px;border-bottom:1px solid rgba(255,255,255,.12);}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:13px 20px;color:rgba(255,255,255,.75);cursor:pointer;font-size:13.5px;font-weight:600;border-left:3px solid transparent;}
+  .nav-item:hover{background:rgba(255,255,255,.06);}
+  .nav-item.active{background:rgba(255,255,255,.1);color:#fff;border-left-color:var(--gold);}
+  .nav-item .badge{margin-left:auto;background:var(--gold);color:var(--sage-dark);font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;}
+  .sidebar-foot{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.12);font-size:11.5px;color:rgba(255,255,255,.6);}
+  .main{margin-left:220px;flex:1;padding:28px 32px;max-width:1200px;}
+  @media(max-width:820px){
+    .sidebar{position:static;width:100%;flex-direction:row;overflow-x:auto;height:auto;}
+    .sidebar-brand{display:none;} .sidebar-foot{display:none;}
+    .nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap;}
+    .nav-item.active{border-left-color:transparent;border-bottom-color:var(--gold);}
+    .main{margin-left:0;padding:20px;}
+  }
+
+  .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+  .card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:20px;margin-bottom:20px;}
+  .cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+  .stat-card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:18px;}
+  .stat-card .num{font-family:var(--serif);font-weight:700;font-size:28px;color:var(--sage-dark);}
+  .stat-card .lbl{font-size:12px;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--on-var);padding:8px 10px;border-bottom:2px solid var(--outline);}
+  td{padding:10px;border-bottom:1px solid var(--outline);vertical-align:middle;}
+  tr:hover td{background:var(--low);}
+  .muted{color:var(--on-var);}
+  .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:10.5px;font-weight:700;}
+  .b-pendiente{background:var(--warn-soft);color:var(--warn);}
+  .b-entregado{background:var(--ok-soft);color:var(--ok);}
+  .b-cancelado{background:var(--danger-soft);color:var(--danger);}
+  .tabs-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .tabs-row button{background:var(--low);border:1px solid var(--outline);color:var(--on-var);font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:16px;cursor:pointer;}
+  .tabs-row button.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .msg-box{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-top:10px;}
+  .msg-ok{background:var(--ok-soft);color:var(--ok);} .msg-err{background:var(--danger-soft);color:var(--danger);}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal-card{background:var(--paper);border-radius:12px;padding:24px;width:420px;max-width:100%;max-height:85vh;overflow-y:auto;}
+  .field-group{margin-bottom:12px;}
+  .field-group label{display:block;font-size:11.5px;font-weight:600;color:var(--on-var);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;}
+  .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-right:6px;}
+  .loading{padding:30px;text-align:center;color:var(--on-var);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <h2 style="font-size:22px;margin-bottom:6px;">L'Orangerie</h2>
+    <p class="muted" style="margin:0 0 18px;">Dashboard de administración</p>
+    <div class="field-group"><label>Correo</label><input type="text" id="admEmail" placeholder="admin@lorangerie.com"></div>
+    <div class="field-group"><label>Contraseña</label><input type="text" id="admPass" style="-webkit-text-security:disc;"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="adminLogin()">Entrar</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div class="shell" id="shell" style="display:none;">
+  <div class="sidebar">
+    <div class="sidebar-brand">L'Orangerie</div>
+    <div class="nav-item active" data-tab="resumen" onclick="goTab('resumen')">📊 Resumen y Ventas</div>
+    <div class="nav-item" data-tab="pedidos" onclick="goTab('pedidos')">🧾 Pedidos <span class="badge" id="badgePedidos" style="display:none;"></span></div>
+    <div class="nav-item" data-tab="clientes" onclick="goTab('clientes')">👥 Clientes</div>
+    <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
+    <div class="nav-item" data-tab="mensajes" onclick="goTab('mensajes')">✉️ Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
+    <div class="sidebar-foot" id="adminEmailFoot"></div>
+  </div>
+
+  <div class="main">
+
+    <!-- RESUMEN -->
+    <div id="tab-resumen" class="tab-panel">
+      <div class="section-head">
+        <h2>Resumen y Ventas</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="ventasRango" onchange="cargarResumen()">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="exportarVentasCSV()">⬇ Exportar CSV</button>
+        </div>
+      </div>
+      <div class="cards-row" id="statsCards"></div>
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:14px;">Ventas por día</h3>
+        <div id="ventasPorDia" class="loading">Cargando…</div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:14px;">Platillos más vendidos</h3>
+        <div id="topPlatillos" class="loading">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- PEDIDOS -->
+    <div id="tab-pedidos" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Pedidos</h2>
+        <button class="btn btn-ghost btn-sm" onclick="cargarPedidos()">↻ Actualizar</button>
+      </div>
+      <div class="tabs-row" id="pedidosFiltro">
+        <button class="active" onclick="filtrarPedidos(null, this)">Todos</button>
+        <button onclick="filtrarPedidos('pendiente', this)">Pendientes</button>
+        <button onclick="filtrarPedidos('entregado', this)">Entregados</button>
+        <button onclick="filtrarPedidos('cancelado', this)">Cancelados</button>
+      </div>
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead><tr><th>#</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Horario</th><th>Fecha</th><th></th></tr></thead>
+          <tbody id="pedidosTable"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div id="tab-clientes" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Clientes</h2>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="clienteBuscar" placeholder="Buscar por nombre o correo…" style="width:220px;" oninput="filtrarClientesTabla()">
+          <button class="btn btn-ghost btn-sm" onclick="cargarClientes()">↻ Actualizar</button>
+        </div>
+      </div>
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead><tr><th>Cliente</th><th>Correo</th><th>Puntos</th><th>Pedidos</th><th>Registro</th><th></th></tr></thead>
+          <tbody id="clientesTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MENU -->
+    <div id="tab-menu" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Menú</h2>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalProducto(null)">+ Nuevo platillo</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Esto edita los precios oficiales que usa el sitio para cobrar. Si también editas tu Google Sheet, procura mantener ambos igual.</p>
+      <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
+        <table>
+          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Activo</th><th></th></tr></thead>
+          <tbody id="menuTable"><tr><td colspan="5" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MENSAJES -->
+    <div id="tab-mensajes" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Mensajes del sitio</h2>
+        <button class="btn btn-ghost btn-sm" onclick="cargarMensajes()">↻ Actualizar</button>
+      </div>
+      <div id="mensajesList"><div class="loading">Cargando…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: producto -->
+<div class="modal-overlay" id="modalProducto">
+  <div class="modal-card">
+    <h3 id="modalProductoTitle" style="font-size:18px;margin-bottom:16px;">Nuevo platillo</h3>
+    <div class="field-group"><label>ID (sin espacios, ej. tarta-manzana)</label><input type="text" id="prodId"></div>
+    <div class="field-group"><label>Nombre</label><input type="text" id="prodNombre"></div>
+    <div class="field-group"><label>Precio (MXN)</label><input type="number" id="prodPrecio" step="0.01" min="0"></div>
+    <div class="field-group">
+      <label>Categoría</label>
+      <select id="prodCategoria">
+        <option value="cafe">Café</option><option value="bebidas">Bebidas</option>
+        <option value="desayunos">Desayunos</option><option value="franceses">Franceses</option>
+        <option value="entradas">Entradas</option><option value="pastas">Pastas</option>
+        <option value="fuertes">Platos Fuertes</option><option value="hamburguesas">Hamburguesas</option>
+        <option value="infantil">Infantil</option><option value="postres">Postres</option>
+        <option value="extras">Extras</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;">
+        <input type="checkbox" id="prodActivo" checked style="width:auto;"> Visible en el menú
+      </label>
+    </div>
+    <div id="modalProductoMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="cerrarModalProducto()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="guardarProducto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: detalle de pedido -->
+<div class="modal-overlay" id="modalPedido">
+  <div class="modal-card" style="width:480px;">
+    <h3 style="font-size:18px;margin-bottom:16px;">Detalle del pedido <span id="modalPedidoId"></span></h3>
+    <div id="modalPedidoBody"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="document.getElementById('modalPedido').classList.remove('show')">Cerrar</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL  = "https://ijxihmmbufoagibdskza.supabase.co";
+const SUPABASE_ANON = "sb_publishable_oXyHnZYo0zuizNaGsnRqLw_aEiRRmTQ";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let pedidosCache = [];
+let clientesCache = [];
+let menuCache = [];
+
+/* ---------- login ---------- */
+async function adminLogin(){
+  const email = document.getElementById('admEmail').value.trim();
+  const password = document.getElementById('admPass').value;
+  const msg = document.getElementById('loginMsg');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  const rol = data.user.user_metadata?.rol;
+  if (rol !== 'admin'){
+    msg.innerHTML = `<div class="msg-box msg-err">Esta cuenta no tiene permisos de administrador.</div>`;
+    await sb.auth.signOut();
+    return;
+  }
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('shell').style.display = 'flex';
+  document.getElementById('adminEmailFoot').textContent = data.user.email;
+  cargarResumen();
+}
+
+/* ---------- navegación ---------- */
+function goTab(tab){
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('tab-' + tab).style.display = 'block';
+  document.querySelector(`.nav-item[data-tab="${tab}"]`).classList.add('active');
+  if (tab === 'resumen') cargarResumen();
+  if (tab === 'pedidos') cargarPedidos();
+  if (tab === 'clientes') cargarClientes();
+  if (tab === 'menu') cargarMenu();
+  if (tab === 'mensajes') cargarMensajes();
+}
+
+/* ============================================================
+   RESUMEN Y VENTAS
+   ============================================================ */
+async function cargarResumen(){
+  const dias = document.getElementById('ventasRango').value;
+  const { data: resumen } = await sb.rpc('admin_reporte_ventas', { p_dias: Number(dias) });
+  const r = resumen?.[0] || { total_ventas:0, total_pedidos:0, ticket_promedio:0 };
+  document.getElementById('statsCards').innerHTML = `
+    <div class="stat-card"><div class="num">$${Number(r.total_ventas).toLocaleString('es-MX',{minimumFractionDigits:2})}</div><div class="lbl">Ventas totales</div></div>
+    <div class="stat-card"><div class="num">${r.total_pedidos}</div><div class="lbl">Pedidos</div></div>
+    <div class="stat-card"><div class="num">$${Number(r.ticket_promedio).toFixed(2)}</div><div class="lbl">Ticket promedio</div></div>
+  `;
+
+  const { data: porDia } = await sb.rpc('admin_ventas_por_dia', { p_dias: Number(dias) });
+  const maxVenta = Math.max(1, ...(porDia || []).map(d => Number(d.total)));
+  document.getElementById('ventasPorDia').innerHTML = (porDia && porDia.length)
+    ? porDia.map(d => `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="width:80px;font-size:12px;color:var(--on-var);flex-shrink:0;">${new Date(d.dia).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}</span>
+          <div style="flex:1;background:var(--low);border-radius:4px;overflow:hidden;height:20px;">
+            <div style="width:${Number(d.total)/maxVenta*100}%;background:var(--sage);height:100%;"></div>
+          </div>
+          <span style="width:90px;text-align:right;font-size:12.5px;font-weight:600;flex-shrink:0;">$${Number(d.total).toFixed(0)}</span>
+        </div>`).join('')
+    : '<p class="muted">Sin ventas en este periodo.</p>';
+
+  const { data: top } = await sb.rpc('admin_top_platillos', { p_dias: Number(dias), p_limite: 10 });
+  document.getElementById('topPlatillos').innerHTML = (top && top.length)
+    ? `<table><thead><tr><th>Platillo</th><th>Cantidad vendida</th><th>Ingresos</th></tr></thead><tbody>
+        ${top.map(t => `<tr><td>${t.nombre}</td><td>${t.veces_vendido}</td><td>$${Number(t.total_ingresos).toFixed(2)}</td></tr>`).join('')}
+       </tbody></table>`
+    : '<p class="muted">Sin datos en este periodo.</p>';
+
+  window._ventasPorDiaCache = porDia || [];
+  window._topPlatillosCache = top || [];
+}
+
+function exportarVentasCSV(){
+  const porDia = window._ventasPorDiaCache || [];
+  const top = window._topPlatillosCache || [];
+  let csv = 'Ventas por día\ndia,total,pedidos\n';
+  csv += porDia.map(d => `${d.dia},${d.total},${d.pedidos}`).join('\n');
+  csv += '\n\nPlatillos más vendidos\nnombre,veces_vendido,total_ingresos\n';
+  csv += top.map(t => `"${t.nombre}",${t.veces_vendido},${t.total_ingresos}`).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'reporte-ventas-lorangerie.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   PEDIDOS
+   ============================================================ */
+let filtroPedidoActual = null;
+async function cargarPedidos(){
+  const { data, error } = await sb.rpc('admin_pedidos_todos', { p_estado: filtroPedidoActual });
+  const tbody = document.getElementById('pedidosTable');
+  if (error){ tbody.innerHTML = `<tr><td colspan="7" class="muted">Error: ${error.message}</td></tr>`; return; }
+  pedidosCache = data || [];
+
+  const pendientes = pedidosCache.filter(p => p.estado === 'pendiente').length;
+  const badge = document.getElementById('badgePedidos');
+  if (pendientes > 0){ badge.style.display = 'inline-block'; badge.textContent = pendientes; }
+  else badge.style.display = 'none';
+
+  if (!pedidosCache.length){ tbody.innerHTML = '<tr><td colspan="7" class="muted">No hay pedidos en este filtro.</td></tr>'; return; }
+
+  const badgeClase = { pendiente:'b-pendiente', entregado:'b-entregado', cancelado:'b-cancelado' };
+  tbody.innerHTML = pedidosCache.map(p => `
+    <tr>
+      <td>#${p.id}</td>
+      <td>${p.cliente_email}</td>
+      <td>$${Number(p.total_a_pagar).toFixed(2)}</td>
+      <td><span class="badge ${badgeClase[p.estado]}">${p.estado}</span></td>
+      <td class="muted">${p.horario_recogida || '—'}</td>
+      <td class="muted">${new Date(p.fecha_creacion).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="verDetallePedido(${p.id})">Ver</button>
+        ${p.estado === 'pendiente' ? `
+          <button class="btn btn-primary btn-sm" onclick="activarPedido(${p.id})">Entregado</button>
+          <button class="btn btn-danger btn-sm" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function filtrarPedidos(estado, btn){
+  filtroPedidoActual = estado;
+  document.querySelectorAll('#pedidosFiltro button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  cargarPedidos();
+}
+
+async function verDetallePedido(id){
+  document.getElementById('modalPedidoId').textContent = '#' + id;
+  document.getElementById('modalPedidoBody').innerHTML = '<div class="loading">Cargando…</div>';
+  document.getElementById('modalPedido').classList.add('show');
+  const { data, error } = await sb.rpc('admin_detalle_pedido', { p_pedido: id });
+  const body = document.getElementById('modalPedidoBody');
+  if (error){ body.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
+  body.innerHTML = (data && data.length)
+    ? data.map(it => `
+        <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--outline);font-size:13px;">
+          <span>${it.cantidad}× ${it.nombre}${it.opciones ? `<br><span class="muted" style="font-size:11.5px;">${it.opciones}</span>` : ''}</span>
+          <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+        </div>`).join('')
+    : '<p class="muted">Sin platillos registrados.</p>';
+}
+
+async function activarPedido(id){
+  if (!confirm(`¿Confirmar que el pedido #${id} ya fue entregado?`)) return;
+  const { error } = await sb.rpc('admin_activar_pedido', { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarPedidos();
+}
+async function cancelarPedido(id){
+  if (!confirm(`¿Cancelar el pedido #${id}?`)) return;
+  const { error } = await sb.rpc('admin_cancelar_pedido', { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarPedidos();
+}
+
+/* ============================================================
+   CLIENTES
+   ============================================================ */
+async function cargarClientes(){
+  const { data, error } = await sb.rpc('admin_clientes_list');
+  const tbody = document.getElementById('clientesTable');
+  if (error){ tbody.innerHTML = `<tr><td colspan="6" class="muted">Error: ${error.message}</td></tr>`; return; }
+  clientesCache = data || [];
+  renderClientesTabla(clientesCache);
+}
+
+function renderClientesTabla(lista){
+  const tbody = document.getElementById('clientesTable');
+  if (!lista.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">Sin clientes.</td></tr>'; return; }
+  tbody.innerHTML = lista.map(c => `
+    <tr>
+      <td>${c.nombre}</td>
+      <td class="muted">${c.email}</td>
+      <td><b>${c.saldo_disponible}</b> pts</td>
+      <td>${c.total_pedidos}</td>
+      <td class="muted">${new Date(c.fecha_registro).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="ajustarPuntosCliente('${c.id}','${c.email}')">Ajustar puntos</button></td>
+    </tr>`).join('');
+}
+
+function filtrarClientesTabla(){
+  const q = document.getElementById('clienteBuscar').value.trim().toLowerCase();
+  const filtrado = clientesCache.filter(c => c.nombre.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
+  renderClientesTabla(filtrado);
+}
+
+async function ajustarPuntosCliente(userId, email){
+  const cantidad = prompt(`Ajuste de puntos para ${email}\n\n¿Cuántos puntos? (usa negativo para restar, ej. -50)`);
+  if (cantidad === null || cantidad.trim() === '') return;
+  const num = parseInt(cantidad, 10);
+  if (isNaN(num) || num === 0){ alert('Cantidad inválida.'); return; }
+  const motivo = prompt('Motivo del ajuste (obligatorio):');
+  if (!motivo || !motivo.trim()){ alert('El motivo es obligatorio.'); return; }
+
+  const { data: sess } = await sb.auth.getSession();
+  const { error } = await sb.rpc('ajuste_manual', {
+    p_usuario: userId,
+    p_tipo: num > 0 ? 'suma' : 'resta',
+    p_puntos: Math.abs(num),
+    p_motivo: motivo,
+    p_admin: sess.session.user.email,
+  });
+  if (error){ alert('Error: ' + error.message); return; }
+  alert('Ajuste aplicado correctamente.');
+  cargarClientes();
+}
+
+/* ============================================================
+   MENÚ
+   ============================================================ */
+async function cargarMenu(){
+  const { data, error } = await sb.rpc('admin_productos_list');
+  const tbody = document.getElementById('menuTable');
+  if (error){ tbody.innerHTML = `<tr><td colspan="5" class="muted">Error: ${error.message}</td></tr>`; return; }
+  menuCache = data || [];
+  tbody.innerHTML = menuCache.map(p => `
+    <tr>
+      <td>${p.nombre}</td>
+      <td class="muted">${p.categoria}</td>
+      <td>$${Number(p.precio).toFixed(2)}</td>
+      <td>${p.activo ? '<span class="badge b-entregado">Sí</span>' : '<span class="badge b-cancelado">No</span>'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick='abrirModalProducto(${JSON.stringify(p)})'>Editar</button></td>
+    </tr>`).join('');
+}
+
+function abrirModalProducto(producto){
+  document.getElementById('modalProductoMsg').innerHTML = '';
+  document.getElementById('modalProductoTitle').textContent = producto ? 'Editar platillo' : 'Nuevo platillo';
+  document.getElementById('prodId').value = producto?.id || '';
+  document.getElementById('prodId').disabled = !!producto;
+  document.getElementById('prodNombre').value = producto?.nombre || '';
+  document.getElementById('prodPrecio').value = producto?.precio || '';
+  document.getElementById('prodCategoria').value = producto?.categoria || 'cafe';
+  document.getElementById('prodActivo').checked = producto ? producto.activo : true;
+  document.getElementById('modalProducto').classList.add('show');
+}
+function cerrarModalProducto(){
+  document.getElementById('modalProducto').classList.remove('show');
+}
+
+async function guardarProducto(){
+  const id = document.getElementById('prodId').value.trim();
+  const nombre = document.getElementById('prodNombre').value.trim();
+  const precio = parseFloat(document.getElementById('prodPrecio').value);
+  const categoria = document.getElementById('prodCategoria').value;
+  const activo = document.getElementById('prodActivo').checked;
+  const msg = document.getElementById('modalProductoMsg');
+
+  if (!id || !/^[a-z0-9\-]+$/.test(id)){
+    msg.innerHTML = '<div class="msg-box msg-err">El ID solo puede tener minúsculas, números y guiones.</div>'; return;
+  }
+  if (!nombre || isNaN(precio) || precio < 0){
+    msg.innerHTML = '<div class="msg-box msg-err">Revisa el nombre y el precio.</div>'; return;
+  }
+
+  const { error } = await sb.rpc('admin_producto_guardar', {
+    p_id: id, p_nombre: nombre, p_precio: precio, p_categoria: categoria, p_activo: activo,
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  cerrarModalProducto();
+  cargarMenu();
+}
+
+/* ============================================================
+   MENSAJES
+   ============================================================ */
+async function cargarMensajes(){
+  const { data, error } = await sb.rpc('admin_mensajes_list');
+  const el = document.getElementById('mensajesList');
+  if (error){ el.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
+
+  const noLeidos = (data || []).filter(m => !m.leido).length;
+  const badge = document.getElementById('badgeMensajes');
+  if (noLeidos > 0){ badge.style.display = 'inline-block'; badge.textContent = noLeidos; }
+  else badge.style.display = 'none';
+
+  if (!data || !data.length){ el.innerHTML = '<p class="muted">Sin mensajes todavía.</p>'; return; }
+
+  el.innerHTML = data.map(m => `
+    <div class="card" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <div>
+          <b>${!m.leido ? '<span class="unread-dot"></span>' : ''}${m.nombre}</b>
+          <span class="muted" style="font-size:12px;"> — ${m.email}</span>
+        </div>
+        <span class="muted" style="font-size:11.5px;white-space:nowrap;">${new Date(m.fecha_creacion).toLocaleDateString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      <p style="margin:10px 0;font-size:13.5px;">${m.mensaje}</p>
+      <div style="display:flex;gap:8px;">
+        <a href="mailto:${m.email}" class="btn btn-ghost btn-sm">Responder por correo</a>
+        ${!m.leido ? `<button class="btn btn-ghost btn-sm" onclick="marcarLeido(${m.id})">Marcar como leído</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function marcarLeido(id){
+  await sb.rpc('admin_mensaje_marcar_leido', { p_id: id, p_leido: true });
+  cargarMensajes();
+}
+</script>
+</body>
+</html>
