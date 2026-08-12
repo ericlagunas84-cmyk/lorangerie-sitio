@@ -1,0 +1,347 @@
+<!DOCTYPE html><html class="light" lang="es"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dashboard - L'Orangerie</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=Inter:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-container": "#191c1e",
+                        "surface-variant": "#d3e4fe",
+                        "secondary-container": "#006838",
+                        "on-tertiary-fixed": "#191c1e",
+                        "inverse-primary": "#bec6e0",
+                        "primary-fixed": "#dae2fd",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#213145",
+                        "on-surface-variant": "#45464d",
+                        "tertiary": "#000000",
+                        "surface-bright": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "secondary": "#006838",
+                        "secondary-fixed-dim": "#8fcfae",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c6c6cd",
+                        "primary-container": "#131b2e",
+                        "on-secondary-fixed-variant": "#00543a",
+                        "on-primary-container": "#7c839b",
+                        "on-error-container": "#93000a",
+                        "on-primary-fixed": "#131b2e",
+                        "surface-container-highest": "#d3e4fe",
+                        "background": "#f8f9ff",
+                        "primary": "#000000",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "secondary-fixed": "#d4ede0",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#565e74",
+                        "on-tertiary-container": "#818486",
+                        "on-error": "#ffffff",
+                        "surface": "#f8f9ff",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "on-secondary-fixed": "#00210f",
+                        "surface-container-low": "#eff4ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-container": "#ffffff",
+                        "outline": "#76777d",
+                        "primary-fixed-dim": "#bec6e0",
+                        "surface-container-high": "#dce9ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container": "#e5eeff",
+                        "on-background": "#0b1c30",
+                        "tertiary-fixed": "#e0e3e5"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    spacing: {
+                        "stack-lg": "24px",
+                        "container-margin": "32px",
+                        "sidebar-width": "260px",
+                        "gutter": "24px",
+                        "stack-sm": "4px",
+                        "stack-md": "12px",
+                        "base": "8px"
+                    },
+                    fontFamily: {
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-md": ["Inter"],
+                        "headline-sm": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Hanken Grotesk"]
+                    },
+                    fontSize: {
+                        "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "headline-lg-mobile": ["26px", { lineHeight: "32px", fontWeight: "700" }],
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+                        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+                        "headline-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for sidebar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #45464d;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 w-full md:w-[calc(100%-260px)] h-16 bg-surface-container-lowest border-b border-outline-variant shadow-sm z-40 transition-all duration-200 ease-in-out flex justify-between items-center px-container-margin">
+<!-- Mobile Burger (hidden on desktop) -->
+<button aria-label="Menu" class="md:hidden p-2 rounded-full hover:bg-surface-container-high transition-colors" onclick="document.getElementById('mobile-sidebar').classList.toggle('-translate-x-full')">
+<span class="material-symbols-outlined text-primary" data-icon="menu">menu</span>
+</button>
+<!-- Search Bar -->
+<div class="flex-1 flex items-center">
+<div class="relative w-full max-w-md hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]" data-icon="search">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-full font-body-md text-body-md text-on-surface focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 transition-all" placeholder="Search across L'Orangerie..." type="text">
+</div>
+<!-- Mobile Search Icon -->
+<button aria-label="Search" class="md:hidden ml-4 p-2 rounded-full hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="search">search</span>
+</button>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-stack-md">
+<button aria-label="Notifications" class="p-2 text-on-surface-variant hover:text-secondary hover:bg-secondary-fixed-dim/10 rounded-full transition-colors scale-95 active:opacity-80 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface-container-lowest"></span>
+</button>
+<button aria-label="Account" class="p-2 text-on-surface-variant hover:text-secondary hover:bg-secondary-fixed-dim/10 rounded-full transition-colors scale-95 active:opacity-80 flex items-center gap-2">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-md text-label-md hidden lg:block">Admin User</span>
+</button>
+</div>
+</header>
+<!-- SideNavBar (Desktop & Mobile Wrapper) -->
+<nav class="w-sidebar-width h-screen fixed left-0 top-0 bg-primary-container border-r border-outline-variant z-50 flex flex-col py-container-margin transition-transform duration-300 ease-in-out md:translate-x-0 -translate-x-full" id="mobile-sidebar">
+<!-- Close button for mobile -->
+<button class="md:hidden absolute top-4 right-4 p-2 text-on-primary-container hover:text-on-primary transition-colors" onclick="document.getElementById('mobile-sidebar').classList.add('-translate-x-full')">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+<!-- Brand/Header -->
+<div class="px-container-margin mb-stack-lg flex items-center gap-stack-md">
+<div class="w-10 h-10 rounded-lg bg-surface-container-lowest flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-secondary" data-icon="corporate_fare">corporate_fare</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-primary">L'Orangerie</h1>
+<p class="font-body-md text-[11px] text-on-primary/70 tracking-wider uppercase">Enterprise SaaS</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<ul class="flex flex-col gap-1 px-4 mt-4 font-body-md text-body-md">
+<!-- Active Tab -->
+<li class="">
+<a class="flex items-center gap-base px-stack-md py-stack-md bg-surface-container-lowest text-secondary border-l-4 border-secondary font-bold rounded-r-md transition-all duration-200 ease-in-out" href="dashboard_de_restaurante.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<!-- Inactive Tabs -->
+<li class="">
+<a class="flex items-center gap-base px-stack-md py-stack-md text-on-primary hover:bg-white/10 transition-colors rounded-r-md border-l-4 border-transparent duration-200 ease-in-out" href="informes_de_restaurante.html">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+                    Informes
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-stack-md py-stack-md text-on-primary hover:bg-white/10 transition-colors rounded-r-md border-l-4 border-transparent duration-200 ease-in-out" href="inventario_de_cocina.html">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+                    Inventarios
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-stack-md py-stack-md text-on-primary hover:bg-white/10 transition-colors rounded-r-md border-l-4 border-transparent duration-200 ease-in-out" href="gesti_n_de_men_bistro_central.html">
+<span class="material-symbols-outlined" data-icon="restaurant_menu">restaurant_menu</span>
+                    Menú
+                </a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-stack-md py-stack-md text-on-primary hover:bg-white/10 transition-colors rounded-r-md border-l-4 border-transparent duration-200 ease-in-out" href="mensajes_internos.html">
+<div class="flex items-center gap-base">
+<span class="material-symbols-outlined" data-icon="mail">mail</span>
+                        Mensajes
+                    </div>
+<span class="bg-error text-on-error font-label-md text-[10px] px-2 py-0.5 rounded-full">3</span>
+</a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-stack-md py-stack-md text-on-primary hover:bg-white/10 transition-colors rounded-r-md border-l-4 border-transparent duration-200 ease-in-out" href="terminal_de_ventas_pos.html">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                    Ventas
+                </a>
+</li>
+</ul>
+<!-- Bottom Settings Link -->
+<div class="mt-auto px-4">
+<a class="flex items-center gap-base px-stack-md py-stack-md text-on-primary hover:bg-white/10 transition-colors rounded-md duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="md:ml-sidebar-width pt-[80px] p-4 md:p-container-margin max-w-7xl mx-auto transition-all duration-300">
+<!-- Page Header -->
+<div class="mb-gutter flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-background font-bold tracking-tight">Executive Summary</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-1">Overview of core enterprise metrics for Q3.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 border border-outline-variant bg-transparent text-on-surface rounded-md font-label-md text-label-md hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="download">download</span>
+                    Export
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-md font-label-md text-label-md hover:bg-tertiary-container transition-colors flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                    New Report
+                </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Metric Card 1: Total Sales (Span 4) -->
+<div class="md:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col justify-between hover:border-outline transition-colors relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-surface-container-low rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+<div class="flex justify-between items-start z-10">
+<h3 class="font-headline-sm text-headline-sm text-on-surface-variant">Ventas del Día</h3>
+<div class="w-10 h-10 rounded-full bg-secondary-fixed/30 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+</div>
+</div>
+<div class="mt-4 z-10">
+<div class="font-headline-lg text-[36px] font-bold text-on-surface">$4,250.00</div>
+<div class="flex items-center gap-1 mt-1 font-label-md text-label-md">
+<span class="text-secondary flex items-center"><span class="material-symbols-outlined text-[14px]" data-icon="arrow_upward">arrow_upward</span> 12.5%</span>
+<span class="text-on-surface-variant">vs last month</span>
+</div>
+</div>
+</div>
+<!-- Metric Card 2: Low Inventory (Span 4) -->
+<div class="md:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col justify-between hover:border-outline transition-colors relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-error-container/30 rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+<div class="flex justify-between items-start z-10">
+<h3 class="font-headline-sm text-headline-sm text-on-surface-variant">Mesas Activas</h3>
+<div class="w-10 h-10 rounded-full bg-error-container/50 flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined" data-icon="warning">restaurant</span>
+</div>
+</div>
+<div class="mt-4 z-10">
+<div class="font-headline-lg text-[36px] font-bold text-on-surface">18/25</div>
+<div class="flex items-center gap-1 mt-1 font-label-md text-label-md">
+<span class="text-error flex items-center"><span class="material-symbols-outlined text-[14px]" data-icon="arrow_upward">restaurant</span> 5 items</span>
+<span class="text-on-surface-variant">critical level</span>
+</div>
+</div>
+</div>
+<!-- Metric Card 3: New Messages (Span 4) -->
+<div class="md:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col justify-between hover:border-outline transition-colors relative overflow-hidden group">
+<div class="absolute -right-4 -top-4 w-24 h-24 bg-surface-container-low rounded-full opacity-50 group-hover:scale-110 transition-transform duration-500"></div>
+<div class="flex justify-between items-start z-10">
+<h3 class="font-headline-sm text-headline-sm text-on-surface-variant">Alertas de Cocina</h3>
+<div class="w-10 h-10 rounded-full bg-primary-fixed/50 flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-icon="forum">skillet</span>
+</div>
+</div>
+<div class="mt-4 z-10">
+<div class="font-headline-lg text-[36px] font-bold text-on-surface">4</div>
+<div class="flex items-center gap-1 mt-1 font-label-md text-label-md">
+<span class="text-on-surface-variant flex items-center">3 require attention</span>
+</div>
+</div>
+</div>
+<!-- Chart Section (Span 8) -->
+<div class="md:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 md:p-6 flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md font-bold text-on-surface">Ventas por Hora</h3>
+<button class="p-1 text-on-surface-variant hover:bg-surface-container-low rounded-md transition-colors">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<!-- Simulated Chart Area -->
+<div class="flex-1 min-h-[250px] relative w-full border-b border-l border-outline-variant/50 pt-4 pr-2">
+<!-- Y Axis Labels -->
+<div class="absolute left-[-30px] top-0 bottom-0 flex flex-col justify-between text-[10px] text-on-surface-variant font-label-md">
+<span class="">100k</span>
+<span class="">75k</span>
+<span class="">50k</span>
+<span class="">25k</span>
+<span class="">0</span>
+</div>
+<!-- Chart Bars (Simulated Data) -->
+<div class="flex justify-around items-end h-full w-full px-2 gap-2">
+<div class="w-full bg-secondary-fixed/50 hover:bg-secondary transition-colors rounded-t-sm h-[40%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">$40k</div>
+</div>
+<div class="w-full bg-secondary-fixed/50 hover:bg-secondary transition-colors rounded-t-sm h-[65%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">$65k</div>
+</div>
+<div class="w-full bg-secondary rounded-t-sm h-[85%] relative group shadow-[0_0_10px_rgba(0,88,190,0.3)]">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">$85k</div>
+</div>
+<div class="w-full bg-secondary-fixed/50 hover:bg-secondary transition-colors rounded-t-sm h-[50%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">$50k</div>
+</div>
+<div class="w-full bg-secondary-fixed/50 hover:bg-secondary transition-colors rounded-t-sm h-[70%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">$70k</div>
+</div>
+<div class="w-full bg-secondary-fixed/50 hover:bg-secondary transition-colors rounded-t-sm h-[90%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">$90k</div>
+</div>
+</div>
+<!-- Horizontal Grid Lines -->
+<div class="absolute top-[25%] w-full h-[1px] border-t border-dashed border-outline-variant/30 -z-10"></div>
+<div class="absolute top-[50%] w-full h-[1px] border-t border-dashed border-outline-variant/30 -z-10"></div>
+<div class="absolute top-[75%] w-full h-[1px] border-t border-dashed border-outline-variant/30 -z-10"></div>
+</div>
+<!-- X Axis Labels -->
+<div class="flex justify-around mt-2 text-[10px] text-on-surface-variant font-label-md pl-4"><span class="">12:00</span><span class="">14:00</span><span class="">16:00</span><span class="">18:00</span><span class="">20:00</span><span class="">22:00</span></div>
+</div>
+<!-- Recent Activity List (Span 4) -->
+<div class="md:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Pedidos Recientes</h3>
+<a class="text-secondary text-[12px] font-label-md hover:underline" href="#">Ver todo</a>
+</div>
+<div class="flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-2"><div class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors border border-transparent hover:border-outline-variant/50 cursor-pointer"><div class="w-12 h-12 rounded bg-secondary-container flex items-center justify-center text-on-secondary-container"><span class="material-symbols-outlined">receipt_long</span></div><div class="flex-1 min-w-0"><p class="font-label-md text-label-md text-on-surface truncate">Pedido #1042</p><p class="text-[11px] text-on-surface-variant truncate">Mesa 4 • 2 pers.</p></div><div class="text-right"><span class="bg-error-container text-on-error-container text-[10px] font-bold px-2 py-0.5 rounded-full block mb-1 text-center">Cocinando</span><span class="text-[12px] font-bold text-on-surface">12 min</span></div></div><div class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors border border-transparent hover:border-outline-variant/50 cursor-pointer"><div class="w-12 h-12 rounded bg-secondary-container flex items-center justify-center text-on-secondary-container"><span class="material-symbols-outlined">receipt_long</span></div><div class="flex-1 min-w-0"><p class="font-label-md text-label-md text-on-surface truncate">Pedido #1041</p><p class="text-[11px] text-on-surface-variant truncate">Mesa 12 • 4 pers.</p></div><div class="text-right"><span class="bg-secondary-fixed/50 text-on-secondary-fixed text-[10px] font-bold px-2 py-0.5 rounded-full block mb-1 text-center">Entregado</span><span class="text-[12px] font-bold text-on-surface">Listo</span></div></div><div class="flex items-center gap-3 p-2 hover:bg-surface-container-low rounded-lg transition-colors border border-transparent hover:border-outline-variant/50 cursor-pointer"><div class="w-12 h-12 rounded bg-secondary-container flex items-center justify-center text-on-secondary-container"><span class="material-symbols-outlined">receipt_long</span></div><div class="flex-1 min-w-0"><p class="font-label-md text-label-md text-on-surface truncate">Pedido #1043</p><p class="text-[11px] text-on-surface-variant truncate">Mesa 7 • 1 pers.</p></div><div class="text-right"><span class="bg-surface-variant text-on-surface-variant text-[10px] font-bold px-2 py-0.5 rounded-full block mb-1 text-center">Pendiente</span><span class="text-[12px] font-bold text-on-surface">-- min</span></div></div></div>
+</div>
+</div>
+</main>
+
+
+
+
+</body></html>

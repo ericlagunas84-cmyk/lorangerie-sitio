@@ -1,0 +1,409 @@
+<!DOCTYPE html><html class="light" lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Informes - L'Orangerie</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700&amp;family=Inter:wght@400;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#0b1c30",
+                        "inverse-surface": "#213145",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#d4ede0",
+                        "secondary-container": "#006838",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "outline-variant": "#c6c6cd",
+                        "surface-container-high": "#dce9ff",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary-container": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#00543a",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-secondary-fixed": "#00210f",
+                        "inverse-primary": "#bec6e0",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#bec6e0",
+                        "outline": "#76777d",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#f8f9ff",
+                        "on-primary-container": "#7c839b",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-tint": "#565e74",
+                        "secondary-fixed-dim": "#8fcfae",
+                        "tertiary-container": "#191c1e",
+                        "surface-dim": "#cbdbf5",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#191c1e",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "on-tertiary-container": "#818486",
+                        "tertiary-fixed": "#e0e3e5",
+                        "primary-container": "#131b2e",
+                        "on-surface": "#0b1c30",
+                        "on-primary-fixed": "#131b2e",
+                        "background": "#f8f9ff",
+                        "surface-variant": "#d3e4fe",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#3f465c",
+                        "secondary": "#006838",
+                        "on-surface-variant": "#45464d",
+                        "on-secondary": "#ffffff",
+                        "primary": "#000000",
+                        "tertiary": "#000000",
+                        "surface-container": "#e5eeff",
+                        "surface": "#f8f9ff",
+                        "primary-fixed": "#dae2fd"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "stack-lg": "24px",
+                        "base": "8px",
+                        "container-margin": "32px",
+                        "stack-sm": "4px",
+                        "sidebar-width": "260px",
+                        "stack-md": "12px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["26px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .ambient-shadow {
+            box-shadow: 0px 10px 15px -3px rgba(15, 23, 42, 0.08);
+        }
+
+        /* Simple CSS Bar Chart animations */
+        @keyframes growUp {
+            from { height: 0; }
+            to { height: var(--target-height); }
+        }
+        .bar-animate {
+            animation: growUp 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-full py-stack-lg fixed left-0 top-0 w-sidebar-width bg-primary-container shadow-sm z-20">
+<div class="px-container-margin mb-stack-lg">
+<div class="flex items-center gap-base mb-stack-sm">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="A sleek, modern minimalist restaurant logo design featuring a stylized silver fork and knife crossing over a deep navy blue circle. The background is a clean, corporate white, emphasizing a high-end, professional enterprise software aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCalXHVAb-rlv4NJwNW3L2BiENaVCNc9sS6fQVgd4J24PHv4r95EJVpGJ9oNFOn10pls-DxIeNOb8YR0vPoMLd21AYUf6aHwSvGxe0rTOGkDutvzNZeN0wkbfKtXl76S7FN7nmn9LITYwZ3EnEszr5_p_RZHEhS_2EgClaBAJh-DMv4zQN_SisOOGsXqfwhgAgUKB5E71AzR7Fvj9V2pmsYYznoae3SrmABTbGEC-u_ugs1lUBUYi26">
+<h1 class="font-headline-sm text-headline-sm font-bold text-white">L'Orangerie</h1>
+</div>
+<p class="font-label-md text-label-md text-white/70">Terminal 01</p>
+</div>
+<div class="px-4 mb-stack-lg">
+<button class="w-full bg-white text-secondary font-label-md text-label-md py-2 rounded-lg hover:bg-white/90 transition-colors">
+                Añadir Pedido
+            </button>
+</div>
+<ul class="flex-1 space-y-1">
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-[0.98]" href="dashboard_de_restaurante.html">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 border-l-4 border-secondary bg-white/10 text-on-primary font-bold transition-all duration-200 active:scale-[0.98]" href="informes_de_restaurante.html">
+<span class="material-symbols-outlined" data-icon="analytics" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-label-md text-label-md">Informes</span>
+</a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-[0.98]" href="inventario_de_cocina.html">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label-md text-label-md">Inventarios</span>
+</a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-[0.98]" href="gesti_n_de_men_bistro_central.html">
+<span class="material-symbols-outlined" data-icon="restaurant_menu">restaurant_menu</span>
+<span class="font-label-md text-label-md">Menú</span>
+</a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-[0.98]" href="mensajes_internos.html">
+<span class="material-symbols-outlined" data-icon="chat">chat</span>
+<span class="font-label-md text-label-md">Mensajes</span>
+</a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-[0.98]" href="terminal_de_ventas_pos.html">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span class="font-label-md text-label-md">Ventas</span>
+</a>
+</li>
+</ul>
+<ul class="space-y-1 mt-auto pt-stack-lg border-t border-white/10 mx-4">
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Configuración</span>
+</a>
+</li>
+<li class="">
+<a class="flex items-center gap-base px-4 py-3 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 active:scale-[0.98]" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-md text-label-md">Cerrar Sesión</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-container-margin w-full bg-surface-container-lowest w-full h-16 border-b border-outline-variant sticky top-0 z-10">
+<div class="flex items-center gap-4 w-1/3">
+<div class="relative w-full max-w-md hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface rounded-lg border border-outline-variant focus:border-secondary focus:ring-2 focus:ring-secondary/20 transition-all font-body-md text-body-md" placeholder="Buscar informes..." type="text">
+</div>
+</div>
+<div class="flex-1 flex justify-center">
+<span class="font-headline-md text-headline-md font-bold text-on-surface">L'Orangerie</span>
+</div>
+<div class="flex items-center justify-end gap-4 w-1/3">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full cursor-pointer active:opacity-80 transition-all">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full cursor-pointer active:opacity-80 transition-all">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant overflow-hidden ml-2 cursor-pointer active:opacity-80 transition-all">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a restaurant manager in a crisp white shirt, smiling slightly against a neutral gray background. The lighting is bright and even, suitable for a corporate enterprise dashboard avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC4PueRKucReBs9U2uE70P4mAAh4i2eWn_cg-2HT1mQ3bVFt0mpDqz-T1rDXsreCoB17PJvxcCqW90FowJ_rG1zXaIlG5HIUu00vtF1NettKL5O5gRb34zzGeFd_aJftCFnZfB-MZv76GKnrPa53gLLMOeSAW9w0RAvKa15PfMfblwAtwhVdYUf5vm6RPG03yeT-FiySgnhqqcfoqoFCtUtmPUytAWFGzO6Hwx4OwC75iWMKq6n0cXE">
+</div>
+</div>
+</header>
+<!-- Dashboard Canvas -->
+<div class="flex-1 p-container-margin overflow-y-auto">
+<div class="mb-stack-lg flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Análisis de Rendimiento</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Visión general de las métricas clave de hoy</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface text-on-surface border border-outline-variant rounded-lg hover:bg-surface-container-low font-label-md text-label-md transition-colors">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                        Hoy
+                        <span class="material-symbols-outlined text-[18px]">arrow_drop_down</span>
+</button>
+<button class="flex items-center gap-2 px-4 py-2 bg-secondary text-white rounded-lg hover:bg-on-secondary-fixed font-label-md text-label-md transition-colors">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                        Exportar
+                    </button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Summary Metrics (Span 12 on mobile, 4 on desktop) -->
+<div class="col-span-1 md:col-span-4 flex flex-col gap-gutter">
+<!-- Metric 1 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 ambient-shadow transition-transform hover:-translate-y-1 duration-300">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Ingresos Diarios</span>
+<div class="p-1.5 bg-surface-container-low text-secondary rounded-md">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">€4,250.00</span>
+</div>
+<div class="mt-2 flex items-center gap-1 text-secondary bg-[#dcfce7] w-fit px-2 py-0.5 rounded text-xs font-semibold">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="">+12.5% vs ayer</span>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 ambient-shadow transition-transform hover:-translate-y-1 duration-300">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Ticket Medio</span>
+<div class="p-1.5 bg-surface-container-low text-secondary rounded-md">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">€35.40</span>
+</div>
+<div class="mt-2 flex items-center gap-1 text-secondary bg-[#dcfce7] w-fit px-2 py-0.5 rounded text-xs font-semibold">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="">+3.2% vs ayer</span>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 ambient-shadow transition-transform hover:-translate-y-1 duration-300">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant">Total Cubiertos</span>
+<div class="p-1.5 bg-surface-container-low text-secondary rounded-md">
+<span class="material-symbols-outlined text-[20px]">restaurant</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface">120</span>
+</div>
+<div class="mt-2 flex items-center gap-1 text-[#991b1b] bg-[#fee2e2] w-fit px-2 py-0.5 rounded text-xs font-semibold">
+<span class="material-symbols-outlined text-[14px]">trending_down</span>
+<span class="">-2.1% vs ayer</span>
+</div>
+</div>
+</div>
+<!-- Top Selling Dishes Bar Chart (Span 12 on mobile, 8 on desktop) -->
+<div class="col-span-1 md:col-span-8 bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg ambient-shadow flex flex-col relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-surface/50 to-transparent pointer-events-none z-0"></div>
+<div class="relative z-10 flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Platos más Vendidos</h3>
+<button class="text-on-surface-variant hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">more_horiz</span>
+</button>
+</div>
+<!-- CSS Bar Chart -->
+<div class="relative z-10 flex-1 flex items-end gap-4 h-64 pt-8 border-b border-outline-variant">
+<!-- Bars -->
+<div class="flex-1 flex flex-col justify-end items-center group">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2 opacity-0 group-hover:opacity-100 transition-opacity">85</span>
+<div class="w-full bg-surface-variant rounded-t-md hover:bg-secondary/40 transition-colors bar-animate" style="--target-height: 85%;"></div>
+<span class="mt-2 font-label-md text-label-md text-on-surface truncate w-full text-center" title="Paella">Paella</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center group">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2 opacity-0 group-hover:opacity-100 transition-opacity">70</span>
+<div class="w-full bg-secondary rounded-t-md bar-animate" style="--target-height: 70%;"></div>
+<span class="mt-2 font-label-md text-label-md text-on-surface truncate w-full text-center" title="Entrecot">Entrecot</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center group">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2 opacity-0 group-hover:opacity-100 transition-opacity">65</span>
+<div class="w-full bg-surface-variant rounded-t-md hover:bg-secondary/40 transition-colors bar-animate" style="--target-height: 65%;"></div>
+<span class="mt-2 font-label-md text-label-md text-on-surface truncate w-full text-center" title="Ceviche">Ceviche</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center group">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2 opacity-0 group-hover:opacity-100 transition-opacity">45</span>
+<div class="w-full bg-surface-variant rounded-t-md hover:bg-secondary/40 transition-colors bar-animate" style="--target-height: 45%;"></div>
+<span class="mt-2 font-label-md text-label-md text-on-surface truncate w-full text-center" title="Tartar">Tartar</span>
+</div>
+<div class="flex-1 flex flex-col justify-end items-center group">
+<span class="font-label-md text-label-md text-on-surface-variant mb-2 opacity-0 group-hover:opacity-100 transition-opacity">30</span>
+<div class="w-full bg-surface-variant rounded-t-md hover:bg-secondary/40 transition-colors bar-animate" style="--target-height: 30%;"></div>
+<span class="mt-2 font-label-md text-label-md text-on-surface truncate w-full text-center" title="Tiramisú">Tiramisú</span>
+</div>
+</div>
+</div>
+<!-- Heatmap / Occupancy (Span 12) -->
+<div class="col-span-1 md:col-span-12 bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg ambient-shadow">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Ocupación por Franja Horaria</h3>
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-surface-variant"></div><span class="font-label-md text-[10px] text-on-surface-variant">Baja</span></div>
+<div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-secondary/50"></div><span class="font-label-md text-[10px] text-on-surface-variant">Media</span></div>
+<div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-secondary"></div><span class="font-label-md text-[10px] text-on-surface-variant">Alta</span></div>
+</div>
+</div>
+<!-- Simulated Heatmap Grid -->
+<div class="w-full overflow-x-auto">
+<div class="min-w-[800px]">
+<!-- Header Row (Times) -->
+<div class="grid grid-cols-13 gap-1 mb-2">
+<div class="col-span-1"></div> <!-- Empty corner -->
+<div class="font-label-md text-label-md text-on-surface-variant text-center">12:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">13:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">14:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">15:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">16:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">17:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">18:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">19:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">20:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">21:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">22:00</div>
+<div class="font-label-md text-label-md text-on-surface-variant text-center">23:00</div>
+</div>
+<!-- Day Rows -->
+<!-- Lunes -->
+<div class="grid grid-cols-13 gap-1 mb-1 items-center">
+<div class="col-span-1 font-label-md text-label-md text-on-surface">Lun</div>
+<div class="h-8 rounded bg-surface-variant/30 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/40 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary hover:ring-2 ring-secondary transition-all cursor-pointer relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none z-20 whitespace-nowrap">95% Ocup.</div>
+</div>
+<div class="h-8 rounded bg-secondary/80 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/50 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/20 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/20 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/40 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/60 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/90 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/50 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/30 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+</div>
+<!-- Martes -->
+<div class="grid grid-cols-13 gap-1 mb-1 items-center">
+<div class="col-span-1 font-label-md text-label-md text-on-surface">Mar</div>
+<div class="h-8 rounded bg-surface-variant/20 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/30 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/80 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/60 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/40 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/10 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/30 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/50 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/70 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-secondary/40 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+<div class="h-8 rounded bg-surface-variant/20 hover:ring-2 ring-secondary transition-all cursor-pointer"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Trigger reflow for simple CSS animations if needed
+        document.addEventListener("DOMContentLoaded", () => {
+            const bars = document.querySelectorAll('.bar-animate');
+            bars.forEach(bar => {
+                bar.style.animation = 'none';
+                bar.offsetHeight; /* trigger reflow */
+                bar.style.animation = null; 
+            });
+        });
+    </script>
+
+
+</body></html>
