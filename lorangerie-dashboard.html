@@ -102,7 +102,10 @@
     <div class="nav-item" data-tab="clientes" onclick="goTab('clientes')">👥 Clientes</div>
     <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
     <div class="nav-item" data-tab="mensajes" onclick="goTab('mensajes')">✉️ Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
-    <div class="sidebar-foot" id="adminEmailFoot"></div>
+    <div class="sidebar-foot">
+      <div id="adminEmailFoot" style="margin-bottom:8px;word-break:break-all;"></div>
+      <a href="#" onclick="cerrarSesion(); return false;" style="color:rgba(255,255,255,.75);text-decoration:none;">↩ Cerrar sesión</a>
+    </div>
   </div>
 
   <div class="main">
@@ -262,6 +265,13 @@ async function adminLogin(){
   document.getElementById('shell').style.display = 'flex';
   document.getElementById('adminEmailFoot').textContent = data.user.email;
   cargarResumen();
+  cargarPedidos();   // precarga silenciosa, solo para el contador del menú
+  cargarMensajes();  // precarga silenciosa, solo para el contador del menú
+}
+
+async function cerrarSesion(){
+  await sb.auth.signOut();
+  location.reload();
 }
 
 /* ---------- navegación ---------- */
@@ -467,8 +477,13 @@ async function cargarMenu(){
       <td class="muted">${p.categoria}</td>
       <td>$${Number(p.precio).toFixed(2)}</td>
       <td>${p.activo ? '<span class="badge b-entregado">Sí</span>' : '<span class="badge b-cancelado">No</span>'}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick='abrirModalProducto(${JSON.stringify(p)})'>Editar</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="abrirModalProductoPorId('${p.id}')">Editar</button></td>
     </tr>`).join('');
+}
+
+function abrirModalProductoPorId(id){
+  const producto = menuCache.find(p => p.id === id);
+  abrirModalProducto(producto || null);
 }
 
 function abrirModalProducto(producto){
