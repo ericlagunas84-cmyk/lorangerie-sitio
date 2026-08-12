@@ -2310,16 +2310,27 @@ async function cargarMenuDesdeSheet(){
     const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
     if (!res.ok) throw new Error('No se pudo descargar el Sheet (HTTP ' + res.status + ')');
     const csvText = await res.text();
-    const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+    // Parseamos sin asumir encabezados: el archivo puede traer un título o
+    // filas en blanco antes de la fila real de encabezados (id, categoria, ...).
+    const parsedRaw = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const filas = parsedRaw.data;
+    const idxHeader = filas.findIndex(f => (f[0] || '').trim().toLowerCase() === 'id');
+    if (idxHeader === -1) throw new Error('No se encontró la fila de encabezados (id, categoria, ...).');
+
+    const headers = filas[idxHeader].map(h => (h || '').trim().toLowerCase());
     const catKeys = CATEGORIES.map(c => c.key);
     const nuevos = [];
 
-    for (const row of parsed.data){
+    for (let i = idxHeader + 1; i < filas.length; i++){
+      const cols = filas[i];
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = cols[idx] || ''; });
+
       const id = (row.id || '').trim();
       const categoria = (row.categoria || '').trim();
       const nombre = (row.nombre || '').trim();
       const precio = parseFloat(String(row.precio || '').replace(/[^0-9.\-]/g, ''));
-      // Fila inválida (falta algo esencial o la categoría no existe) -> se ignora, no rompe el resto
+      // Fila inválida (título, separador de categoría, fila vacía, etc.) -> se ignora
       if (!id || !nombre || isNaN(precio) || !catKeys.includes(categoria)) continue;
       nuevos.push({
         id,
