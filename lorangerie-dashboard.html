@@ -104,9 +104,32 @@
     <h2 style="font-size:22px;margin-bottom:6px;">L'Orangerie</h2>
     <p class="muted" style="margin:0 0 18px;">Dashboard de administración</p>
     <div class="field-group"><label>Correo</label><input type="text" id="admEmail" placeholder="admin@lorangerie.com"></div>
-    <div class="field-group"><label>Contraseña</label><input type="password" id="admPass"></div>
+    <div class="field-group">
+      <label>Contraseña</label>
+      <div style="position:relative;">
+        <input type="password" id="admPass" style="padding-right:40px;">
+        <button type="button" aria-label="Mostrar contraseña" onclick="togglePasswordVisibility()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:6px;line-height:1;">
+          <span id="pwToggleIcon">👁️</span>
+        </button>
+      </div>
+    </div>
     <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="adminLogin()">Entrar</button>
+    <div style="text-align:right;margin-top:10px;">
+      <a href="#" onclick="recuperarContrasena(); return false;" style="font-size:12.5px;">¿Olvidaste tu contraseña?</a>
+    </div>
     <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- RESTABLECER CONTRASEÑA (aparece si vienes del correo de recuperación) -->
+<div class="login-gate" id="resetGate" style="display:none;">
+  <div class="login-card">
+    <h2 style="font-size:22px;margin-bottom:6px;">Nueva contraseña</h2>
+    <p class="muted" style="margin:0 0 18px;">Escribe tu nueva contraseña para entrar al dashboard.</p>
+    <div class="field-group"><label>Nueva contraseña</label><input type="password" id="resetPass1" placeholder="Mínimo 6 caracteres"></div>
+    <div class="field-group"><label>Repite la contraseña</label><input type="password" id="resetPass2"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="guardarNuevaContrasena()">Guardar contraseña</button>
+    <div id="resetMsg"></div>
   </div>
 </div>
 
@@ -136,12 +159,14 @@
     <div id="tab-resumen" class="tab-panel">
       <div class="section-head">
         <h2>Resumen y Ventas</h2>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <select id="ventasRango" onchange="cargarResumen()">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="ventasRango" onchange="cambiarRangoVentas()">
             <option value="7">Últimos 7 días</option>
             <option value="30" selected>Últimos 30 días</option>
             <option value="90">Últimos 90 días</option>
+            <option value="custom">Fecha personalizada…</option>
           </select>
+          <input type="date" id="ventasDesde" style="display:none;width:auto;" onchange="cargarResumen()">
           <button class="btn btn-ghost btn-sm" onclick="exportarVentasCSV()">⬇ Exportar CSV</button>
         </div>
       </div>
@@ -218,6 +243,9 @@
         <button class="btn btn-primary btn-sm" onclick="abrirModalProducto(null)">+ Nuevo platillo</button>
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Esto edita los precios oficiales que usa el sitio para cobrar. Si también editas tu Google Sheet, procura mantener ambos igual.</p>
+      <div style="margin-top:14px;">
+        <input type="text" id="menuBuscar" placeholder="Buscar platillo por nombre o categoría…" style="max-width:320px;" oninput="filtrarMenuTabla()">
+      </div>
       <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
         <table>
           <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Activo</th><th></th></tr></thead>
@@ -474,6 +502,54 @@ let clientesCache = [];
 let menuCache = [];
 
 /* ---------- login ---------- */
+function togglePasswordVisibility(){
+  const input = document.getElementById('admPass');
+  const icon = document.getElementById('pwToggleIcon');
+  const visible = input.type === 'text';
+  input.type = visible ? 'password' : 'text';
+  icon.textContent = visible ? '👁️' : '🙈';
+}
+
+async function recuperarContrasena(){
+  const msg = document.getElementById('loginMsg');
+  let email = document.getElementById('admEmail').value.trim();
+  if (!email){
+    email = prompt('Escribe tu correo para enviarte el enlace de recuperación:');
+    if (!email) return;
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href.split('#')[0].split('?')[0],
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  msg.innerHTML = `<div class="msg-box msg-ok">Te mandamos un correo a ${email} con instrucciones para restablecer tu contraseña. Revisa spam si no lo ves.</div>`;
+}
+
+async function guardarNuevaContrasena(){
+  const p1 = document.getElementById('resetPass1').value;
+  const p2 = document.getElementById('resetPass2').value;
+  const msg = document.getElementById('resetMsg');
+  if (!p1 || p1.length < 6){ msg.innerHTML = '<div class="msg-box msg-err">La contraseña debe tener al menos 6 caracteres.</div>'; return; }
+  if (p1 !== p2){ msg.innerHTML = '<div class="msg-box msg-err">Las contraseñas no coinciden.</div>'; return; }
+
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+
+  msg.innerHTML = '<div class="msg-box msg-ok">Contraseña actualizada. Entrando…</div>';
+  setTimeout(() => { window.location.href = window.location.href.split('#')[0].split('?')[0]; }, 1200);
+}
+
+// Si el usuario llegó desde el link del correo de recuperación, Supabase
+// agrega #access_token=...&type=recovery a la URL. Detectamos eso y
+// mostramos el formulario de "nueva contraseña" en vez del login normal.
+(function detectarRecuperacion(){
+  if (window.location.hash.includes('type=recovery')){
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('loginGate').style.display = 'none';
+      document.getElementById('resetGate').style.display = 'block';
+    });
+  }
+})();
+
 async function adminLogin(){
   const email = document.getElementById('admEmail').value.trim();
   const password = document.getElementById('admPass').value;
@@ -545,8 +621,34 @@ function goTab(tab){
 /* ============================================================
    RESUMEN Y VENTAS
    ============================================================ */
+function cambiarRangoVentas(){
+  const sel = document.getElementById('ventasRango').value;
+  const inputFecha = document.getElementById('ventasDesde');
+  if (sel === 'custom'){
+    inputFecha.style.display = 'inline-block';
+    if (!inputFecha.value){
+      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
+      inputFecha.value = hace30.toISOString().slice(0, 10);
+    }
+  } else {
+    inputFecha.style.display = 'none';
+  }
+  cargarResumen();
+}
+
+function calcularDiasSeleccionados(){
+  const sel = document.getElementById('ventasRango').value;
+  if (sel !== 'custom') return Number(sel);
+  const inputFecha = document.getElementById('ventasDesde');
+  if (!inputFecha.value) return 30;
+  const desde = new Date(inputFecha.value + 'T00:00:00');
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const dias = Math.round((hoy - desde) / 86400000);
+  return Math.max(1, dias);
+}
+
 async function cargarResumen(){
-  const dias = document.getElementById('ventasRango').value;
+  const dias = calcularDiasSeleccionados();
   const { data: resumen } = await sb.rpc('admin_reporte_ventas', { p_dias: Number(dias) });
   const r = resumen?.[0] || { total_ventas:0, total_pedidos:0, ticket_promedio:0 };
   document.getElementById('statsCards').innerHTML = `
@@ -784,7 +886,22 @@ async function cargarMenu(){
   const tbody = document.getElementById('menuTable');
   if (error){ tbody.innerHTML = `<tr><td colspan="6" class="muted">Error: ${error.message}</td></tr>`; return; }
   menuCache = data || [];
-  tbody.innerHTML = menuCache.map(p => {
+  document.getElementById('menuBuscar').value = '';
+  renderMenuTabla(menuCache);
+}
+
+function filtrarMenuTabla(){
+  const q = document.getElementById('menuBuscar').value.trim().toLowerCase();
+  const filtrado = menuCache.filter(p =>
+    p.nombre.toLowerCase().includes(q) || (p.categoria || '').toLowerCase().includes(q)
+  );
+  renderMenuTabla(filtrado);
+}
+
+function renderMenuTabla(lista){
+  const tbody = document.getElementById('menuTable');
+  if (!lista.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">Sin platillos que coincidan.</td></tr>'; return; }
+  tbody.innerHTML = lista.map(p => {
     let stockHtml = '<span class="muted">Sin límite</span>';
     if (p.controla_inventario){
       const bajo = p.stock_actual <= p.stock_minimo;
