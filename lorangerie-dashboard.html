@@ -120,6 +120,7 @@
     <div class="nav-item" data-tab="fidelidad" onclick="goTab('fidelidad')">🏷️ Fidelidad</div>
     <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
     <div class="nav-item" data-tab="inventarios" onclick="goTab('inventarios')">📦 Inventarios <span class="badge" id="badgeInventarios" style="display:none;"></span></div>
+    <div class="nav-item" data-tab="costeo" onclick="goTab('costeo')">💰 Costeo</div>
     <div class="nav-item" data-tab="mensajes" onclick="goTab('mensajes')">✉️ Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
     <div class="nav-item" data-tab="tickets" onclick="goTab('tickets')">🎫 Tickets de Sucursal</div>
     <div class="sidebar-foot">
@@ -147,6 +148,10 @@
       <div class="card">
         <h3 style="font-size:15px;margin-bottom:14px;">Ventas por día</h3>
         <div id="ventasPorDia" class="loading">Cargando…</div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:14px;">Ventas por categoría</h3>
+        <div id="ventasPorCategoria" class="loading">Cargando…</div>
       </div>
       <div class="card">
         <h3 style="font-size:15px;margin-bottom:14px;">Platillos más vendidos</h3>
@@ -246,6 +251,22 @@
         <table>
           <thead><tr><th>Insumo</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Mínimo</th><th>Proveedor</th><th></th></tr></thead>
           <tbody id="inventarioTable"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- COSTEO Y MARGEN -->
+    <div id="tab-costeo" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Costeo y Margen</h2>
+        <button class="btn btn-ghost btn-sm" onclick="cargarCosteo()">↻ Actualizar</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Costo = suma de insumos × cantidad de la receta de cada platillo. Márgenes bajos o en rojo significan que el precio no cubre bien el costo — o que le falta receta.</p>
+      <div class="cards-row" id="costeoCards" style="margin-top:14px;"></div>
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead><tr><th>Platillo</th><th>Categoría</th><th>Costo insumos</th><th>Precio venta</th><th>Margen</th><th>Margen %</th><th></th></tr></thead>
+          <tbody id="costeoTable"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -379,11 +400,36 @@
       </div>
     </div>
     <div class="field-group"><label>Avisar cuando quede menos de</label><input type="number" id="insStockMin" min="0" step="0.1" value="5"></div>
+    <div class="field-group"><label>Costo por unidad (MXN) — para calcular márgenes</label><input type="number" id="insCosto" min="0" step="0.01" value="0"></div>
     <div class="field-group"><label>Proveedor (opcional)</label><input type="text" id="insProveedor"></div>
     <div id="modalInsumoMsg"></div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalInsumo').classList.remove('show')">Cancelar</button>
       <button class="btn btn-primary" style="flex:1;" onclick="guardarInsumo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: receta / costeo de un platillo -->
+<div class="modal-overlay" id="modalReceta">
+  <div class="modal-card" style="width:480px;">
+    <h3 style="font-size:18px;margin-bottom:4px;">Receta — <span id="recetaPlatilloNombre"></span></h3>
+    <p class="muted" style="font-size:12px;margin:0 0 16px;">Qué insumos y cuánto de cada uno lleva este platillo.</p>
+    <div id="recetaLineas" style="margin-bottom:14px;"><div class="loading">Cargando…</div></div>
+    <div style="display:flex;gap:8px;align-items:flex-end;border-top:1px solid var(--outline);padding-top:14px;">
+      <div class="field-group" style="flex:2;margin-bottom:0;">
+        <label>Insumo</label>
+        <select id="recetaInsumoSelect"></select>
+      </div>
+      <div class="field-group" style="flex:1;margin-bottom:0;">
+        <label>Cantidad</label>
+        <input type="number" id="recetaCantidad" min="0" step="0.01">
+      </div>
+      <button class="btn btn-primary btn-sm" style="height:38px;" onclick="agregarLineaReceta()">+ Agregar</button>
+    </div>
+    <div id="modalRecetaMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalReceta').classList.remove('show'); cargarCosteo();">Cerrar</button>
     </div>
   </div>
 </div>
@@ -457,6 +503,7 @@ function goTab(tab){
   if (tab === 'fidelidad') cargarFidelidad();
   if (tab === 'menu') cargarMenu();
   if (tab === 'inventarios') cargarInventario();
+  if (tab === 'costeo') cargarCosteo();
   if (tab === 'mensajes') cargarMensajes();
   if (tab === 'tickets') cargarTickets();
 }
@@ -487,12 +534,41 @@ async function cargarResumen(){
         </div>`).join('')
     : '<p class="muted">Sin ventas en este periodo.</p>';
 
-  const { data: top } = await sb.rpc('admin_top_platillos', { p_dias: Number(dias), p_limite: 10 });
+  const { data: top } = await sb.rpc('admin_top_platillos', { p_dias: Number(dias), p_limite: 500 });
   document.getElementById('topPlatillos').innerHTML = (top && top.length)
     ? `<table><thead><tr><th>Platillo</th><th>Cantidad vendida</th><th>Ingresos</th></tr></thead><tbody>
-        ${top.map(t => `<tr><td>${t.nombre}</td><td>${t.veces_vendido}</td><td>$${Number(t.total_ingresos).toFixed(2)}</td></tr>`).join('')}
+        ${top.slice(0, 10).map(t => `<tr><td>${t.nombre}</td><td>${t.veces_vendido}</td><td>$${Number(t.total_ingresos).toFixed(2)}</td></tr>`).join('')}
        </tbody></table>`
     : '<p class="muted">Sin datos en este periodo.</p>';
+
+  // Ventas por categoría: cruza el top de platillos (ya trae ingresos por
+  // platillo) con el menú (que sabe la categoría de cada uno). No necesita
+  // ninguna tabla ni RPC nueva.
+  if (!menuCache.length){
+    const { data: prods } = await sb.rpc('admin_productos_list');
+    menuCache = prods || [];
+  }
+  const nombreACategoria = {};
+  menuCache.forEach(p => { nombreACategoria[p.nombre] = p.categoria; });
+
+  const porCategoria = {};
+  (top || []).forEach(t => {
+    const cat = nombreACategoria[t.nombre] || 'Sin categoría';
+    porCategoria[cat] = (porCategoria[cat] || 0) + Number(t.total_ingresos);
+  });
+  const catOrdenadas = Object.entries(porCategoria).sort((a, b) => b[1] - a[1]);
+  const maxCat = Math.max(1, ...catOrdenadas.map(c => c[1]));
+
+  document.getElementById('ventasPorCategoria').innerHTML = catOrdenadas.length
+    ? catOrdenadas.map(([cat, total]) => `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="width:110px;font-size:12px;color:var(--on-var);flex-shrink:0;text-transform:capitalize;">${cat}</span>
+          <div style="flex:1;background:var(--low);border-radius:4px;overflow:hidden;height:20px;">
+            <div style="width:${total/maxCat*100}%;background:var(--sage);height:100%;"></div>
+          </div>
+          <span style="width:90px;text-align:right;font-size:12.5px;font-weight:600;flex-shrink:0;">$${total.toFixed(0)}</span>
+        </div>`).join('')
+    : '<p class="muted">Sin ventas en este periodo.</p>';
 
   window._ventasPorDiaCache = porDia || [];
   window._topPlatillosCache = top || [];
@@ -839,6 +915,7 @@ function abrirModalInsumo(insumo){
   document.getElementById('insStock').value = insumo?.stock_actual ?? '';
   document.getElementById('insUnidad').value = insumo?.unidad || 'kg';
   document.getElementById('insStockMin').value = insumo?.stock_minimo ?? 5;
+  document.getElementById('insCosto').value = insumo?.costo_unitario ?? 0;
   document.getElementById('insProveedor').value = insumo?.proveedor || '';
   document.getElementById('modalInsumo').classList.add('show');
 }
@@ -850,6 +927,7 @@ async function guardarInsumo(){
   const stock = parseFloat(document.getElementById('insStock').value);
   const unidad = document.getElementById('insUnidad').value;
   const stockMin = parseFloat(document.getElementById('insStockMin').value) || 0;
+  const costo = parseFloat(document.getElementById('insCosto').value) || 0;
   const proveedor = document.getElementById('insProveedor').value.trim();
   const msg = document.getElementById('modalInsumoMsg');
 
@@ -863,11 +941,163 @@ async function guardarInsumo(){
   const { error } = await sb.rpc('admin_insumo_guardar', {
     p_id: id, p_nombre: nombre, p_categoria: categoria, p_stock_actual: stock,
     p_unidad: unidad, p_stock_minimo: stockMin, p_proveedor: proveedor || null,
+    p_costo_unitario: costo,
   });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
 
   document.getElementById('modalInsumo').classList.remove('show');
   cargarInventario();
+}
+
+/* ============================================================
+   COSTEO Y MARGEN
+   ============================================================
+   No depende de la tabla real de "productos": usa menuCache
+   (ya cargado por admin_productos_list) para nombre/precio/categoría,
+   y admin_costeo_insumos() (nuestras tablas propias) para el costo.
+   ============================================================ */
+let costeoCostosCache = {}; // producto_id -> costo_insumos
+
+async function cargarCosteo(){
+  const tbody = document.getElementById('costeoTable');
+  tbody.innerHTML = '<tr><td colspan="7" class="loading">Cargando…</td></tr>';
+
+  // Asegura que tengamos el menú (nombre/precio/categoría) fresco
+  const { data: productos, error: errProd } = await sb.rpc('admin_productos_list');
+  if (errProd){ tbody.innerHTML = `<tr><td colspan="7" class="muted">Error cargando el menú: ${errProd.message}</td></tr>`; return; }
+  menuCache = productos || [];
+
+  const { data: costos, error: errCosto } = await sb.rpc('admin_costeo_insumos');
+  if (errCosto){
+    tbody.innerHTML = `<tr><td colspan="7" class="muted">Este módulo todavía no está conectado (falta correr el SQL de Costeo). Detalle: ${errCosto.message}</td></tr>`;
+    document.getElementById('costeoCards').innerHTML = '';
+    return;
+  }
+  costeoCostosCache = {};
+  (costos || []).forEach(c => { costeoCostosCache[c.producto_id] = Number(c.costo_insumos); });
+
+  renderCosteoCards();
+  renderCosteoTabla();
+}
+
+function calcularFilaCosteo(p){
+  const costo = costeoCostosCache.hasOwnProperty(p.id) ? costeoCostosCache[p.id] : null;
+  const precio = Number(p.precio) || 0;
+  const margenAbs = (costo === null) ? null : precio - costo;
+  const margenPct = (costo === null || precio <= 0) ? null : (margenAbs / precio) * 100;
+  return { costo, precio, margenAbs, margenPct };
+}
+
+function renderCosteoCards(){
+  const filas = menuCache.map(calcularFilaCosteo);
+  const conReceta = filas.filter(f => f.costo !== null);
+  const sinReceta = filas.length - conReceta.length;
+  const margenBajo = conReceta.filter(f => f.margenPct !== null && f.margenPct < 50).length;
+  const margenProm = conReceta.length
+    ? (conReceta.reduce((s, f) => s + (f.margenPct || 0), 0) / conReceta.length)
+    : 0;
+
+  document.getElementById('costeoCards').innerHTML = `
+    <div class="stat-card"><div class="num">${conReceta.length}</div><div class="lbl">Platillos costeados</div></div>
+    <div class="stat-card"><div class="num">${sinReceta}</div><div class="lbl">Sin receta cargada</div></div>
+    <div class="stat-card"><div class="num">${margenProm.toFixed(0)}%</div><div class="lbl">Margen promedio</div></div>
+    <div class="stat-card"><div class="num">${margenBajo}</div><div class="lbl">Margen bajo (&lt;50%)</div></div>
+  `;
+}
+
+function renderCosteoTabla(){
+  const tbody = document.getElementById('costeoTable');
+  if (!menuCache.length){ tbody.innerHTML = '<tr><td colspan="7" class="muted">Sin platillos en el menú.</td></tr>'; return; }
+
+  const filas = menuCache.map(p => ({ p, ...calcularFilaCosteo(p) }))
+    .sort((a, b) => (a.margenPct ?? -1) - (b.margenPct ?? -1)); // los de margen más bajo primero, para que salten a la vista
+
+  tbody.innerHTML = filas.map(f => {
+    if (f.costo === null){
+      return `
+        <tr>
+          <td>${f.p.nombre}</td>
+          <td class="muted">${f.p.categoria}</td>
+          <td colspan="3" class="muted">Sin receta cargada</td>
+          <td class="muted">—</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="abrirModalReceta('${f.p.id}','${f.p.nombre.replace(/'/g,"\\'")}')">Cargar receta</button></td>
+        </tr>`;
+    }
+    const clase = f.margenPct >= 65 ? 'b-entregado' : (f.margenPct >= 40 ? 'b-pendiente' : 'b-cancelado');
+    return `
+      <tr>
+        <td>${f.p.nombre}</td>
+        <td class="muted">${f.p.categoria}</td>
+        <td>$${f.costo.toFixed(2)}</td>
+        <td>$${f.precio.toFixed(2)}</td>
+        <td>$${f.margenAbs.toFixed(2)}</td>
+        <td><span class="badge ${clase}">${f.margenPct.toFixed(0)}%</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="abrirModalReceta('${f.p.id}','${f.p.nombre.replace(/'/g,"\\'")}')">Editar receta</button></td>
+      </tr>`;
+  }).join('');
+}
+
+/* ---------- modal de receta ---------- */
+let recetaProductoActual = null;
+
+async function abrirModalReceta(productoId, nombre){
+  recetaProductoActual = productoId;
+  document.getElementById('recetaPlatilloNombre').textContent = nombre;
+  document.getElementById('modalRecetaMsg').innerHTML = '';
+  document.getElementById('recetaLineas').innerHTML = '<div class="loading">Cargando…</div>';
+  document.getElementById('modalReceta').classList.add('show');
+
+  // Refresca insumos disponibles para el selector
+  if (!inventarioCache.length){
+    const { data } = await sb.rpc('admin_insumos_list');
+    inventarioCache = data || [];
+  }
+  document.getElementById('recetaInsumoSelect').innerHTML = inventarioCache
+    .map(i => `<option value="${i.id}">${i.nombre} (${i.unidad})</option>`).join('');
+
+  await cargarLineasReceta();
+}
+
+async function cargarLineasReceta(){
+  const cont = document.getElementById('recetaLineas');
+  const { data, error } = await sb.rpc('admin_receta_list', { p_producto_id: recetaProductoActual });
+  if (error){ cont.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
+
+  if (!data || !data.length){ cont.innerHTML = '<p class="muted">Sin insumos cargados todavía.</p>'; return; }
+
+  cont.innerHTML = data.map(l => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--outline);font-size:13px;">
+      <span>${l.insumo_nombre} — ${Number(l.cantidad)} ${l.unidad}</span>
+      <span style="display:flex;align-items:center;gap:10px;">
+        <b>$${Number(l.costo_linea).toFixed(2)}</b>
+        <button class="btn btn-danger btn-sm" onclick="eliminarLineaReceta('${l.insumo_id}')">Quitar</button>
+      </span>
+    </div>`).join('');
+}
+
+async function agregarLineaReceta(){
+  const insumoId = document.getElementById('recetaInsumoSelect').value;
+  const cantidad = parseFloat(document.getElementById('recetaCantidad').value);
+  const msg = document.getElementById('modalRecetaMsg');
+  if (!insumoId){ msg.innerHTML = '<div class="msg-box msg-err">Selecciona un insumo.</div>'; return; }
+  if (isNaN(cantidad) || cantidad <= 0){ msg.innerHTML = '<div class="msg-box msg-err">Escribe una cantidad válida.</div>'; return; }
+
+  const { error } = await sb.rpc('admin_receta_item_guardar', {
+    p_producto_id: recetaProductoActual, p_insumo_id: insumoId, p_cantidad: cantidad,
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+
+  msg.innerHTML = '';
+  document.getElementById('recetaCantidad').value = '';
+  await cargarLineasReceta();
+}
+
+async function eliminarLineaReceta(insumoId){
+  const { error } = await sb.rpc('admin_receta_item_eliminar', {
+    p_producto_id: recetaProductoActual, p_insumo_id: insumoId,
+  });
+  if (error){ alert('Error: ' + error.message); return; }
+  await cargarLineasReceta();
 }
 
 /* ============================================================
