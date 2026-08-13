@@ -77,6 +77,7 @@
   .field-group label{display:block;font-size:11.5px;font-weight:600;color:var(--on-var);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;}
   .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-right:6px;}
   .loading{padding:30px;text-align:center;color:var(--on-var);font-size:13px;}
+  @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 </style>
 </head>
 <body>
@@ -103,6 +104,7 @@
     <div class="nav-item" data-tab="fidelidad" onclick="goTab('fidelidad')">🏷️ Fidelidad</div>
     <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
     <div class="nav-item" data-tab="mensajes" onclick="goTab('mensajes')">✉️ Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
+    <div class="nav-item" data-tab="tickets" onclick="goTab('tickets')">🎫 Tickets de Sucursal</div>
     <div class="sidebar-foot">
       <div id="adminEmailFoot" style="margin-bottom:8px;word-break:break-all;"></div>
       <a href="#" onclick="cerrarSesion(); return false;" style="color:rgba(255,255,255,.75);text-decoration:none;">↩ Cerrar sesión</a>
@@ -195,8 +197,8 @@
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Esto edita los precios oficiales que usa el sitio para cobrar. Si también editas tu Google Sheet, procura mantener ambos igual.</p>
       <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
         <table>
-          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Activo</th><th></th></tr></thead>
-          <tbody id="menuTable"><tr><td colspan="5" class="loading">Cargando…</td></tr></tbody>
+          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Activo</th><th></th></tr></thead>
+          <tbody id="menuTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -208,6 +210,24 @@
         <button class="btn btn-ghost btn-sm" onclick="cargarMensajes()">↻ Actualizar</button>
       </div>
       <div id="mensajesList"><div class="loading">Cargando…</div></div>
+    </div>
+
+    <!-- TICKETS DE SUCURSAL -->
+    <div id="tab-tickets" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Tickets de Sucursal</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalLoteTickets()">Carga masiva</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalTicket()">+ Agregar ticket</button>
+        </div>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Carga aquí los tickets válidos de tu caja (POS) para que tus clientes puedan registrarlos en el sitio y ganar sus puntos.</p>
+      <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
+        <table>
+          <thead><tr><th># Orden</th><th>Fecha</th><th>Subtotal</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+          <tbody id="ticketsTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
   </div>
@@ -236,10 +256,51 @@
         <input type="checkbox" id="prodActivo" checked style="width:auto;"> Visible en el menú
       </label>
     </div>
+    <hr style="border:none;border-top:1px solid var(--outline);margin:14px 0;">
+    <div class="field-group">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;">
+        <input type="checkbox" id="prodControlaInv" style="width:auto;" onchange="document.getElementById('prodStockFields').style.display=this.checked?'block':'none'"> Controlar inventario (stock limitado)
+      </label>
+    </div>
+    <div id="prodStockFields" style="display:none;">
+      <div class="field-group"><label>Stock actual</label><input type="number" id="prodStock" min="0" step="1"></div>
+      <div class="field-group"><label>Avisar cuando quede menos de</label><input type="number" id="prodStockMin" min="0" step="1" value="5"></div>
+    </div>
     <div id="modalProductoMsg"></div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="cerrarModalProducto()">Cancelar</button>
       <button class="btn btn-primary" style="flex:1;" onclick="guardarProducto()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: agregar ticket -->
+<div class="modal-overlay" id="modalTicket">
+  <div class="modal-card">
+    <h3 style="font-size:18px;margin-bottom:16px;">Agregar ticket de sucursal</h3>
+    <div class="field-group"><label>Número de orden</label><input type="text" id="tkNumeroOrden" placeholder="Ej. 150726-P-0041"></div>
+    <div class="field-group"><label>Fecha de la orden</label><input type="date" id="tkFecha"></div>
+    <div class="field-group"><label>Subtotal de alimentos (MXN)</label><input type="number" id="tkSubtotal" step="0.01" min="0"></div>
+    <div class="field-group"><label>Total pagado (MXN)</label><input type="number" id="tkTotal" step="0.01" min="0"></div>
+    <div id="modalTicketMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalTicket').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="guardarTicket()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: carga masiva de tickets -->
+<div class="modal-overlay" id="modalLoteTickets">
+  <div class="modal-card" style="width:520px;">
+    <h3 style="font-size:18px;margin-bottom:8px;">Carga masiva de tickets</h3>
+    <p class="muted" style="font-size:12px;margin:0 0 12px;">Un ticket por línea, separado por comas:<br><code>numero_orden,fecha(AAAA-MM-DD),subtotal,total</code></p>
+    <textarea id="loteTexto" rows="8" style="width:100%;padding:10px;border:1px solid var(--outline);border-radius:var(--radius);font-family:monospace;font-size:12.5px;" placeholder="150726-P-0041,2026-07-15,514.81,556.00
+150726-P-0042,2026-07-15,320.00,350.00"></textarea>
+    <div id="modalLoteMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalLoteTickets').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="guardarLoteTickets()">Cargar todos</button>
     </div>
   </div>
 </div>
@@ -282,9 +343,11 @@ async function adminLogin(){
   cargarResumen();
   cargarPedidos();   // precarga silenciosa, solo para el contador del menú
   cargarMensajes();  // precarga silenciosa, solo para el contador del menú
+  iniciarAlertasPedidos();
 }
 
 async function cerrarSesion(){
+  if (canalPedidos) sb.removeChannel(canalPedidos);
   await sb.auth.signOut();
   location.reload();
 }
@@ -301,6 +364,7 @@ function goTab(tab){
   if (tab === 'fidelidad') cargarFidelidad();
   if (tab === 'menu') cargarMenu();
   if (tab === 'mensajes') cargarMensajes();
+  if (tab === 'tickets') cargarTickets();
 }
 
 /* ============================================================
@@ -514,16 +578,26 @@ async function cargarFidelidad(){
 async function cargarMenu(){
   const { data, error } = await sb.rpc('admin_productos_list');
   const tbody = document.getElementById('menuTable');
-  if (error){ tbody.innerHTML = `<tr><td colspan="5" class="muted">Error: ${error.message}</td></tr>`; return; }
+  if (error){ tbody.innerHTML = `<tr><td colspan="6" class="muted">Error: ${error.message}</td></tr>`; return; }
   menuCache = data || [];
-  tbody.innerHTML = menuCache.map(p => `
+  tbody.innerHTML = menuCache.map(p => {
+    let stockHtml = '<span class="muted">Sin límite</span>';
+    if (p.controla_inventario){
+      const bajo = p.stock_actual <= p.stock_minimo;
+      const agotado = p.stock_actual <= 0;
+      const clase = agotado ? 'b-cancelado' : (bajo ? 'b-pendiente' : 'b-entregado');
+      stockHtml = `<span class="badge ${clase}">${agotado ? 'Agotado' : p.stock_actual + ' unid.'}</span>`;
+    }
+    return `
     <tr>
       <td>${p.nombre}</td>
       <td class="muted">${p.categoria}</td>
       <td>$${Number(p.precio).toFixed(2)}</td>
+      <td>${stockHtml}</td>
       <td>${p.activo ? '<span class="badge b-entregado">Sí</span>' : '<span class="badge b-cancelado">No</span>'}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="abrirModalProductoPorId('${p.id}')">Editar</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function abrirModalProductoPorId(id){
@@ -540,6 +614,10 @@ function abrirModalProducto(producto){
   document.getElementById('prodPrecio').value = producto?.precio || '';
   document.getElementById('prodCategoria').value = producto?.categoria || 'cafe';
   document.getElementById('prodActivo').checked = producto ? producto.activo : true;
+  document.getElementById('prodControlaInv').checked = producto?.controla_inventario || false;
+  document.getElementById('prodStock').value = producto?.stock_actual ?? '';
+  document.getElementById('prodStockMin').value = producto?.stock_minimo ?? 5;
+  document.getElementById('prodStockFields').style.display = producto?.controla_inventario ? 'block' : 'none';
   document.getElementById('modalProducto').classList.add('show');
 }
 function cerrarModalProducto(){
@@ -552,6 +630,9 @@ async function guardarProducto(){
   const precio = parseFloat(document.getElementById('prodPrecio').value);
   const categoria = document.getElementById('prodCategoria').value;
   const activo = document.getElementById('prodActivo').checked;
+  const controlaInv = document.getElementById('prodControlaInv').checked;
+  const stock = parseInt(document.getElementById('prodStock').value, 10);
+  const stockMin = parseInt(document.getElementById('prodStockMin').value, 10) || 5;
   const msg = document.getElementById('modalProductoMsg');
 
   if (!id || !/^[a-z0-9\-]+$/.test(id)){
@@ -560,11 +641,20 @@ async function guardarProducto(){
   if (!nombre || isNaN(precio) || precio < 0){
     msg.innerHTML = '<div class="msg-box msg-err">Revisa el nombre y el precio.</div>'; return;
   }
+  if (controlaInv && isNaN(stock)){
+    msg.innerHTML = '<div class="msg-box msg-err">Escribe el stock actual, o desmarca "Controlar inventario".</div>'; return;
+  }
 
   const { error } = await sb.rpc('admin_producto_guardar', {
     p_id: id, p_nombre: nombre, p_precio: precio, p_categoria: categoria, p_activo: activo,
   });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+
+  const { error: errStock } = await sb.rpc('admin_producto_ajustar_stock', {
+    p_id: id, p_nuevo_stock: controlaInv ? stock : 0, p_controla: controlaInv, p_stock_minimo: stockMin,
+  });
+  if (errStock){ msg.innerHTML = `<div class="msg-box msg-err">Producto guardado, pero el inventario falló: ${errStock.message}</div>`; return; }
+
   cerrarModalProducto();
   cargarMenu();
 }
@@ -604,6 +694,156 @@ async function cargarMensajes(){
 async function marcarLeido(id){
   await sb.rpc('admin_mensaje_marcar_leido', { p_id: id, p_leido: true });
   cargarMensajes();
+}
+
+/* ============================================================
+   TICKETS DE SUCURSAL
+   ============================================================ */
+async function cargarTickets(){
+  const { data, error } = await sb.rpc('admin_pos_tickets_list', { p_limite: 150 });
+  const tbody = document.getElementById('ticketsTable');
+  if (error){ tbody.innerHTML = `<tr><td colspan="6" class="muted">Error: ${error.message}</td></tr>`; return; }
+  if (!data || !data.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">Aún no has cargado ningún ticket.</td></tr>'; return; }
+
+  tbody.innerHTML = data.map(t => `
+    <tr>
+      <td>${t.numero_orden}</td>
+      <td class="muted">${new Date(t.fecha_orden).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      <td>$${Number(t.subtotal_alimentos).toFixed(2)}</td>
+      <td>$${Number(t.total).toFixed(2)}</td>
+      <td>${t.canjeado
+          ? `<span class="badge b-entregado">Canjeado</span> <span class="muted" style="font-size:11px;">${t.canjeado_por || ''}</span>`
+          : '<span class="badge b-pendiente">Disponible</span>'}</td>
+      <td>${!t.canjeado ? `<button class="btn btn-danger btn-sm" onclick="eliminarTicket('${t.numero_orden}')">Eliminar</button>` : ''}</td>
+    </tr>`).join('');
+}
+
+function abrirModalTicket(){
+  document.getElementById('modalTicketMsg').innerHTML = '';
+  document.getElementById('tkNumeroOrden').value = '';
+  document.getElementById('tkFecha').value = '';
+  document.getElementById('tkSubtotal').value = '';
+  document.getElementById('tkTotal').value = '';
+  document.getElementById('modalTicket').classList.add('show');
+}
+
+async function guardarTicket(){
+  const numero = document.getElementById('tkNumeroOrden').value.trim();
+  const fecha = document.getElementById('tkFecha').value;
+  const subtotal = parseFloat(document.getElementById('tkSubtotal').value);
+  const total = parseFloat(document.getElementById('tkTotal').value);
+  const msg = document.getElementById('modalTicketMsg');
+
+  if (!numero || !fecha || isNaN(subtotal) || isNaN(total)){
+    msg.innerHTML = '<div class="msg-box msg-err">Llena todos los campos.</div>'; return;
+  }
+  const { error } = await sb.rpc('admin_pos_ticket_agregar', {
+    p_numero_orden: numero, p_fecha_orden: fecha,
+    p_subtotal_alimentos: subtotal, p_total: total,
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  document.getElementById('modalTicket').classList.remove('show');
+  cargarTickets();
+}
+
+async function eliminarTicket(numero){
+  if (!confirm(`¿Eliminar el ticket ${numero}?`)) return;
+  const { error } = await sb.rpc('admin_pos_ticket_eliminar', { p_numero_orden: numero });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarTickets();
+}
+
+function abrirModalLoteTickets(){
+  document.getElementById('modalLoteMsg').innerHTML = '';
+  document.getElementById('loteTexto').value = '';
+  document.getElementById('modalLoteTickets').classList.add('show');
+}
+
+async function guardarLoteTickets(){
+  const texto = document.getElementById('loteTexto').value.trim();
+  const msg = document.getElementById('modalLoteMsg');
+  if (!texto){ msg.innerHTML = '<div class="msg-box msg-err">Pega al menos un ticket.</div>'; return; }
+
+  const lineas = texto.split('\n').map(l => l.trim()).filter(Boolean);
+  const tickets = [];
+  for (const linea of lineas){
+    const [numero_orden, fecha_orden, subtotal_alimentos, total] = linea.split(',').map(s => s.trim());
+    if (!numero_orden || !fecha_orden || !subtotal_alimentos || !total) continue;
+    tickets.push({ numero_orden, fecha_orden, subtotal_alimentos, total });
+  }
+  if (!tickets.length){ msg.innerHTML = '<div class="msg-box msg-err">No se reconoció ninguna línea válida.</div>'; return; }
+
+  const { data, error } = await sb.rpc('admin_pos_tickets_agregar_lote', { p_tickets: tickets });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+
+  const errores = (data || []).filter(r => r.resultado !== 'ok');
+  msg.innerHTML = errores.length
+    ? `<div class="msg-box msg-err">${data.length - errores.length} cargados, ${errores.length} con error: ${errores.map(e => e.numero_orden).join(', ')}</div>`
+    : `<div class="msg-box msg-ok">${data.length} tickets cargados correctamente.</div>`;
+
+  cargarTickets();
+  setTimeout(() => document.getElementById('modalLoteTickets').classList.remove('show'), 1500);
+}
+
+/* ============================================================
+   ALERTAS DE PEDIDOS NUEVOS (en vivo)
+   ============================================================ */
+let canalPedidos = null;
+
+function iniciarAlertasPedidos(){
+  canalPedidos = sb
+    .channel('pedidos-nuevos')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ordenes' }, (payload) => {
+      manejarPedidoNuevo(payload.new);
+    })
+    .subscribe();
+}
+
+function manejarPedidoNuevo(orden){
+  sonarAlerta();
+  mostrarToast(`🧾 Nuevo pedido #${orden.id} — $${Number(orden.total_a_pagar).toFixed(2)} MXN`);
+
+  // Actualiza el contador del menú lateral aunque no estés en la pestaña de Pedidos
+  const badge = document.getElementById('badgePedidos');
+  const actual = parseInt(badge.textContent, 10) || 0;
+  badge.textContent = actual + 1;
+  badge.style.display = 'inline-block';
+
+  // Si ya estás viendo Pedidos o Resumen, refresca la vista sola
+  if (document.getElementById('tab-pedidos').style.display !== 'none') cargarPedidos();
+  if (document.getElementById('tab-resumen').style.display !== 'none') cargarResumen();
+}
+
+// Sonido corto generado por código — no necesita ningún archivo de audio
+function sonarAlerta(){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1108].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.14);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.14 + 0.25);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.14);
+      osc.stop(ctx.currentTime + i * 0.14 + 0.25);
+    });
+  } catch(e){ /* algunos navegadores bloquean audio sin interacción previa; no pasa nada si falla */ }
+}
+
+function mostrarToast(texto){
+  let cont = document.getElementById('toastContainer');
+  if (!cont){
+    cont = document.createElement('div');
+    cont.id = 'toastContainer';
+    cont.style.cssText = 'position:fixed;top:20px;right:20px;z-index:500;display:flex;flex-direction:column;gap:10px;';
+    document.body.appendChild(cont);
+  }
+  const toast = document.createElement('div');
+  toast.style.cssText = 'background:var(--sage-dark);color:#fff;padding:14px 18px;border-radius:10px;font-size:13.5px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:300px;animation:slideIn .25s ease;';
+  toast.textContent = texto;
+  cont.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; setTimeout(() => toast.remove(), 300); }, 6000);
 }
 </script>
 </body>
