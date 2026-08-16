@@ -989,11 +989,6 @@
     <p style="font-size:13px;color:var(--on-surface-variant);margin:0 0 20px;">Ajústalo justo a tu gusto.</p>
 
     <div class="opt-group">
-      <label class="opt-label">Tamaño</label>
-      <div class="opt-row" id="optSize"></div>
-    </div>
-
-    <div class="opt-group">
       <label class="opt-label">Temperatura</label>
       <div class="opt-row" id="optTemp"></div>
     </div>
@@ -1722,15 +1717,14 @@ document.querySelectorAll('#navLinks a, #navLinks button').forEach(a =>
 
 /* ---------- coffee customization ---------- */
 const COFFEE_OPTS = {
-  size: ["Chico", "Mediano", "Grande"],
   temp: ["Caliente", "Frío"],
   sweet: ["Sin endulzante", "Azúcar", "Splenda"],
 };
-let coffeeState = { id:null, size:"Mediano", temp:"Caliente", sweet:"Sin endulzante", sweetQty:1 };
+let coffeeState = { id:null, size:"Grande", temp:"Caliente", sweet:"Sin endulzante", sweetQty:1 };
 
 function openCoffeeModal(id){
   const item = MENU.find(m => m.id === id);
-  coffeeState = { id, size:"Mediano", temp:"Caliente", sweet:"Sin endulzante", sweetQty:1 };
+  coffeeState = { id, size:"Grande", temp:"Caliente", sweet:"Sin endulzante", sweetQty:1 };
   document.getElementById('coffeeTitle').textContent = item.name;
   renderCoffeeOpts();
   document.getElementById('coffeeOverlay').classList.add('show');
@@ -1742,7 +1736,6 @@ function renderCoffeeOpts(){
   const build = (arr, key) => arr.map(v =>
     `<button class="opt-chip ${coffeeState[key]===v?'active':''}" onclick="setCoffeeOpt('${key}','${v}')">${v}</button>`
   ).join('');
-  document.getElementById('optSize').innerHTML = build(COFFEE_OPTS.size, 'size');
   document.getElementById('optTemp').innerHTML = build(COFFEE_OPTS.temp, 'temp');
   document.getElementById('optSweet').innerHTML = build(COFFEE_OPTS.sweet, 'sweet');
   document.getElementById('sweetQtyGroup').style.display =
