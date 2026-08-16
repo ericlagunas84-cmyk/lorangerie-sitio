@@ -146,6 +146,8 @@
     <div class="nav-item" data-tab="costeo" onclick="goTab('costeo')">💰 Costeo</div>
     <div class="nav-item" data-tab="mensajes" onclick="goTab('mensajes')">✉️ Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
     <div class="nav-item" data-tab="tickets" onclick="goTab('tickets')">🎫 Tickets de Sucursal</div>
+    <div class="nav-item" data-tab="usuarios" onclick="goTab('usuarios')">👤 Usuarios</div>
+    <div class="nav-item" data-tab="configuracion" onclick="goTab('configuracion')">⚙️ Configuración</div>
     <div class="sidebar-foot">
       <div id="adminEmailFoot" style="margin-bottom:8px;word-break:break-all;"></div>
       <a href="#" onclick="abrirModalAccesos(); return false;" style="color:rgba(255,255,255,.75);text-decoration:none;display:block;margin-bottom:6px;">🔐 Historial de accesos</a>
@@ -318,6 +320,104 @@
       </div>
     </div>
 
+    <!-- USUARIOS -->
+    <div id="tab-usuarios" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Usuarios</h2>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalInvitar()">+ Invitar usuario</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Los usuarios nuevos reciben un correo con un enlace para crear su propia contraseña — nunca se genera ni se comparte una contraseña temporal. Suspender bloquea el acceso sin borrar su historial.</p>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;">
+        <input type="text" id="usrBuscar" placeholder="Buscar por nombre o correo…" style="max-width:260px;" oninput="renderUsuariosTabla()">
+        <select id="usrFiltroRol" style="max-width:170px;" onchange="renderUsuariosTabla()">
+          <option value="">Todos los roles</option>
+          <option value="admin">Admin</option>
+          <option value="gerente">Gerente</option>
+          <option value="encargado">Encargado de turno</option>
+        </select>
+        <select id="usrFiltroEstado" style="max-width:170px;" onchange="renderUsuariosTabla()">
+          <option value="">Todos los estados</option>
+          <option value="activo">Activo</option>
+          <option value="inactivo">Inactivo</option>
+          <option value="invitado">Invitado</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="cargarUsuarios()">↻ Actualizar</button>
+      </div>
+
+      <div class="card" style="padding:0;overflow-x:auto;">
+        <table>
+          <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
+          <tbody id="usuariosTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:center;gap:10px;margin-top:14px;" id="usrPaginacion"></div>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div id="tab-configuracion" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Configuración</h2>
+      </div>
+
+      <div class="card" style="max-width:560px;">
+        <h3 style="font-size:15px;margin-bottom:14px;">Información de la empresa</h3>
+        <div class="field-group"><label>Nombre de la plataforma</label><input type="text" id="cfgNombre"></div>
+
+        <div class="field-group">
+          <label>Logotipo</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img id="cfgLogoPreview" src="" alt="" style="width:48px;height:48px;object-fit:contain;border:1px solid var(--outline);border-radius:8px;display:none;background:#fff;">
+            <input type="file" id="cfgLogoFile" accept="image/*" onchange="subirImagenConfig('logo')">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Favicon</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img id="cfgFaviconPreview" src="" alt="" style="width:32px;height:32px;object-fit:contain;border:1px solid var(--outline);border-radius:6px;display:none;background:#fff;">
+            <input type="file" id="cfgFaviconFile" accept="image/*" onchange="subirImagenConfig('favicon')">
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Zona horaria</label>
+          <select id="cfgZonaHoraria">
+            <option value="America/Ciudad_Juarez">Ciudad Juárez (America/Ciudad_Juarez)</option>
+            <option value="America/Mexico_City">Ciudad de México (America/Mexico_City)</option>
+            <option value="America/Tijuana">Tijuana (America/Tijuana)</option>
+            <option value="America/Monterrey">Monterrey (America/Monterrey)</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label>Idioma principal</label>
+          <select id="cfgIdioma">
+            <option value="es-MX">Español (México)</option>
+            <option value="en-US">English (US)</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label>Moneda base</label>
+          <select id="cfgMoneda">
+            <option value="MXN">Peso mexicano (MXN)</option>
+            <option value="USD">Dólar estadounidense (USD)</option>
+          </select>
+        </div>
+
+        <div id="cfgMsg"></div>
+        <button class="btn btn-primary" style="margin-top:10px;" onclick="guardarConfiguracion()">Guardar cambios</button>
+      </div>
+
+      <div class="card" style="max-width:560px;">
+        <h3 style="font-size:15px;margin-bottom:10px;">Políticas de contraseña</h3>
+        <p class="muted" style="font-size:13px;">La longitud mínima y los requisitos de caracteres especiales se configuran directo en Supabase, no aquí, para que apliquen de verdad a nivel de autenticación:</p>
+        <p class="muted" style="font-size:13px;">Panel de Supabase → <b>Authentication → Policies → Password Requirements</b></p>
+        <p class="muted" style="font-size:12px;margin-top:10px;">Nota: la caducidad automática de contraseñas (forzar cambio cada X días) no es algo que Supabase soporte de forma nativa por ahora.</p>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -399,6 +499,29 @@
     <h3 style="font-size:18px;margin-bottom:16px;">Detalle del pedido <span id="modalPedidoId"></span></h3>
     <div id="modalPedidoBody"></div>
     <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="document.getElementById('modalPedido').classList.remove('show')">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL: invitar usuario -->
+<div class="modal-overlay" id="modalInvitar">
+  <div class="modal-card">
+    <h3 style="font-size:18px;margin-bottom:6px;">Invitar usuario</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Le llegará un correo con un enlace para que cree su propia contraseña. No se genera ninguna contraseña temporal.</p>
+    <div class="field-group"><label>Nombre</label><input type="text" id="invNombre"></div>
+    <div class="field-group"><label>Correo</label><input type="text" id="invEmail" placeholder="correo@ejemplo.com"></div>
+    <div class="field-group">
+      <label>Rol</label>
+      <select id="invRol">
+        <option value="admin">Admin — acceso total</option>
+        <option value="gerente" selected>Gerente</option>
+        <option value="encargado">Encargado de turno</option>
+      </select>
+    </div>
+    <div id="modalInvitarMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalInvitar').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="enviarInvitacion()">Enviar invitación</button>
+    </div>
   </div>
 </div>
 
@@ -616,6 +739,8 @@ function goTab(tab){
   if (tab === 'costeo') cargarCosteo();
   if (tab === 'mensajes') cargarMensajes();
   if (tab === 'tickets') cargarTickets();
+  if (tab === 'usuarios') cargarUsuarios();
+  if (tab === 'configuracion') cargarConfiguracion();
 }
 
 /* ============================================================
@@ -1375,6 +1500,204 @@ async function guardarLoteTickets(){
 
   cargarTickets();
   setTimeout(() => document.getElementById('modalLoteTickets').classList.remove('show'), 1500);
+}
+
+/* ============================================================
+   USUARIOS
+   ============================================================
+   Todo lo que toca auth.users pasa por la Edge Function
+   "admin-manage-users" (usa la service role key del lado del
+   servidor, nunca en este HTML). Requiere que la despliegues:
+     supabase functions deploy admin-manage-users
+   ============================================================ */
+let usuariosCache = [];
+let usrPaginaActual = 1;
+const USR_POR_PAGINA = 10;
+
+async function llamarAdminUsuarios(body){
+  const { data: sess } = await sb.auth.getSession();
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-manage-users`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${sess.session.access_token}`,
+    },
+    body: JSON.stringify(body),
+  });
+  return res.json();
+}
+
+async function cargarUsuarios(){
+  const tbody = document.getElementById('usuariosTable');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando…</td></tr>';
+  const data = await llamarAdminUsuarios({ action: 'list' });
+  if (!data.ok){
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">Este módulo todavía no está conectado (falta desplegar la Edge Function "admin-manage-users"). Detalle: ${data.error}</td></tr>`;
+    return;
+  }
+  usuariosCache = data.usuarios;
+  usrPaginaActual = 1;
+  renderUsuariosTabla();
+}
+
+const ROL_LABEL = { admin: 'Admin', gerente: 'Gerente', encargado: 'Encargado de turno', 'sin-rol': 'Sin rol' };
+const ESTADO_BADGE = { activo: 'b-entregado', inactivo: 'b-cancelado', invitado: 'b-pendiente' };
+const ESTADO_LABEL = { activo: 'Activo', inactivo: 'Inactivo', invitado: 'Invitado' };
+
+function renderUsuariosTabla(){
+  const q = document.getElementById('usrBuscar').value.trim().toLowerCase();
+  const rolF = document.getElementById('usrFiltroRol').value;
+  const estadoF = document.getElementById('usrFiltroEstado').value;
+
+  let lista = usuariosCache.filter(u =>
+    (u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+    (!rolF || u.rol === rolF) &&
+    (!estadoF || u.estado === estadoF)
+  );
+
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / USR_POR_PAGINA));
+  usrPaginaActual = Math.min(usrPaginaActual, totalPaginas);
+  const inicio = (usrPaginaActual - 1) * USR_POR_PAGINA;
+  const pagina = lista.slice(inicio, inicio + USR_POR_PAGINA);
+
+  const tbody = document.getElementById('usuariosTable');
+  if (!pagina.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">Sin usuarios que coincidan.</td></tr>'; }
+  else {
+    tbody.innerHTML = pagina.map(u => `
+      <tr>
+        <td>${u.nombre}</td>
+        <td class="muted">${u.email}</td>
+        <td>${ROL_LABEL[u.rol] || u.rol}</td>
+        <td><span class="badge ${ESTADO_BADGE[u.estado]}">${ESTADO_LABEL[u.estado]}</span></td>
+        <td class="muted">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : 'Nunca'}</td>
+        <td style="white-space:nowrap;">
+          ${u.estado === 'inactivo'
+            ? `<button class="btn btn-primary btn-sm" onclick="reactivarUsuario('${u.id}')">Reactivar</button>`
+            : `<button class="btn btn-danger btn-sm" onclick="suspenderUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">Suspender</button>`}
+          ${u.estado === 'invitado' ? `<button class="btn btn-ghost btn-sm" onclick="reenviarInvitacion('${u.email}','${u.nombre.replace(/'/g,"\\'")}','${u.rol}')">Reenviar</button>` : ''}
+        </td>
+      </tr>`).join('');
+  }
+
+  const pagCont = document.getElementById('usrPaginacion');
+  if (totalPaginas <= 1){ pagCont.innerHTML = ''; }
+  else {
+    let btns = '';
+    for (let i = 1; i <= totalPaginas; i++){
+      btns += `<button class="btn ${i===usrPaginaActual?'btn-primary':'btn-ghost'} btn-sm" onclick="irAPaginaUsuarios(${i})">${i}</button>`;
+    }
+    pagCont.innerHTML = btns;
+  }
+}
+function irAPaginaUsuarios(n){ usrPaginaActual = n; renderUsuariosTabla(); }
+
+function abrirModalInvitar(){
+  document.getElementById('modalInvitarMsg').innerHTML = '';
+  document.getElementById('invNombre').value = '';
+  document.getElementById('invEmail').value = '';
+  document.getElementById('invRol').value = 'gerente';
+  document.getElementById('modalInvitar').classList.add('show');
+}
+
+async function enviarInvitacion(){
+  const nombre = document.getElementById('invNombre').value.trim();
+  const email = document.getElementById('invEmail').value.trim();
+  const rol = document.getElementById('invRol').value;
+  const msg = document.getElementById('modalInvitarMsg');
+  if (!nombre || !email){ msg.innerHTML = '<div class="msg-box msg-err">Llena nombre y correo.</div>'; return; }
+
+  const data = await llamarAdminUsuarios({ action: 'invite', email, nombre, rol });
+  if (!data.ok){ msg.innerHTML = `<div class="msg-box msg-err">${data.error}</div>`; return; }
+
+  msg.innerHTML = `<div class="msg-box msg-ok">Invitación enviada a ${email}.</div>`;
+  setTimeout(() => { document.getElementById('modalInvitar').classList.remove('show'); cargarUsuarios(); }, 1200);
+}
+
+async function reenviarInvitacion(email, nombre, rol){
+  if (!confirm(`¿Reenviar invitación a ${email}?`)) return;
+  const data = await llamarAdminUsuarios({ action: 'resend_invite', email, nombre, rol });
+  if (!data.ok){ alert('Error: ' + data.error); return; }
+  alert('Invitación reenviada.');
+}
+
+async function suspenderUsuario(id, nombre){
+  if (!confirm(`¿Suspender a ${nombre}? No podrá entrar al dashboard, pero su historial se conserva. Puedes reactivarlo cuando quieras.`)) return;
+  const data = await llamarAdminUsuarios({ action: 'suspend', id });
+  if (!data.ok){ alert('Error: ' + data.error); return; }
+  cargarUsuarios();
+}
+
+async function reactivarUsuario(id){
+  const data = await llamarAdminUsuarios({ action: 'reactivate', id });
+  if (!data.ok){ alert('Error: ' + data.error); return; }
+  cargarUsuarios();
+}
+
+/* ============================================================
+   CONFIGURACIÓN GENERAL
+   ============================================================ */
+async function cargarConfiguracion(){
+  const { data, error } = await sb.rpc('admin_configuracion_get');
+  if (error){
+    document.getElementById('cfgMsg').innerHTML = `<div class="msg-box msg-err">Este módulo todavía no está conectado (falta correr el SQL de Configuración). Detalle: ${error.message}</div>`;
+    return;
+  }
+  const cfg = data?.[0];
+  if (!cfg) return;
+  document.getElementById('cfgNombre').value = cfg.nombre_plataforma || '';
+  document.getElementById('cfgZonaHoraria').value = cfg.zona_horaria || 'America/Ciudad_Juarez';
+  document.getElementById('cfgIdioma').value = cfg.idioma || 'es-MX';
+  document.getElementById('cfgMoneda').value = cfg.moneda || 'MXN';
+  if (cfg.logo_url){
+    document.getElementById('cfgLogoPreview').src = cfg.logo_url;
+    document.getElementById('cfgLogoPreview').style.display = 'block';
+  }
+  if (cfg.favicon_url){
+    document.getElementById('cfgFaviconPreview').src = cfg.favicon_url;
+    document.getElementById('cfgFaviconPreview').style.display = 'block';
+  }
+  window._cfgLogoUrl = cfg.logo_url || null;
+  window._cfgFaviconUrl = cfg.favicon_url || null;
+}
+
+async function subirImagenConfig(tipo){
+  const input = document.getElementById(tipo === 'logo' ? 'cfgLogoFile' : 'cfgFaviconFile');
+  const file = input.files[0];
+  if (!file) return;
+  const msg = document.getElementById('cfgMsg');
+  msg.innerHTML = '<div class="msg-box">Subiendo…</div>';
+
+  const path = `${tipo}-${Date.now()}.${file.name.split('.').pop()}`;
+  const { error: upErr } = await sb.storage.from('config').upload(path, file, { upsert: true });
+  if (upErr){ msg.innerHTML = `<div class="msg-box msg-err">${upErr.message}</div>`; return; }
+
+  const { data: urlData } = sb.storage.from('config').getPublicUrl(path);
+  const url = urlData.publicUrl;
+
+  if (tipo === 'logo'){
+    window._cfgLogoUrl = url;
+    document.getElementById('cfgLogoPreview').src = url;
+    document.getElementById('cfgLogoPreview').style.display = 'block';
+  } else {
+    window._cfgFaviconUrl = url;
+    document.getElementById('cfgFaviconPreview').src = url;
+    document.getElementById('cfgFaviconPreview').style.display = 'block';
+  }
+  msg.innerHTML = '<div class="msg-box msg-ok">Imagen cargada. No olvides darle "Guardar cambios".</div>';
+}
+
+async function guardarConfiguracion(){
+  const msg = document.getElementById('cfgMsg');
+  const { error } = await sb.rpc('admin_configuracion_guardar', {
+    p_nombre_plataforma: document.getElementById('cfgNombre').value.trim(),
+    p_zona_horaria: document.getElementById('cfgZonaHoraria').value,
+    p_idioma: document.getElementById('cfgIdioma').value,
+    p_moneda: document.getElementById('cfgMoneda').value,
+    p_logo_url: window._cfgLogoUrl || null,
+    p_favicon_url: window._cfgFaviconUrl || null,
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  msg.innerHTML = '<div class="msg-box msg-ok">Configuración guardada.</div>';
 }
 
 /* ============================================================
