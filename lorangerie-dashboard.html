@@ -390,22 +390,6 @@
           </select>
         </div>
 
-        <div class="field-group">
-          <label>Idioma principal</label>
-          <select id="cfgIdioma">
-            <option value="es-MX">Español (México)</option>
-            <option value="en-US">English (US)</option>
-          </select>
-        </div>
-
-        <div class="field-group">
-          <label>Moneda base</label>
-          <select id="cfgMoneda">
-            <option value="MXN">Peso mexicano (MXN)</option>
-            <option value="USD">Dólar estadounidense (USD)</option>
-          </select>
-        </div>
-
         <div id="cfgMsg"></div>
         <button class="btn btn-primary" style="margin-top:10px;" onclick="guardarConfiguracion()">Guardar cambios</button>
       </div>
@@ -1646,8 +1630,6 @@ async function cargarConfiguracion(){
   if (!cfg) return;
   document.getElementById('cfgNombre').value = cfg.nombre_plataforma || '';
   document.getElementById('cfgZonaHoraria').value = cfg.zona_horaria || 'America/Ciudad_Juarez';
-  document.getElementById('cfgIdioma').value = cfg.idioma || 'es-MX';
-  document.getElementById('cfgMoneda').value = cfg.moneda || 'MXN';
   if (cfg.logo_url){
     document.getElementById('cfgLogoPreview').src = cfg.logo_url;
     document.getElementById('cfgLogoPreview').style.display = 'block';
@@ -1691,8 +1673,6 @@ async function guardarConfiguracion(){
   const { error } = await sb.rpc('admin_configuracion_guardar', {
     p_nombre_plataforma: document.getElementById('cfgNombre').value.trim(),
     p_zona_horaria: document.getElementById('cfgZonaHoraria').value,
-    p_idioma: document.getElementById('cfgIdioma').value,
-    p_moneda: document.getElementById('cfgMoneda').value,
     p_logo_url: window._cfgLogoUrl || null,
     p_favicon_url: window._cfgFaviconUrl || null,
   });
