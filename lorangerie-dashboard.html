@@ -53,6 +53,23 @@
   .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
   .card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:20px;margin-bottom:20px;}
   .cards-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+
+  /* Pedidos: vista de tarjetas */
+  .pedidos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+  .pedido-card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+  .pedido-card-head{display:flex;justify-content:space-between;align-items:flex-start;}
+  .pedido-card-id{display:flex;align-items:center;gap:8px;}
+  .pedido-card-id .num{font-family:var(--serif);font-weight:700;font-size:20px;color:var(--on);}
+  .pedido-card-total{font-weight:700;font-size:15px;}
+  .pedido-card-cliente{font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pedido-card-meta{display:flex;flex-direction:column;gap:4px;padding-top:8px;margin-top:auto;border-top:1px solid var(--outline);font-size:12.5px;color:var(--on-var);}
+  .pedido-card-meta span{display:flex;align-items:center;gap:6px;}
+  .pedido-detalle-toggle{background:none;border:none;border-top:1px solid var(--outline);padding-top:8px;color:var(--sage);font-weight:600;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;}
+  .pedido-detalle-toggle .flecha{transition:transform .2s ease;}
+  .pedido-detalle-body{font-size:12.5px;display:flex;flex-direction:column;gap:5px;}
+  .pedido-detalle-body .fila{display:flex;justify-content:space-between;gap:8px;}
+  .pedido-card-acciones{display:flex;gap:8px;}
+  .pedido-card-acciones .btn{flex:1;}
   .stat-card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:18px;}
   .stat-card .num{font-family:var(--serif);font-weight:700;font-size:28px;color:var(--on);}
   .stat-card .lbl{font-size:12px;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
@@ -199,12 +216,7 @@
         <button onclick="filtrarPedidos('entregado', this)">Entregados</button>
         <button onclick="filtrarPedidos('cancelado', this)">Cancelados</button>
       </div>
-      <div class="card" style="padding:0;overflow-x:auto;">
-        <table>
-          <thead><tr><th>#</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Horario</th><th>Fecha</th><th></th></tr></thead>
-          <tbody id="pedidosTable"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
-        </table>
-      </div>
+      <div class="pedidos-grid" id="pedidosGrid"><div class="loading">Cargando…</div></div>
     </div>
 
     <!-- CLIENTES -->
@@ -840,9 +852,10 @@ function exportarVentasCSV(){
    ============================================================ */
 let filtroPedidoActual = null;
 async function cargarPedidos(){
+  const cont = document.getElementById('pedidosGrid');
+  cont.innerHTML = '<div class="loading">Cargando…</div>';
   const { data, error } = await sb.rpc('admin_pedidos_todos', { p_estado: filtroPedidoActual });
-  const tbody = document.getElementById('pedidosTable');
-  if (error){ tbody.innerHTML = `<tr><td colspan="7" class="muted">Error: ${error.message}</td></tr>`; return; }
+  if (error){ cont.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
   pedidosCache = data || [];
 
   const pendientes = pedidosCache.filter(p => p.estado === 'pendiente').length;
@@ -850,24 +863,61 @@ async function cargarPedidos(){
   if (pendientes > 0){ badge.style.display = 'inline-block'; badge.textContent = pendientes; }
   else badge.style.display = 'none';
 
-  if (!pedidosCache.length){ tbody.innerHTML = '<tr><td colspan="7" class="muted">No hay pedidos en este filtro.</td></tr>'; return; }
+  if (!pedidosCache.length){ cont.innerHTML = '<p class="muted">No hay pedidos en este filtro.</p>'; return; }
 
   const badgeClase = { pendiente:'b-pendiente', entregado:'b-entregado', cancelado:'b-cancelado' };
-  tbody.innerHTML = pedidosCache.map(p => `
-    <tr>
-      <td>#${p.id}</td>
-      <td>${p.cliente_email}</td>
-      <td>$${Number(p.total_a_pagar).toFixed(2)}</td>
-      <td><span class="badge ${badgeClase[p.estado]}">${p.estado}</span></td>
-      <td class="muted">${p.horario_recogida || '—'}</td>
-      <td class="muted">${new Date(p.fecha_creacion).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}</td>
-      <td style="white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="verDetallePedido(${p.id})">Ver</button>
-        ${p.estado === 'pendiente' ? `
+  cont.innerHTML = pedidosCache.map(p => {
+    const esInvitado = p.es_invitado || p.invitado || p.guest_email;
+    return `
+    <div class="pedido-card">
+      <div class="pedido-card-head">
+        <div class="pedido-card-id">
+          <span class="num">#${p.id}</span>
+          <span class="badge ${badgeClase[p.estado]}">${p.estado}</span>
+        </div>
+        <span class="pedido-card-total">$${Number(p.total_a_pagar).toFixed(2)}</span>
+      </div>
+      <div>
+        <div class="pedido-card-cliente">${p.cliente_email}</div>
+        ${esInvitado ? '<div class="muted" style="font-size:12px;">(invitado)</div>' : ''}
+      </div>
+      <div class="pedido-card-meta">
+        <span>🕐 ${p.horario_recogida || 'Lo antes posible (15–20 min)'}</span>
+        <span>📅 ${new Date(p.fecha_creacion).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}</span>
+      </div>
+      <button class="pedido-detalle-toggle" onclick="toggleDetallePedido(${p.id}, this)">
+        <span>Ver detalles</span><span class="flecha">▾</span>
+      </button>
+      <div class="pedido-detalle-body" id="detalle-${p.id}" style="display:none;"><div class="loading" style="padding:10px;">Cargando…</div></div>
+      ${p.estado === 'pendiente' ? `
+        <div class="pedido-card-acciones">
           <button class="btn btn-primary btn-sm" onclick="activarPedido(${p.id})">Entregado</button>
-          <button class="btn btn-danger btn-sm" onclick="cancelarPedido(${p.id})">Cancelar</button>` : ''}
-      </td>
-    </tr>`).join('');
+          <button class="btn btn-danger btn-sm" onclick="cancelarPedido(${p.id})">Cancelar</button>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+const detallePedidoCache = {};
+async function toggleDetallePedido(id, btn){
+  const body = document.getElementById(`detalle-${id}`);
+  const flecha = btn.querySelector('.flecha');
+  const abrir = body.style.display === 'none';
+  body.style.display = abrir ? 'block' : 'none';
+  flecha.style.transform = abrir ? 'rotate(180deg)' : 'rotate(0deg)';
+  if (!abrir || detallePedidoCache[id]){
+    if (detallePedidoCache[id]) body.innerHTML = detallePedidoCache[id];
+    return;
+  }
+  const { data, error } = await sb.rpc('admin_detalle_pedido', { p_pedido: id });
+  if (error){ body.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
+  const html = (data && data.length)
+    ? data.map(it => `
+        <div class="fila"><span>${it.cantidad}× ${it.nombre}</span><span class="muted">$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span></div>
+        ${it.opciones ? `<div class="muted" style="font-size:11px;margin-top:-3px;">${it.opciones}</div>` : ''}`).join('')
+    : '<p class="muted">Sin platillos registrados.</p>';
+  detallePedidoCache[id] = html;
+  body.innerHTML = html;
 }
 
 function filtrarPedidos(estado, btn){
