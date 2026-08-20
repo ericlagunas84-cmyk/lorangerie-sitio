@@ -97,6 +97,22 @@
   .loading{padding:30px;text-align:center;color:var(--on-var);font-size:13px;}
   @keyframes slideIn { from { transform: translateX(30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
+  /* Comanda: oculta en pantalla, solo aparece al imprimir */
+  #comandaPrint{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #comandaPrint, #comandaPrint *{visibility:visible;}
+    #comandaPrint{display:block;position:absolute;top:0;left:0;width:100%;padding:20px;font-family:'Courier New',monospace;color:#000;}
+    .comanda-header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:14px;}
+    .comanda-header h1{font-size:22px;margin:0 0 4px;}
+    .comanda-header .num{font-size:32px;font-weight:900;}
+    .comanda-meta{font-size:14px;margin-bottom:14px;line-height:1.6;}
+    .comanda-items{border-top:2px dashed #000;padding-top:10px;}
+    .comanda-item{font-size:16px;font-weight:700;margin-bottom:10px;}
+    .comanda-item .opciones{font-size:13px;font-weight:400;margin-left:14px;}
+    .comanda-footer{border-top:2px dashed #000;margin-top:14px;padding-top:10px;font-size:13px;text-align:center;}
+  }
+
   /* Alerta de pedido nuevo — pantalla completa */
   .pedido-alert-overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--sidebar-bg) 0%,#0b1120 100%);display:none;align-items:center;justify-content:center;z-index:999;padding:20px;}
   .pedido-alert-overlay.show{display:flex;animation:fadeInAlert .2s ease;}
@@ -110,7 +126,7 @@
   .pedido-alert-title{font-family:var(--serif);font-weight:800;font-size:26px;color:var(--on);margin:0 0 14px;}
   .pedido-alert-total{font-family:var(--serif);font-weight:800;font-size:40px;color:var(--on);margin:6px 0 2px;}
   .pedido-alert-meta{font-size:13px;color:var(--on-var);margin-bottom:26px;}
-  .pedido-alert-actions{display:flex;gap:10px;}
+  .pedido-alert-actions{display:flex;gap:10px;flex-wrap:wrap;}
 </style>
 </head>
 <body>
@@ -604,6 +620,7 @@
     <div class="pedido-alert-meta" id="pedidoAlertMeta"></div>
     <div class="pedido-alert-actions">
       <button class="btn btn-ghost" style="flex:1;" onclick="cerrarAlertaPedido()">Cerrar</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="imprimirComandaDesdeAlerta()">🖨️ Imprimir</button>
       <button class="btn btn-primary" style="flex:1;" onclick="verPedidoDesdeAlerta()">Ver pedido</button>
     </div>
   </div>
@@ -885,6 +902,7 @@ async function cargarPedidos(){
         <span>🕐 ${p.horario_recogida || 'Lo antes posible (15–20 min)'}</span>
         <span>📅 ${new Date(p.fecha_creacion).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}</span>
       </div>
+      <button class="btn btn-ghost btn-sm" onclick="imprimirComanda(${p.id})">🖨️ Imprimir comanda</button>
       <button class="pedido-detalle-toggle" onclick="toggleDetallePedido(${p.id}, this)">
         <span>Ver detalles</span><span class="flecha">▾</span>
       </button>
@@ -925,6 +943,39 @@ function filtrarPedidos(estado, btn){
   document.querySelectorAll('#pedidosFiltro button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   cargarPedidos();
+}
+
+/* ---------- imprimir comanda ---------- */
+async function imprimirComanda(id){
+  const pedido = pedidosCache.find(p => p.id === id);
+  if (!pedido){ alert('No se encontró el pedido.'); return; }
+  const { data } = await sb.rpc('admin_detalle_pedido', { p_pedido: id });
+  renderYImprimirComanda(pedido, data);
+}
+
+async function imprimirComandaDesdeAlerta(){
+  const orden = pedidoAlertActual;
+  if (!orden){ return; }
+  const { data } = await sb.rpc('admin_detalle_pedido', { p_pedido: orden.id });
+  renderYImprimirComanda(orden, data);
+}
+
+function renderYImprimirComanda(pedido, items){
+  document.getElementById('comNum').textContent = '#' + pedido.id;
+  document.getElementById('comHorario').textContent = pedido.horario_recogida || 'Lo antes posible (15–20 min)';
+  document.getElementById('comFecha').textContent = new Date(pedido.fecha_creacion || Date.now()).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('comCliente').textContent = pedido.cliente_email || pedido.guest_email || '—';
+  document.getElementById('comImpreso').textContent = new Date().toLocaleString('es-MX', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+
+  const cont = document.getElementById('comItems');
+  cont.innerHTML = (items && items.length)
+    ? items.map(it => `
+        <div class="comanda-item">${it.cantidad}× ${it.nombre}
+          ${it.opciones ? `<div class="opciones">${it.opciones}</div>` : ''}
+        </div>`).join('')
+    : '<p>Sin platillos registrados.</p>';
+
+  window.print();
 }
 
 async function verDetallePedido(id){
@@ -1822,5 +1873,20 @@ function mostrarToast(texto){
   setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; setTimeout(() => toast.remove(), 300); }, 6000);
 }
 </script>
+<!-- Comanda para imprimir: se llena por JS antes de mandar a imprimir -->
+<div id="comandaPrint">
+  <div class="comanda-header">
+    <h1>L'Orangerie</h1>
+    <div class="num">Pedido <span id="comNum"></span></div>
+  </div>
+  <div class="comanda-meta">
+    <div>🕐 Horario: <b id="comHorario"></b></div>
+    <div>📅 Fecha: <b id="comFecha"></b></div>
+    <div>👤 Cliente: <b id="comCliente"></b></div>
+  </div>
+  <div class="comanda-items" id="comItems"></div>
+  <div class="comanda-footer">Impreso: <span id="comImpreso"></span></div>
+</div>
+
 </body>
 </html>
