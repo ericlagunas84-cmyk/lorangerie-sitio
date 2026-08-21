@@ -993,6 +993,37 @@
 </div>
 
 <!-- Coffee customization modal -->
+<!-- MODAL: detalle de producto -->
+<div class="modal-overlay" id="productOverlay" onclick="if(event.target===this) closeProductModal()">
+  <div class="modal-card" style="max-width:480px;padding:0;overflow:hidden;">
+    <button class="modal-close" onclick="closeProductModal()" style="z-index:2;background:rgba(255,255,255,.85);border-radius:50%;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div id="pmImageWrap" style="width:100%;height:220px;overflow:hidden;background:linear-gradient(135deg,var(--primary),var(--primary-dark));display:flex;align-items:center;justify-content:center;">
+      <img id="pmImage" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
+      <svg id="pmImagePlaceholder" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.3"><path d="M4 19h16M6 19V9l6-5 6 5v10M9 19v-6h6v6"/></svg>
+    </div>
+    <div style="padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+        <h3 id="pmName" style="font-family:var(--serif);font-size:24px;margin:0;line-height:1.2;"></h3>
+        <span id="pmBadge" class="menu-row-badge" style="display:none;white-space:nowrap;"></span>
+      </div>
+      <p id="pmDesc" style="font-size:14px;color:var(--on-surface-variant);margin:10px 0 18px;line-height:1.5;"></p>
+      <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--primary-dark);margin-bottom:20px;" id="pmPrice"></div>
+
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="qty-ctrl">
+          <button onclick="pmChangeQty(-1)">−</button>
+          <span id="pmQty" style="min-width:24px;text-align:center;">1</span>
+          <button onclick="pmChangeQty(1)">+</button>
+        </div>
+        <button class="btn btn-primary" style="flex:1;" onclick="pmAddToCart()">Agregar al carrito — <span id="pmTotal"></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: personalizar café -->
 <div class="modal-overlay" id="coffeeOverlay" onclick="if(event.target===this) closeCoffeeModal()">
   <div class="modal-card" style="max-width:400px;">
     <button class="modal-close" onclick="closeCoffeeModal()">
@@ -1092,7 +1123,7 @@ const CATEGORIES = [
 
 const MENU = [
   // ---------- CAFÉ ----------
-  { id:"latte", name:"Latte", price:85, category:"cafe", customizable:true,
+  { id:"latte", name:"Latte", price:85, category:"cafe", customizable:true, image:"producto-latte.jpg",
     desc:"Doble espresso de especialidad con leche vaporizada y una capa de espuma." },
   { id:"capuccino", name:"Capuccino", price:85, category:"cafe", customizable:true,
     desc:"Doble espresso de especialidad con leche y una generosa capa de espuma." },
@@ -1307,17 +1338,23 @@ function setCategory(key){
   renderMenu();
 }
 
+function abrirDetalleOPersonalizar(id){
+  const item = MENU.find(m => m.id === id);
+  if (item && item.customizable) openCoffeeModal(id);
+  else openProductModal(id);
+}
+
 function renderMenu(){
   const grid = document.getElementById('menuGrid');
   const items = MENU.filter(m => m.category === activeCategory);
   grid.innerHTML = items.map(item => `
-    <div class="menu-row">
+    <div class="menu-row" onclick="abrirDetalleOPersonalizar('${item.id}')" style="cursor:pointer;">
       <div class="menu-row-main">
         <span class="menu-row-name">${item.name}${item.badge ? `<span class="menu-row-badge">${item.badge}</span>` : ''}</span>
         <span class="menu-row-price">$${item.price.toFixed(2)}</span>
       </div>
       ${item.desc ? `<p class="menu-row-desc">${item.desc}</p>` : ''}
-      <button class="menu-row-add" onclick="addToCart('${item.id}')" aria-label="Agregar ${item.name}">
+      <button class="menu-row-add" onclick="event.stopPropagation(); addToCart('${item.id}')" aria-label="Agregar ${item.name}">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
         Agregar
       </button>
@@ -1773,6 +1810,61 @@ function addCustomCoffee(){
   updateBadge();
   closeCoffeeModal();
   renderDrawer();
+  openCart();
+}
+
+/* ---------- modal de detalle de producto ---------- */
+let pmProductoActual = null;
+let pmCantidad = 1;
+
+function openProductModal(id){
+  const item = MENU.find(m => m.id === id);
+  if (!item) return;
+  pmProductoActual = item;
+  pmCantidad = 1;
+
+  document.getElementById('pmName').textContent = item.name;
+  document.getElementById('pmDesc').textContent = item.desc || '';
+  document.getElementById('pmDesc').style.display = item.desc ? 'block' : 'none';
+
+  const badge = document.getElementById('pmBadge');
+  if (item.badge){ badge.textContent = item.badge; badge.style.display = 'inline-block'; }
+  else badge.style.display = 'none';
+
+  const img = document.getElementById('pmImage');
+  const placeholder = document.getElementById('pmImagePlaceholder');
+  if (item.image){ img.src = item.image; img.style.display = 'block'; placeholder.style.display = 'none'; }
+  else { img.style.display = 'none'; placeholder.style.display = 'block'; }
+
+  pmActualizarPrecio();
+  document.getElementById('productOverlay').classList.add('show');
+}
+
+function closeProductModal(){
+  document.getElementById('productOverlay').classList.remove('show');
+}
+
+function pmChangeQty(delta){
+  pmCantidad = Math.max(1, pmCantidad + delta);
+  document.getElementById('pmQty').textContent = pmCantidad;
+  pmActualizarPrecio();
+}
+
+function pmActualizarPrecio(){
+  if (!pmProductoActual) return;
+  document.getElementById('pmPrice').textContent = '$' + pmProductoActual.price.toFixed(2);
+  document.getElementById('pmQty').textContent = pmCantidad;
+  document.getElementById('pmTotal').textContent = '$' + (pmProductoActual.price * pmCantidad).toFixed(2);
+}
+
+function pmAddToCart(){
+  if (!pmProductoActual) return;
+  const existing = cart.find(c => c.id === pmProductoActual.id && !c.opts);
+  if (existing) existing.qty += pmCantidad;
+  else cart.push({ id: pmProductoActual.id, qty: pmCantidad });
+  updateBadge();
+  renderDrawer();
+  closeProductModal();
   openCart();
 }
 
@@ -2388,6 +2480,7 @@ async function cargarMenuDesdeSheet(){
         price: precio,
         desc: (row.descripcion || '').trim(),
         badge: (row.badge || '').trim() || undefined,
+        image: (row.imagen || '').trim() || undefined,
         customizable: /^(si|sí|true|1)$/i.test((row.personalizable || '').trim()) || undefined,
       });
     }
