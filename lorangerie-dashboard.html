@@ -697,18 +697,31 @@
 
 <!-- MODAL: comanda activa de una mesa -->
 <div class="modal-overlay" id="modalComandaMesa">
-  <div class="modal-card" style="width:460px;">
+  <div class="modal-card" style="width:460px;" id="comandaMesaCard">
     <h3 style="font-size:18px;margin-bottom:4px;">Comanda — <span id="comandaMesaTitulo"></span></h3>
     <p class="muted" style="font-size:12px;margin:0 0 14px;" id="comandaMesaSub"></p>
-    <div id="comandaMesaItems" style="margin-bottom:14px;">Cargando…</div>
-    <div id="comandaMesaMsg"></div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
-      <button class="btn btn-primary" id="comandaMesaBtnAgregar" onclick="agregarProductosAOrdenAbierta()">+ Agregar productos</button>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost" style="flex:1;" onclick="imprimirComandaDesdeMesa()">🖨️ Imprimir</button>
-        <button class="btn btn-primary" style="flex:1;" onclick="marcarEntregadoDesdeMesa()">Entregado</button>
+
+    <!-- Vista: comanda actual -->
+    <div id="comandaMesaVistaNormal">
+      <div id="comandaMesaItems" style="margin-bottom:14px;">Cargando…</div>
+      <div id="comandaMesaMsg"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+        <button class="btn btn-primary" onclick="mostrarAgregarProductos()">+ Agregar productos</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="imprimirComandaDesdeMesa()">🖨️ Imprimir</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="marcarEntregadoDesdeMesa()">Entregado</button>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('modalComandaMesa').classList.remove('show')">Cerrar</button>
       </div>
-      <button class="btn btn-ghost" onclick="document.getElementById('modalComandaMesa').classList.remove('show')">Cerrar</button>
+    </div>
+
+    <!-- Vista: agregar productos (selector de menú) -->
+    <div id="comandaMesaVistaAgregar" style="display:none;">
+      <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="ocultarAgregarProductos()">‹ Volver a la comanda</button>
+      <div class="pos-cat-tabs" id="comandaAgregarCatTabs"></div>
+      <div class="pos-items-grid" id="comandaAgregarItemsGrid" style="max-height:280px;overflow-y:auto;"></div>
+      <div id="comandaAgregarMsg" style="margin-top:10px;"></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="ocultarAgregarProductos()">Listo</button>
     </div>
   </div>
 </div>
@@ -1459,9 +1472,67 @@ async function abrirComandaMesa(mesa){
     : '<p class="muted">Sin platillos registrados.</p>';
 }
 
-function agregarProductosAOrdenAbierta(){
-  document.getElementById('comandaMesaMsg').innerHTML =
-    '<div class="msg-box msg-err">Esta parte todavía no está lista — falta confirmar cómo está armada tu tabla de pedidos antes de conectarla.</div>';
+let comandaAgregarCategoriaActual = null;
+
+async function mostrarAgregarProductos(){
+  if (!menuCache.length){
+    const { data } = await sb.rpc('admin_productos_list');
+    menuCache = data || [];
+  }
+  document.getElementById('comandaMesaVistaNormal').style.display = 'none';
+  document.getElementById('comandaMesaVistaAgregar').style.display = 'block';
+  document.getElementById('comandaAgregarMsg').innerHTML = '';
+
+  const categorias = [...new Set(menuCache.filter(p => p.activo).map(p => p.categoria))];
+  comandaAgregarCategoriaActual = categorias[0] || null;
+  document.getElementById('comandaAgregarCatTabs').innerHTML = categorias.map(c =>
+    `<button class="${c===comandaAgregarCategoriaActual?'active':''}" onclick="comandaAgregarFiltrarCategoria('${c}', this)">${c}</button>`
+  ).join('');
+  comandaAgregarRenderItems();
+}
+
+function ocultarAgregarProductos(){
+  document.getElementById('comandaMesaVistaAgregar').style.display = 'none';
+  document.getElementById('comandaMesaVistaNormal').style.display = 'block';
+  // refresca la comanda por si se agregaron productos mientras tanto
+  if (comandaMesaPedidoActual) abrirComandaMesa((comandaMesaPedidoActual.mesa || '').split('+')[0].trim());
+  cargarMesasActivas();
+}
+
+function comandaAgregarFiltrarCategoria(cat, btn){
+  comandaAgregarCategoriaActual = cat;
+  document.querySelectorAll('#comandaAgregarCatTabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  comandaAgregarRenderItems();
+}
+
+function comandaAgregarRenderItems(){
+  const items = menuCache.filter(p => p.activo && p.categoria === comandaAgregarCategoriaActual);
+  document.getElementById('comandaAgregarItemsGrid').innerHTML = items.map(p => `
+    <button class="pos-item-btn" onclick="comandaAgregarUnItem('${p.id}', this)">
+      <span class="nombre">${p.nombre}</span>
+      <span class="precio">$${Number(p.precio).toFixed(2)}</span>
+    </button>`).join('');
+}
+
+async function comandaAgregarUnItem(productoId, btn){
+  if (!comandaMesaPedidoActual) return;
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="nombre">Agregando…</span>';
+
+  const { error } = await sb.rpc('admin_pedido_agregar_items', {
+    p_pedido_id: comandaMesaPedidoActual.id,
+    p_producto_id: productoId,
+    p_cantidad: 1,
+  });
+
+  const msg = document.getElementById('comandaAgregarMsg');
+  if (error){
+    msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`;
+  } else {
+    msg.innerHTML = '<div class="msg-box msg-ok">Agregado ✓</div>';
+  }
+  btn.disabled = false; btn.innerHTML = original;
 }
 
 async function marcarEntregadoDesdeMesa(){
