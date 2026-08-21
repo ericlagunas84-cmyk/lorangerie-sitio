@@ -724,7 +724,7 @@
     <div class="pickup-banner">
       <div>
         <h3>Recoge en nuestra única sucursal</h3>
-        <p>Blvd. Francisco Villarreal Torres 11204, Local 15 · Plaza Comercial Tres Torres · Lun–Sáb 7:30am–10pm · Dom 7:30am–1pm. Tu pedido estará listo en 15–20 minutos.</p>
+        <p id="pickupBannerTexto">Blvd. Francisco Villarreal Torres 11204, Local 15 · Plaza Comercial Tres Torres · Lun–Sáb 7:30am–10pm · Dom 7:30am–1pm. Tu pedido estará listo en 15–20 minutos.</p>
       </div>
       <a href="#menu" onclick="openCart()" class="btn btn-cream">Ver mi pedido</a>
     </div>
@@ -1940,7 +1940,7 @@ function aplicarMaximo(maxPts){
 }
 
 function pickupSlotsHTML(){
-  let opts = ['<option>Lo antes posible (15–20 min)</option>'];
+  let opts = [`<option>Lo antes posible (${TIEMPO_ESPERA_MIN}–${TIEMPO_ESPERA_MAX} min)</option>`];
   const label = (totalMin) => {
     let hh = Math.floor(totalMin/60), mm = totalMin%60;
     const ampm = hh < 12 ? 'am' : 'pm';
@@ -2413,7 +2413,27 @@ async function cargarMenuDesdeSheet(){
   renderTestimonios();
   updateAuthUI();
   restaurarSesion();
+  await cargarTiempoEsperaConfigurado();
 })();
+
+let TIEMPO_ESPERA_MIN = 15, TIEMPO_ESPERA_MAX = 20;
+async function cargarTiempoEsperaConfigurado(){
+  try {
+    const { data, error } = await sb.rpc('config_publica_get');
+    const cfg = data?.[0];
+    if (error || !cfg) return; // si falla, se quedan los valores por default (15-20)
+    TIEMPO_ESPERA_MIN = cfg.tiempo_espera_min ?? 15;
+    TIEMPO_ESPERA_MAX = cfg.tiempo_espera_max ?? 20;
+
+    const banner = document.getElementById('pickupBannerTexto');
+    if (banner){
+      banner.textContent = banner.textContent.replace(
+        /Tu pedido estará listo en [\d–-]+ minutos\.?/,
+        `Tu pedido estará listo en ${TIEMPO_ESPERA_MIN}–${TIEMPO_ESPERA_MAX} minutos.`
+      );
+    }
+  } catch(e) { /* se queda con el default si algo falla */ }
+}
 </script>
 
 <!-- Registro del Service Worker (PWA) -->

@@ -418,6 +418,17 @@
           </select>
         </div>
 
+        <div class="field-group">
+          <label>Tiempo de espera para recoger pedido</label>
+          <p class="muted" style="font-size:12px;margin:0 0 8px;">Esto es lo que ve el cliente cuando elige "Lo antes posible" al hacer su pedido. Súbelo en horas de mucha demanda, bájalo cuando esté tranquilo.</p>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="number" id="cfgTiempoMin" min="0" step="1" style="max-width:80px;">
+            <span class="muted" style="font-size:13px;">a</span>
+            <input type="number" id="cfgTiempoMax" min="0" step="1" style="max-width:80px;">
+            <span class="muted" style="font-size:13px;">minutos</span>
+          </div>
+        </div>
+
         <div id="cfgMsg"></div>
         <button class="btn btn-primary" style="margin-top:10px;" onclick="guardarConfiguracion()">Guardar cambios</button>
       </div>
@@ -1731,6 +1742,8 @@ async function cargarConfiguracion(){
   if (!cfg) return;
   document.getElementById('cfgNombre').value = cfg.nombre_plataforma || '';
   document.getElementById('cfgZonaHoraria').value = cfg.zona_horaria || 'America/Ciudad_Juarez';
+  document.getElementById('cfgTiempoMin').value = cfg.tiempo_espera_min ?? 15;
+  document.getElementById('cfgTiempoMax').value = cfg.tiempo_espera_max ?? 20;
   if (cfg.logo_url){
     document.getElementById('cfgLogoPreview').src = cfg.logo_url;
     document.getElementById('cfgLogoPreview').style.display = 'block';
@@ -1771,9 +1784,17 @@ async function subirImagenConfig(tipo){
 
 async function guardarConfiguracion(){
   const msg = document.getElementById('cfgMsg');
+  const tMin = parseInt(document.getElementById('cfgTiempoMin').value, 10);
+  const tMax = parseInt(document.getElementById('cfgTiempoMax').value, 10);
+  if (isNaN(tMin) || isNaN(tMax) || tMin < 0 || tMax < tMin){
+    msg.innerHTML = '<div class="msg-box msg-err">Revisa los minutos de espera: el máximo debe ser mayor o igual al mínimo.</div>';
+    return;
+  }
   const { error } = await sb.rpc('admin_configuracion_guardar', {
     p_nombre_plataforma: document.getElementById('cfgNombre').value.trim(),
     p_zona_horaria: document.getElementById('cfgZonaHoraria').value,
+    p_tiempo_espera_min: tMin,
+    p_tiempo_espera_max: tMax,
     p_logo_url: window._cfgLogoUrl || null,
     p_favicon_url: window._cfgFaviconUrl || null,
   });
