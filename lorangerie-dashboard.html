@@ -88,14 +88,21 @@
   .pos-cart-line .qty-controls button{width:22px;height:22px;border-radius:50%;border:1px solid var(--outline);background:var(--low);cursor:pointer;font-weight:700;line-height:1;}
   .pos-cart-empty{text-align:center;color:var(--on-var);font-size:13px;padding:30px 10px;}
 
+  /* Selección de mesa */
+  .pos-mesas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:12px;}
+  .pos-mesa-btn{height:80px;border:2px solid var(--outline);background:var(--paper);border-radius:12px;font-family:var(--serif);font-weight:700;font-size:17px;color:var(--on);cursor:pointer;transition:all .15s;}
+  .pos-mesa-btn:hover{border-color:var(--sage);}
+  .pos-mesa-btn.selected{border-color:var(--sage);background:var(--ok-soft);color:var(--ok);}
+
   /* Modal de cobro */
   .pos-pago-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
   .pos-pago-methods button{height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px solid var(--outline);background:var(--low);border-radius:10px;font-size:11.5px;font-weight:600;color:var(--on-var);cursor:pointer;}
   .pos-pago-methods button.active{border-color:var(--sage);background:var(--ok-soft);color:var(--ok);}
-  .pos-monto-input{font-family:var(--serif);font-weight:700;font-size:26px;text-align:center;padding:12px;border:2px solid var(--sage);border-radius:10px;width:100%;background:#fff;}
-  .pos-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px;}
-  .pos-keypad button{height:44px;background:var(--low);border:1px solid var(--outline);border-radius:8px;font-weight:700;font-size:16px;cursor:pointer;}
-  .pos-cambio-box{display:flex;justify-content:space-between;align-items:center;background:var(--ok-soft);color:var(--ok);padding:12px 14px;border-radius:10px;margin-top:12px;font-weight:700;}
+  .pos-monto-input{font-family:var(--serif);font-weight:700;font-size:34px;text-align:center;padding:16px;border:2px solid var(--sage);border-radius:10px;width:100%;background:#fff;}
+  .pos-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
+  .pos-keypad button{height:56px;background:var(--low);border:1px solid var(--outline);border-radius:8px;font-weight:700;font-size:20px;cursor:pointer;}
+  .pos-keypad button:hover{background:var(--outline-variant);}
+  .pos-cambio-box{display:flex;justify-content:space-between;align-items:center;background:var(--ok-soft);color:var(--ok);padding:14px 16px;border-radius:10px;font-weight:700;font-size:16px;}
   .stat-card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:18px;}
   .stat-card .num{font-family:var(--serif);font-weight:700;font-size:28px;color:var(--on);}
   .stat-card .lbl{font-size:12px;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
@@ -301,24 +308,46 @@
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Para pedidos de mostrador o por teléfono. Al cobrar, se crea con el mismo sistema que los pedidos del sitio — aparece igual en Pedidos y en tus reportes de ventas.</p>
 
-      <div class="pos-layout" style="margin-top:16px;">
-        <div class="pos-menu">
-          <div class="pos-cat-tabs" id="posCatTabs"></div>
-          <div class="pos-items-grid" id="posItemsGrid"><div class="loading">Cargando menú…</div></div>
+      <!-- PANTALLA 1: Selección de mesa -->
+      <div id="posPantallaMesa" style="margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <h3 style="font-size:15px;" id="posMesaTitulo">Selecciona una mesa</h3>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" id="posBtnJuntar" onclick="posToggleJuntarMesas()">🔗 Juntar mesas</button>
+            <button class="btn btn-ghost btn-sm" onclick="abrirModalHistorial()">🕓 Historial</button>
+          </div>
         </div>
+        <div class="pos-mesas-grid" id="posMesasGrid"></div>
+        <div id="posMesaContinuarBox" style="display:none;margin-top:16px;">
+          <button class="btn btn-primary" onclick="posContinuarConMesas()">Continuar con <span id="posMesasElegidasTexto"></span></button>
+        </div>
+      </div>
 
-        <div class="pos-cart">
-          <h3 style="font-size:15px;margin-bottom:10px;">Orden actual</h3>
-          <div class="field-group">
-            <label>Nombre del cliente (opcional)</label>
-            <input type="text" id="posClienteNombre" placeholder="Cliente de mostrador">
+      <!-- PANTALLA 2: Menú + carrito -->
+      <div id="posPantallaMenu" style="display:none;margin-top:16px;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+          <button class="btn btn-ghost btn-sm" onclick="posRegresarAMesas()">← Regresar</button>
+          <span class="badge b-entregado" id="posMesaBadge"></span>
+        </div>
+        <div class="pos-layout">
+          <div class="pos-menu">
+            <div class="pos-cat-tabs" id="posCatTabs"></div>
+            <div class="pos-items-grid" id="posItemsGrid"><div class="loading">Cargando menú…</div></div>
           </div>
-          <div id="posCartLineas"><div class="pos-cart-empty">Agrega platillos del menú →</div></div>
-          <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid var(--outline);margin-top:8px;font-weight:700;font-size:16px;">
-            <span>Total</span><span id="posCartTotal">$0.00</span>
+
+          <div class="pos-cart">
+            <h3 style="font-size:15px;margin-bottom:10px;">Orden actual</h3>
+            <div class="field-group">
+              <label>Nombre del cliente (opcional)</label>
+              <input type="text" id="posClienteNombre" placeholder="Cliente de mostrador">
+            </div>
+            <div id="posCartLineas"><div class="pos-cart-empty">Agrega platillos del menú →</div></div>
+            <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid var(--outline);margin-top:8px;font-weight:700;font-size:16px;">
+              <span>Total</span><span id="posCartTotal">$0.00</span>
+            </div>
+            <button class="btn btn-primary" style="width:100%;" id="posBtnCobrar" onclick="abrirModalCobro()" disabled>Cobrar</button>
+            <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="vaciarCarritoPOS()">Vaciar orden</button>
           </div>
-          <button class="btn btn-primary" style="width:100%;" id="posBtnCobrar" onclick="abrirModalCobro()" disabled>Cobrar</button>
-          <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="vaciarCarritoPOS()">Vaciar orden</button>
         </div>
       </div>
     </div>
@@ -607,32 +636,51 @@
 <!-- MODAL: insumo de inventario -->
 <!-- MODAL: cobrar orden (POS) -->
 <div class="modal-overlay" id="modalCobro">
-  <div class="modal-card" style="width:420px;">
-    <h3 style="font-size:18px;margin-bottom:4px;">Cobrar orden</h3>
-    <p class="muted" style="font-size:13px;margin:0 0 16px;">Total a cobrar: <b id="cobroTotalTexto" style="color:var(--sage);"></b></p>
+  <div class="modal-card" style="width:700px;max-width:95vw;">
+    <h3 style="font-size:22px;margin-bottom:4px;">Cobrar orden</h3>
+    <p class="muted" style="font-size:14px;margin:0 0 20px;" id="cobroMesaTexto"></p>
 
-    <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Método de pago</label>
-    <div class="pos-pago-methods" id="cobroMetodos">
-      <button type="button" class="active" onclick="elegirMetodoPago('efectivo', this)">💵<span>Efectivo</span></button>
-      <button type="button" onclick="elegirMetodoPago('tarjeta', this)">💳<span>Tarjeta</span></button>
-      <button type="button" onclick="elegirMetodoPago('digital', this)">📱<span>Digital</span></button>
-    </div>
+    <div style="display:flex;gap:28px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <div style="background:var(--low);border-radius:12px;padding:20px;text-align:center;margin-bottom:20px;">
+          <div class="muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Total a cobrar</div>
+          <div style="font-family:var(--serif);font-weight:800;font-size:36px;color:var(--sage-dark);" id="cobroTotalTexto"></div>
+        </div>
 
-    <div id="cobroEfectivoBox">
-      <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Monto recibido</label>
-      <input type="text" id="cobroMontoInput" class="pos-monto-input" readonly value="0.00">
-      <div class="pos-keypad" id="cobroKeypad"></div>
-      <div class="pos-cambio-box">
-        <span>Cambio</span>
-        <span id="cobroCambioTexto">$0.00</span>
+        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Método de pago</label>
+        <div class="pos-pago-methods" id="cobroMetodos">
+          <button type="button" class="active" onclick="elegirMetodoPago('efectivo', this)">💵<span>Efectivo</span></button>
+          <button type="button" onclick="elegirMetodoPago('tarjeta', this)">💳<span>Tarjeta</span></button>
+          <button type="button" onclick="elegirMetodoPago('digital', this)">📱<span>Digital</span></button>
+        </div>
+
+        <div class="pos-cambio-box" style="margin-top:20px;">
+          <span>Cambio</span>
+          <span id="cobroCambioTexto">$0.00</span>
+        </div>
+      </div>
+
+      <div id="cobroEfectivoBox" style="flex:1;min-width:240px;">
+        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Monto recibido</label>
+        <input type="text" id="cobroMontoInput" class="pos-monto-input" readonly value="0.00">
+        <div class="pos-keypad" id="cobroKeypad"></div>
       </div>
     </div>
 
     <div id="cobroMsg"></div>
-    <div style="display:flex;gap:10px;margin-top:18px;">
-      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCobro').classList.remove('show')">Cancelar</button>
-      <button class="btn btn-primary" style="flex:2;" id="cobroBtnConfirmar" onclick="confirmarCobro()">Confirmar pago</button>
+    <div style="display:flex;gap:10px;margin-top:24px;">
+      <button class="btn btn-ghost" style="flex:1;height:52px;" onclick="document.getElementById('modalCobro').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2;height:52px;font-size:15px;" id="cobroBtnConfirmar" onclick="confirmarCobro()">Confirmar pago</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: historial de pedidos de mostrador -->
+<div class="modal-overlay" id="modalHistorial">
+  <div class="modal-card" style="width:520px;">
+    <h3 style="font-size:18px;margin-bottom:16px;">Historial de mostrador</h3>
+    <div id="historialLista" style="max-height:420px;overflow-y:auto;">Cargando…</div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:16px;" onclick="document.getElementById('modalHistorial').classList.remove('show')">Cerrar</button>
   </div>
 </div>
 
@@ -1056,7 +1104,66 @@ function filtrarPedidos(estado, btn){
 let posCart = [];
 let posCategoriaActual = null;
 
-async function cargarPOS(){
+let posModoJuntar = false;
+let posMesasElegidas = [];
+const POS_MESAS = Array.from({length:14}, (_, i) => 'M' + String(i+1).padStart(2,'0'));
+
+function cargarPOS(){
+  posModoJuntar = false;
+  posMesasElegidas = [];
+  document.getElementById('posPantallaMesa').style.display = 'block';
+  document.getElementById('posPantallaMenu').style.display = 'none';
+  document.getElementById('posMesaTitulo').textContent = 'Selecciona una mesa';
+  document.getElementById('posBtnJuntar').classList.remove('active');
+  document.getElementById('posMesaContinuarBox').style.display = 'none';
+  posRenderMesas();
+}
+
+function posRenderMesas(){
+  document.getElementById('posMesasGrid').innerHTML = POS_MESAS.map(m => `
+    <button class="pos-mesa-btn ${posMesasElegidas.includes(m) ? 'selected' : ''}" onclick="posClicMesa('${m}')">${m}</button>
+  `).join('');
+}
+
+function posToggleJuntarMesas(){
+  posModoJuntar = !posModoJuntar;
+  posMesasElegidas = [];
+  document.getElementById('posBtnJuntar').classList.toggle('active', posModoJuntar);
+  document.getElementById('posMesaTitulo').textContent = posModoJuntar
+    ? 'Elige las mesas que quieres juntar'
+    : 'Selecciona una mesa';
+  document.getElementById('posMesaContinuarBox').style.display = 'none';
+  posRenderMesas();
+}
+
+function posClicMesa(mesa){
+  if (!posModoJuntar){
+    posMesasElegidas = [mesa];
+    posIrAMenu();
+    return;
+  }
+  if (posMesasElegidas.includes(mesa)) posMesasElegidas = posMesasElegidas.filter(m => m !== mesa);
+  else posMesasElegidas.push(mesa);
+
+  posRenderMesas();
+  const box = document.getElementById('posMesaContinuarBox');
+  if (posMesasElegidas.length){
+    box.style.display = 'block';
+    document.getElementById('posMesasElegidasTexto').textContent = posMesasElegidas.sort().join(' + ');
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+function posContinuarConMesas(){
+  posIrAMenu();
+}
+
+async function posIrAMenu(){
+  document.getElementById('posPantallaMesa').style.display = 'none';
+  document.getElementById('posPantallaMenu').style.display = 'block';
+  document.getElementById('posMesaBadge').textContent = '🪑 Mesa ' + posMesasElegidas.sort().join(' + ');
+
   if (!menuCache.length){
     const { data } = await sb.rpc('admin_productos_list');
     menuCache = data || [];
@@ -1070,6 +1177,12 @@ async function cargarPOS(){
 
   posRenderItems();
   posRenderCarrito();
+}
+
+function posRegresarAMesas(){
+  document.getElementById('posPantallaMenu').style.display = 'none';
+  document.getElementById('posPantallaMesa').style.display = 'block';
+  posRenderMesas();
 }
 
 function posFiltrarCategoria(cat, btn){
@@ -1142,6 +1255,7 @@ let cobroMontoStr = '0';
 function abrirModalCobro(){
   const total = posCartTotal();
   document.getElementById('cobroTotalTexto').textContent = '$' + total.toFixed(2);
+  document.getElementById('cobroMesaTexto').textContent = '🪑 Mesa ' + posMesasElegidas.sort().join(' + ');
   cobroMetodoActual = 'efectivo';
   cobroMontoStr = '0';
   document.getElementById('cobroMsg').innerHTML = '';
@@ -1229,6 +1343,7 @@ async function confirmarCobro(){
       p_metodo_pago: cobroMetodoActual,
       p_monto_recibido: monto,
       p_cambio: cambio,
+      p_mesa: posMesasElegidas.sort().join(' + '),
     });
     if (pagoErr) throw new Error('Orden creada (#' + data.pedido_id + ') pero el pago no se pudo registrar: ' + pagoErr.message);
 
@@ -1237,12 +1352,40 @@ async function confirmarCobro(){
       document.getElementById('modalCobro').classList.remove('show');
       vaciarCarritoPOS();
       document.getElementById('posClienteNombre').value = '';
+      cargarPOS(); // regresa a la pantalla de selección de mesa para la siguiente orden
     }, 1400);
   } catch(e){
     msg.innerHTML = `<div class="msg-box msg-err">${e.message}</div>`;
   } finally {
     btn.disabled = false; btn.textContent = 'Confirmar pago';
   }
+}
+
+/* ---------- historial de mostrador ---------- */
+async function abrirModalHistorial(){
+  const cont = document.getElementById('historialLista');
+  cont.innerHTML = '<div class="loading">Cargando…</div>';
+  document.getElementById('modalHistorial').classList.add('show');
+
+  const { data, error } = await sb.rpc('admin_pedidos_pos_historial', { p_limite: 30 });
+  if (error){
+    cont.innerHTML = `<p class="muted">Este módulo todavía no está conectado (falta correr el SQL de mesas). Detalle: ${error.message}</p>`;
+    return;
+  }
+  if (!data || !data.length){ cont.innerHTML = '<p class="muted">Sin pedidos de mostrador todavía.</p>'; return; }
+
+  const metodoIcono = { efectivo: '💵', tarjeta: '💳', digital: '📱' };
+  cont.innerHTML = data.map(o => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--outline);font-size:13px;">
+      <div>
+        <b>#${o.id}</b> · 🪑 ${o.mesa || '—'}
+        <div class="muted" style="font-size:11.5px;">${new Date(o.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div style="text-align:right;">
+        <div>${metodoIcono[o.metodo_pago] || ''} $${Number(o.total_a_pagar).toFixed(2)}</div>
+        <span class="badge ${o.estado==='cancelado'?'b-cancelado':(o.estado==='entregado'?'b-entregado':'b-pendiente')}">${o.estado}</span>
+      </div>
+    </div>`).join('');
 }
 
 /* ---------- imprimir comanda ---------- */
