@@ -350,6 +350,13 @@
         <div id="posMesaContinuarBox" style="display:none;margin-top:16px;">
           <button class="btn btn-primary" onclick="posContinuarConMesas()">Continuar con <span id="posMesasElegidasTexto"></span></button>
         </div>
+        <div id="posMesaOcupadaBox" style="display:none;margin-top:16px;background:var(--warn-soft);border-radius:12px;padding:16px;">
+          <p style="font-weight:600;margin:0 0 12px;" id="posMesaOcupadaTexto"></p>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-primary" style="flex:1;" onclick="posVerOrdenExistente()">👁️ Ver orden</button>
+            <button class="btn btn-ghost" style="flex:1;" onclick="posNuevaOrdenEnMesaOcupada()">➕ Nueva orden aquí</button>
+          </div>
+        </div>
       </div>
 
       <!-- PANTALLA 1b: Identificador (Para llevar / Teléfono) -->
@@ -388,7 +395,8 @@
             <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid var(--outline);margin-top:8px;font-weight:700;font-size:16px;">
               <span>Total</span><span id="posCartTotal">$0.00</span>
             </div>
-            <button class="btn btn-primary" style="width:100%;" id="posBtnCobrar" onclick="abrirModalCobro()" disabled>Cobrar</button>
+            <button class="btn btn-primary" style="width:100%;" id="posBtnOrdenCompleta" onclick="enviarOrdenCompleta()" disabled>✅ Orden completa (a cocina)</button>
+            <button class="btn btn-ghost" style="width:100%;margin-top:8px;border-color:var(--sage);color:var(--sage);" id="posBtnCobrar" onclick="abrirModalCobro()" disabled>💰 Cobrar ahora</button>
             <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="vaciarCarritoPOS()">Vaciar orden</button>
           </div>
         </div>
@@ -752,29 +760,37 @@
 
 <!-- MODAL: comanda activa de una mesa -->
 <div class="modal-overlay" id="modalComandaMesa">
-  <div class="modal-card" style="width:460px;" id="comandaMesaCard">
-    <h3 style="font-size:18px;margin-bottom:4px;">Comanda — <span id="comandaMesaTitulo"></span></h3>
-    <p class="muted" style="font-size:12px;margin:0 0 14px;" id="comandaMesaSub"></p>
+  <div class="modal-card" style="width:480px;" id="comandaMesaCard">
+    <div style="text-align:center;margin-bottom:4px;">
+      <div class="muted" style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;" id="comandaMesaTipoTexto"></div>
+      <div style="font-family:var(--serif);font-weight:800;font-size:34px;color:var(--sage-dark);line-height:1.1;" id="comandaMesaTitulo"></div>
+    </div>
+    <p class="muted" style="font-size:12px;text-align:center;margin:0 0 14px;" id="comandaMesaSub"></p>
 
     <!-- Vista: comanda actual -->
     <div id="comandaMesaVistaNormal">
       <div id="comandaMesaItems" style="margin-bottom:14px;">Cargando…</div>
       <div id="comandaMesaMsg"></div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
-        <button class="btn btn-primary" onclick="mostrarAgregarProductos()">+ Agregar productos</button>
+        <button class="btn btn-ghost" onclick="mostrarAgregarProductos()">✏️ Editar orden (agregar / quitar)</button>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="imprimirComandaDesdeMesa()">🖨️ Imprimir</button>
-          <button class="btn btn-primary" style="flex:1;" onclick="marcarEntregadoDesdeMesa()">Entregado</button>
+          <button class="btn btn-ghost" style="flex:1;" onclick="marcarEntregadoDesdeMesa()">✅ Entregado</button>
         </div>
+        <button class="btn btn-primary" onclick="abrirModalCobroExistente()">💰 Cobrar</button>
         <button class="btn btn-ghost" onclick="document.getElementById('modalComandaMesa').classList.remove('show')">Cerrar</button>
       </div>
     </div>
 
-    <!-- Vista: agregar productos (selector de menú) -->
+    <!-- Vista: editar orden (quitar platillos actuales + agregar del menú) -->
     <div id="comandaMesaVistaAgregar" style="display:none;">
       <button class="btn btn-ghost btn-sm" style="margin-bottom:10px;" onclick="ocultarAgregarProductos()">‹ Volver a la comanda</button>
-      <div class="pos-cat-tabs" id="comandaAgregarCatTabs"></div>
-      <div class="pos-items-grid" id="comandaAgregarItemsGrid" style="max-height:280px;overflow-y:auto;"></div>
+
+      <div id="comandaEditarItemsActuales" style="margin-bottom:14px;"></div>
+
+      <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Agregar del menú</label>
+      <div class="pos-cat-tabs" id="comandaAgregarCatTabs" style="margin-top:8px;"></div>
+      <div class="pos-items-grid" id="comandaAgregarItemsGrid" style="max-height:220px;overflow-y:auto;"></div>
       <div id="comandaAgregarMsg" style="margin-top:10px;"></div>
       <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="ocultarAgregarProductos()">Listo</button>
     </div>
@@ -1223,11 +1239,16 @@ function cargarPOS(){
   document.getElementById('posLlevarNombre').value = '';
 }
 
-function posElegirTipoServicio(tipo){
+let posMesasOcupadas = [];
+let posMesaClicActual = null;
+
+async function posElegirTipoServicio(tipo){
   posTipoServicioActual = tipo;
   document.getElementById('posPantallaTipo').style.display = 'none';
   if (tipo === 'mesa'){
     document.getElementById('posPantallaMesa').style.display = 'block';
+    const { data } = await sb.rpc('admin_pedidos_mesa_activos');
+    posMesasOcupadas = [...new Set((data || []).flatMap(o => (o.mesa || '').split('+').map(m => m.trim())))];
     posRenderMesas();
   } else {
     document.getElementById('posPantallaLlevar').style.display = 'block';
@@ -1249,8 +1270,12 @@ function posContinuarConLlevar(){
 
 function posRenderMesas(){
   document.getElementById('posMesasGrid').innerHTML = POS_MESAS.map(m => `
-    <button class="pos-mesa-btn ${posMesasElegidas.includes(m) ? 'selected' : ''}" onclick="posClicMesa('${m}')">${m}</button>
+    <button class="pos-mesa-btn ${posMesasElegidas.includes(m) ? 'selected' : ''}" style="position:relative;" onclick="posClicMesa('${m}')">
+      ${posMesasOcupadas.includes(m) ? '<span style="position:absolute;top:6px;right:8px;width:9px;height:9px;border-radius:50%;background:var(--warn);"></span>' : ''}
+      ${m}
+    </button>
   `).join('');
+  document.getElementById('posMesaOcupadaBox').style.display = 'none';
 }
 
 function posToggleJuntarMesas(){
@@ -1266,6 +1291,12 @@ function posToggleJuntarMesas(){
 
 function posClicMesa(mesa){
   if (!posModoJuntar){
+    if (posMesasOcupadas.includes(mesa)){
+      posMesaClicActual = mesa;
+      document.getElementById('posMesaOcupadaTexto').textContent = `La mesa ${mesa} ya tiene una orden activa.`;
+      document.getElementById('posMesaOcupadaBox').style.display = 'block';
+      return;
+    }
     posMesasElegidas = [mesa];
     posIrAMenu();
     return;
@@ -1281,6 +1312,18 @@ function posClicMesa(mesa){
   } else {
     box.style.display = 'none';
   }
+}
+
+async function posVerOrdenExistente(){
+  document.getElementById('posMesaOcupadaBox').style.display = 'none';
+  await cargarMesasActivas(true); // refresca mesasActivasCache sin cambiar de pestaña
+  abrirComandaMesa(posMesaClicActual);
+}
+
+function posNuevaOrdenEnMesaOcupada(){
+  document.getElementById('posMesaOcupadaBox').style.display = 'none';
+  posMesasElegidas = [posMesaClicActual];
+  posIrAMenu();
 }
 
 function posContinuarConMesas(){
@@ -1382,18 +1425,46 @@ function posRenderCarrito(){
 
   document.getElementById('posCartTotal').textContent = '$' + posCartTotal().toFixed(2);
   document.getElementById('posBtnCobrar').disabled = posCart.length === 0;
+  document.getElementById('posBtnOrdenCompleta').disabled = posCart.length === 0;
 }
 
 /* ---------- modal de cobro ---------- */
 let cobroMetodoActual = 'efectivo';
 let cobroMontoStr = '0';
 
+let cobroModoExistente = false;
+let cobroPedidoExistenteId = null;
+let cobroTotalActual = 0;
+
 function abrirModalCobro(){
-  const total = posCartTotal();
-  document.getElementById('cobroTotalTexto').textContent = '$' + total.toFixed(2);
+  cobroModoExistente = false;
+  cobroPedidoExistenteId = null;
+  cobroTotalActual = posCartTotal();
+  document.getElementById('cobroTotalTexto').textContent = '$' + cobroTotalActual.toFixed(2);
   document.getElementById('cobroMesaTexto').textContent = posTipoServicioActual === 'mesa'
     ? '🍽️ Mesa ' + posMesasElegidas.sort().join(' + ')
     : '🥡 ' + posMesasElegidas[0];
+  cobroMetodoActual = 'efectivo';
+  cobroMontoStr = '0';
+  document.getElementById('cobroMsg').innerHTML = '';
+  document.querySelectorAll('#cobroMetodos button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#cobroMetodos button')[0].classList.add('active');
+  document.getElementById('cobroEfectivoBox').style.display = 'block';
+  document.getElementById('cobroInfoBox').style.display = 'none';
+  posActualizarKeypad();
+  posActualizarMontoYCambio();
+  document.getElementById('modalCobro').classList.add('show');
+}
+
+function abrirModalCobroExistente(){
+  if (!comandaMesaPedidoActual) return;
+  cobroModoExistente = true;
+  cobroPedidoExistenteId = comandaMesaPedidoActual.id;
+  cobroTotalActual = Number(comandaMesaPedidoActual.total_a_pagar) || 0;
+  document.getElementById('cobroTotalTexto').textContent = '$' + cobroTotalActual.toFixed(2);
+  document.getElementById('cobroMesaTexto').textContent = comandaMesaPedidoActual.tipo_servicio === 'llevar'
+    ? '🥡 ' + comandaMesaPedidoActual.mesa
+    : '🍽️ Mesa ' + comandaMesaPedidoActual.mesa + ` · Pedido #${comandaMesaPedidoActual.id}`;
   cobroMetodoActual = 'efectivo';
   cobroMontoStr = '0';
   document.getElementById('cobroMsg').innerHTML = '';
@@ -1445,7 +1516,7 @@ function posTeclaKeypad(t){
 }
 
 function posActualizarMontoYCambio(){
-  const total = posCartTotal();
+  const total = cobroTotalActual;
   let monto;
   if (cobroMetodoActual === 'efectivo') monto = parseFloat(cobroMontoStr) || 0;
   else if (cobroMetodoActual === 'cortesia') monto = 0;
@@ -1455,8 +1526,63 @@ function posActualizarMontoYCambio(){
   document.getElementById('cobroCambioTexto').textContent = '$' + cambio.toFixed(2);
 }
 
+/* ---------- enviar orden a cocina SIN cobrar ---------- */
+async function enviarOrdenCompleta(){
+  const btn = document.getElementById('posBtnOrdenCompleta');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+
+  try {
+    const nombreCliente = document.getElementById('posClienteNombre').value.trim() || 'Cliente de mostrador';
+    const nota = document.getElementById('posNota').value.trim();
+    const guestEmail = `mostrador+${Date.now()}@lorangerie.local`;
+    const mesaTexto = posTipoServicioActual === 'mesa' ? posMesasElegidas.sort().join(' + ') : posMesasElegidas[0];
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/process-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
+      body: JSON.stringify({
+        items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: null })),
+        puntos_a_usar: 0,
+        horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
+        guest_email: guestEmail,
+        guest_nombre: nombreCliente,
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'No se pudo crear la orden.');
+
+    const { error: asigErr } = await sb.rpc('admin_pedido_asignar_mesa', {
+      p_pedido_id: data.pedido_id,
+      p_mesa: mesaTexto,
+      p_tipo_servicio: posTipoServicioActual,
+      p_nota: nota || null,
+    });
+    if (asigErr) throw new Error('Orden creada (#' + data.pedido_id + ') pero no se pudo asignar la mesa: ' + asigErr.message);
+
+    for (const linea of posCart){
+      try { await sb.rpc('admin_descontar_insumos_por_receta', { p_producto_id: linea.id, p_cantidad: linea.qty }); }
+      catch(e){ /* sin receta cargada: se ignora */ }
+    }
+
+    renderYImprimirComanda(
+      { id: data.pedido_id, horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
+        fecha_creacion: new Date().toISOString(), cliente_email: nombreCliente + (mesaTexto ? ' · ' + mesaTexto : '') },
+      posCart.map(l => ({ cantidad: l.qty, nombre: l.nombre, precio_unitario: l.precio, opciones: null }))
+    );
+
+    vaciarCarritoPOS();
+    document.getElementById('posClienteNombre').value = '';
+    document.getElementById('posNota').value = '';
+    cargarPOS();
+  } catch(e){
+    alert('Error: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '✅ Orden completa (a cocina)';
+  }
+}
+
 async function confirmarCobro(){
-  const total = posCartTotal();
+  const total = cobroTotalActual;
   let monto;
   if (cobroMetodoActual === 'efectivo') monto = parseFloat(cobroMontoStr) || 0;
   else if (cobroMetodoActual === 'cortesia') monto = 0;
@@ -1472,6 +1598,26 @@ async function confirmarCobro(){
   btn.disabled = true; btn.textContent = 'Procesando…';
 
   try {
+    // ---------- Modo: cobrar un pedido que YA EXISTE (venía de "Orden completa") ----------
+    if (cobroModoExistente){
+      const { error: pagoErr } = await sb.rpc('admin_pedido_registrar_pago', {
+        p_pedido_id: cobroPedidoExistenteId,
+        p_metodo_pago: cobroMetodoActual,
+        p_monto_recibido: monto,
+        p_cambio: cambio,
+      });
+      if (pagoErr) throw new Error(pagoErr.message);
+
+      msg.innerHTML = `<div class="msg-box msg-ok">Pedido #${cobroPedidoExistenteId} cobrado correctamente.</div>`;
+      setTimeout(() => {
+        document.getElementById('modalCobro').classList.remove('show');
+        document.getElementById('modalComandaMesa').classList.remove('show');
+        cargarMesasActivas();
+      }, 1200);
+      return;
+    }
+
+    // ---------- Modo: crear un pedido nuevo y cobrarlo de una vez ----------
     const nombreCliente = document.getElementById('posClienteNombre').value.trim() || 'Cliente de mostrador';
     const nota = document.getElementById('posNota').value.trim();
     const guestEmail = `mostrador+${Date.now()}@lorangerie.local`;
@@ -1539,15 +1685,16 @@ async function confirmarCobro(){
 let mesasActivasCache = [];
 let comandaMesaPedidoActual = null;
 
-async function cargarMesasActivas(){
+async function cargarMesasActivas(silencioso){
   const cont = document.getElementById('mesasActivasGrid');
-  cont.innerHTML = '<div class="loading">Cargando…</div>';
+  if (!silencioso) cont.innerHTML = '<div class="loading">Cargando…</div>';
   const { data, error } = await sb.rpc('admin_pedidos_mesa_activos');
   if (error){
-    cont.innerHTML = `<p class="muted">Este módulo todavía no está conectado (falta correr el SQL de Mesas activas). Detalle: ${error.message}</p>`;
+    if (!silencioso) cont.innerHTML = `<p class="muted">Este módulo todavía no está conectado (falta correr el SQL de Mesas activas). Detalle: ${error.message}</p>`;
     return;
   }
   mesasActivasCache = data || [];
+  if (silencioso) return;
 
   // Si una misma mesa tiene más de un pedido abierto, se juntan sus totales
   // para el badge, pero se abre la comanda del más reciente al tocarla.
@@ -1583,8 +1730,9 @@ async function abrirComandaMesa(mesa){
   if (!pedido) return;
   comandaMesaPedidoActual = pedido;
 
-  document.getElementById('comandaMesaTitulo').textContent = 'Mesa ' + mesa;
-  document.getElementById('comandaMesaSub').textContent = `Pedido #${pedido.id} · ${new Date(pedido.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
+  document.getElementById('comandaMesaTipoTexto').textContent = pedido.tipo_servicio === 'llevar' ? 'PARA LLEVAR' : 'MESA';
+  document.getElementById('comandaMesaTitulo').textContent = pedido.tipo_servicio === 'llevar' ? pedido.mesa.replace(/^Llevar - /, '') : mesa;
+  document.getElementById('comandaMesaSub').textContent = `Pedido #${pedido.id} · ${new Date(pedido.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}${pedido.nota ? ' · ⚠️ ' + pedido.nota : ''}`;
   document.getElementById('comandaMesaMsg').innerHTML = '';
   document.getElementById('comandaMesaItems').innerHTML = '<div class="loading">Cargando…</div>';
   document.getElementById('modalComandaMesa').classList.add('show');
@@ -1612,6 +1760,8 @@ async function mostrarAgregarProductos(){
   document.getElementById('comandaMesaVistaAgregar').style.display = 'block';
   document.getElementById('comandaAgregarMsg').innerHTML = '';
 
+  await comandaCargarItemsActuales();
+
   const categorias = [...new Set(menuCache.filter(p => p.activo).map(p => p.categoria))];
   comandaAgregarCategoriaActual = categorias[0] || null;
   document.getElementById('comandaAgregarCatTabs').innerHTML = categorias.map(c =>
@@ -1620,10 +1770,35 @@ async function mostrarAgregarProductos(){
   comandaAgregarRenderItems();
 }
 
+async function comandaCargarItemsActuales(){
+  const cont = document.getElementById('comandaEditarItemsActuales');
+  cont.innerHTML = '<div class="loading">Cargando…</div>';
+  const { data, error } = await sb.rpc('admin_pedido_items_editables', { p_pedido_id: comandaMesaPedidoActual.id });
+  if (error){ cont.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
+  cont.innerHTML = (data && data.length)
+    ? `<label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">En la orden</label>` +
+      data.map(it => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--outline);font-size:13px;">
+          <span>${it.cantidad}× ${it.nombre}</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+            <button class="btn btn-danger btn-sm" onclick="comandaQuitarItem(${it.id})">✕ Quitar</button>
+          </div>
+        </div>`).join('')
+    : '<p class="muted" style="font-size:12.5px;">Sin platillos todavía.</p>';
+}
+
+async function comandaQuitarItem(itemId){
+  if (!confirm('¿Quitar este platillo de la orden?')) return;
+  const { error } = await sb.rpc('admin_pedido_quitar_item', { p_item_id: itemId });
+  if (error){ alert('Error: ' + error.message); return; }
+  await comandaCargarItemsActuales();
+}
+
 function ocultarAgregarProductos(){
   document.getElementById('comandaMesaVistaAgregar').style.display = 'none';
   document.getElementById('comandaMesaVistaNormal').style.display = 'block';
-  // refresca la comanda por si se agregaron productos mientras tanto
+  // refresca la comanda por si se agregaron/quitaron productos mientras tanto
   if (comandaMesaPedidoActual) abrirComandaMesa((comandaMesaPedidoActual.mesa || '').split('+')[0].trim());
   cargarMesasActivas();
 }
@@ -1660,6 +1835,7 @@ async function comandaAgregarUnItem(productoId, btn){
     msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`;
   } else {
     msg.innerHTML = '<div class="msg-box msg-ok">Agregado ✓</div>';
+    comandaCargarItemsActuales();
   }
   btn.disabled = false; btn.innerHTML = original;
 }
@@ -1707,14 +1883,19 @@ async function cargarComandas(){
     return { ...o, items: items || [] };
   }));
 
+  mesasActivasCache = data; // para que Editar/Cobrar puedan reusar abrirComandaMesa
+
   cont.innerHTML = conItems.map(o => {
     const minutos = Math.floor((Date.now() - new Date(o.fecha_creacion).getTime()) / 60000);
     const urgente = minutos >= 20;
-    const tipoTexto = o.tipo_servicio === 'llevar' ? ('🥡 ' + o.mesa) : ('🍽️ Mesa ' + o.mesa);
+    const esLlevar = o.tipo_servicio === 'llevar';
     return `
       <div class="comanda-card ${urgente ? 'urgente' : ''}">
         <div class="comanda-card-head">
-          <span class="tipo">${tipoTexto}</span>
+          <div>
+            <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">${esLlevar ? 'Para llevar' : 'Mesa'}</div>
+            <span class="tipo" style="font-size:26px;">${esLlevar ? '🥡 ' + o.mesa : '🍽️ ' + o.mesa}</span>
+          </div>
           <span class="tiempo">⏱ ${minutos} min</span>
         </div>
         <div class="muted" style="font-size:11.5px;">Pedido #${o.id} · ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</div>
@@ -1725,11 +1906,23 @@ async function cargarComandas(){
             : '<p class="muted" style="font-size:12.5px;">Sin platillos registrados.</p>'}
         </div>
         <div class="comanda-card-acciones">
-          <button class="btn btn-ghost btn-sm" onclick="imprimirComanda(${o.id})">🖨️ Imprimir</button>
-          <button class="btn btn-primary btn-sm" onclick="marcarEntregadoDesdeComanda(${o.id})">✅ Entregado</button>
+          <button class="btn btn-ghost btn-sm" onclick="imprimirComanda(${o.id})">🖨️</button>
+          <button class="btn btn-ghost btn-sm" onclick="editarComandaDesdeTablero('${o.mesa}')">✏️ Editar</button>
+          <button class="btn btn-primary btn-sm" onclick="cobrarComandaDesdeTablero('${o.mesa}')">💰 Cobrar</button>
         </div>
+        <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="marcarEntregadoDesdeComanda(${o.id})">✅ Marcar entregado (sin cobrar)</button>
       </div>`;
   }).join('');
+}
+
+async function editarComandaDesdeTablero(mesa){
+  await abrirComandaMesa(mesa);
+  mostrarAgregarProductos();
+}
+
+async function cobrarComandaDesdeTablero(mesa){
+  await abrirComandaMesa(mesa);
+  abrirModalCobroExistente();
 }
 
 async function marcarEntregadoDesdeComanda(id){
