@@ -407,7 +407,10 @@
     <div id="tab-mesas" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Mesas</h2>
-        <button class="btn btn-ghost btn-sm" onclick="cargarMesasActivas()">↻ Actualizar</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="agregarMesaNueva()">+ Agregar mesa</button>
+          <button class="btn btn-ghost btn-sm" onclick="cargarMesasActivas()">↻ Actualizar</button>
+        </div>
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Vista rápida de qué mesas tienen una comanda abierta ahora mismo. Toca una mesa marcada para ver o modificar su orden.</p>
       <div class="pos-mesas-grid" id="mesasActivasGrid" style="margin-top:16px;"></div>
@@ -420,6 +423,11 @@
         <button class="btn btn-ghost btn-sm" onclick="cargarComandas()">↻ Actualizar</button>
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Todas las comandas activas (mesa y para llevar) en una sola vista. Se actualiza sola cada 20 segundos mientras estés en esta pestaña.</p>
+      <div class="tabs-row" id="comandasFiltro" style="margin-top:14px;">
+        <button class="active" onclick="filtrarComandas(null, this)">Todos</button>
+        <button onclick="filtrarComandas('mesa', this)">🍽️ Comer aquí</button>
+        <button onclick="filtrarComandas('llevar', this)">🥡 Para llevar</button>
+      </div>
       <div class="comandas-grid" id="comandasGrid" style="margin-top:16px;"></div>
     </div>
 
@@ -964,6 +972,7 @@ async function adminLogin(){
   cargarResumen();
   cargarPedidos();   // precarga silenciosa, solo para el contador del menú
   cargarMensajes();  // precarga silenciosa, solo para el contador del menú
+  cargarTotalMesas(); // precarga silenciosa, para que POS_MESAS ya no sea el default de 14
   iniciarAlertasPedidos();
 }
 
@@ -1223,7 +1232,21 @@ let posCategoriaActual = null;
 let posModoJuntar = false;
 let posMesasElegidas = [];
 let posTipoServicioActual = 'mesa';
-const POS_MESAS = Array.from({length:14}, (_, i) => 'M' + String(i+1).padStart(2,'0'));
+let POS_MESAS = Array.from({length:14}, (_, i) => 'M' + String(i+1).padStart(2,'0')); // default hasta que cargue la config real
+async function cargarTotalMesas(){
+  const { data } = await sb.rpc('admin_total_mesas_get');
+  const total = data || 14;
+  POS_MESAS = Array.from({length:total}, (_, i) => 'M' + String(i+1).padStart(2,'0'));
+}
+async function agregarMesaNueva(){
+  const totalActual = POS_MESAS.length;
+  const nuevoTotal = totalActual + 1;
+  const { error } = await sb.rpc('admin_total_mesas_set', { p_total: nuevoTotal });
+  if (error){ alert('Error: ' + error.message); return; }
+  await cargarTotalMesas();
+  if (document.getElementById('tab-mesas').style.display !== 'none') cargarMesasActivas();
+  if (document.getElementById('tab-pos').style.display !== 'none' && document.getElementById('posPantallaMesa').style.display !== 'none') posRenderMesas();
+}
 
 function cargarPOS(){
   posModoJuntar = false;
@@ -1857,6 +1880,9 @@ function imprimirComandaDesdeMesa(){
    ============================================================ */
 let comandasIntervalo = null;
 
+let comandasCache = [];
+let comandasFiltroActual = null;
+
 async function cargarComandas(){
   const cont = document.getElementById('comandasGrid');
   if (!cont.dataset.cargado) cont.innerHTML = '<div class="loading">Cargando…</div>';
@@ -1872,20 +1898,42 @@ async function cargarComandas(){
   if (data && data.length){ badge.style.display = 'inline-block'; badge.textContent = data.length; }
   else badge.style.display = 'none';
 
+  mesasActivasCache = data; // para que Editar/Cobrar puedan reusar abrirComandaMesa
+
   if (!data || !data.length){
-    cont.innerHTML = '<div class="comandas-empty">Sin comandas activas por el momento. 🎉</div>';
+    comandasCache = [];
+    renderComandas();
     return;
   }
 
   // Trae los platillos de cada comanda en paralelo
-  const conItems = await Promise.all(data.map(async (o) => {
+  comandasCache = await Promise.all(data.map(async (o) => {
     const { data: items } = await sb.rpc('admin_detalle_pedido', { p_pedido: o.id });
     return { ...o, items: items || [] };
   }));
 
-  mesasActivasCache = data; // para que Editar/Cobrar puedan reusar abrirComandaMesa
+  renderComandas();
+}
 
-  cont.innerHTML = conItems.map(o => {
+function filtrarComandas(tipo, btn){
+  comandasFiltroActual = tipo;
+  document.querySelectorAll('#comandasFiltro button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderComandas();
+}
+
+function renderComandas(){
+  const cont = document.getElementById('comandasGrid');
+  const lista = comandasFiltroActual
+    ? comandasCache.filter(o => o.tipo_servicio === comandasFiltroActual)
+    : comandasCache;
+
+  if (!lista.length){
+    cont.innerHTML = '<div class="comandas-empty">Sin comandas activas en este filtro. 🎉</div>';
+    return;
+  }
+
+  cont.innerHTML = lista.map(o => {
     const minutos = Math.floor((Date.now() - new Date(o.fecha_creacion).getTime()) / 60000);
     const urgente = minutos >= 20;
     const esLlevar = o.tipo_servicio === 'llevar';
