@@ -208,6 +208,7 @@
     <div class="nav-item" data-tab="clientes" onclick="goTab('clientes')">👥 Clientes</div>
     <div class="nav-item" data-tab="fidelidad" onclick="goTab('fidelidad')">🏷️ Fidelidad</div>
     <div class="nav-item" data-tab="pos" onclick="goTab('pos')">🧾 Nueva Orden</div>
+    <div class="nav-item" data-tab="mesas" onclick="goTab('mesas')">🪑 Mesas <span class="badge" id="badgeMesas" style="display:none;"></span></div>
     <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
     <div class="nav-item" data-tab="inventarios" onclick="goTab('inventarios')">📦 Inventarios <span class="badge" id="badgeInventarios" style="display:none;"></span></div>
     <div class="nav-item" data-tab="costeo" onclick="goTab('costeo')">💰 Costeo</div>
@@ -350,6 +351,16 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- MESAS -->
+    <div id="tab-mesas" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Mesas</h2>
+        <button class="btn btn-ghost btn-sm" onclick="cargarMesasActivas()">↻ Actualizar</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Vista rápida de qué mesas tienen una comanda abierta ahora mismo. Toca una mesa marcada para ver o modificar su orden.</p>
+      <div class="pos-mesas-grid" id="mesasActivasGrid" style="margin-top:16px;"></div>
     </div>
 
     <div id="tab-menu" class="tab-panel" style="display:none;">
@@ -684,6 +695,24 @@
   </div>
 </div>
 
+<!-- MODAL: comanda activa de una mesa -->
+<div class="modal-overlay" id="modalComandaMesa">
+  <div class="modal-card" style="width:460px;">
+    <h3 style="font-size:18px;margin-bottom:4px;">Comanda — <span id="comandaMesaTitulo"></span></h3>
+    <p class="muted" style="font-size:12px;margin:0 0 14px;" id="comandaMesaSub"></p>
+    <div id="comandaMesaItems" style="margin-bottom:14px;">Cargando…</div>
+    <div id="comandaMesaMsg"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+      <button class="btn btn-primary" id="comandaMesaBtnAgregar" onclick="agregarProductosAOrdenAbierta()">+ Agregar productos</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="imprimirComandaDesdeMesa()">🖨️ Imprimir</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="marcarEntregadoDesdeMesa()">Entregado</button>
+      </div>
+      <button class="btn btn-ghost" onclick="document.getElementById('modalComandaMesa').classList.remove('show')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalInsumo">
   <div class="modal-card">
     <h3 id="modalInsumoTitle" style="font-size:18px;margin-bottom:16px;">Nuevo insumo</h3>
@@ -894,6 +923,7 @@ function goTab(tab){
   if (tab === 'clientes') cargarClientes();
   if (tab === 'fidelidad') cargarFidelidad();
   if (tab === 'pos') cargarPOS();
+  if (tab === 'mesas') cargarMesasActivas();
   if (tab === 'menu') cargarMenu();
   if (tab === 'inventarios') cargarInventario();
   if (tab === 'costeo') cargarCosteo();
@@ -1359,6 +1389,91 @@ async function confirmarCobro(){
   } finally {
     btn.disabled = false; btn.textContent = 'Confirmar pago';
   }
+}
+
+/* ============================================================
+   MESAS ACTIVAS
+   ============================================================ */
+let mesasActivasCache = [];
+let comandaMesaPedidoActual = null;
+
+async function cargarMesasActivas(){
+  const cont = document.getElementById('mesasActivasGrid');
+  cont.innerHTML = '<div class="loading">Cargando…</div>';
+  const { data, error } = await sb.rpc('admin_pedidos_mesa_activos');
+  if (error){
+    cont.innerHTML = `<p class="muted">Este módulo todavía no está conectado (falta correr el SQL de Mesas activas). Detalle: ${error.message}</p>`;
+    return;
+  }
+  mesasActivasCache = data || [];
+
+  // Si una misma mesa tiene más de un pedido abierto, se juntan sus totales
+  // para el badge, pero se abre la comanda del más reciente al tocarla.
+  const porMesa = {};
+  mesasActivasCache.forEach(o => {
+    (o.mesa || '').split('+').map(m => m.trim()).forEach(m => {
+      if (!m) return;
+      if (!porMesa[m]) porMesa[m] = { pedidos: [], total: 0 };
+      porMesa[m].pedidos.push(o);
+      porMesa[m].total += Number(o.total_a_pagar);
+    });
+  });
+
+  const badge = document.getElementById('badgeMesas');
+  const activas = Object.keys(porMesa).length;
+  if (activas > 0){ badge.style.display = 'inline-block'; badge.textContent = activas; }
+  else badge.style.display = 'none';
+
+  cont.innerHTML = POS_MESAS.map(m => {
+    const info = porMesa[m];
+    if (!info) return `<button class="pos-mesa-btn" disabled style="opacity:.45;cursor:default;">${m}</button>`;
+    return `
+      <button class="pos-mesa-btn selected" onclick="abrirComandaMesa('${m}')">
+        ${m}<br><span style="font-size:11px;font-weight:600;">$${info.total.toFixed(2)}</span>
+      </button>`;
+  }).join('');
+}
+
+async function abrirComandaMesa(mesa){
+  // toma el pedido más reciente de esa mesa (normalmente solo hay uno)
+  const pedidos = mesasActivasCache.filter(o => (o.mesa || '').split('+').map(x => x.trim()).includes(mesa));
+  const pedido = pedidos[pedidos.length - 1];
+  if (!pedido) return;
+  comandaMesaPedidoActual = pedido;
+
+  document.getElementById('comandaMesaTitulo').textContent = 'Mesa ' + mesa;
+  document.getElementById('comandaMesaSub').textContent = `Pedido #${pedido.id} · ${new Date(pedido.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}`;
+  document.getElementById('comandaMesaMsg').innerHTML = '';
+  document.getElementById('comandaMesaItems').innerHTML = '<div class="loading">Cargando…</div>';
+  document.getElementById('modalComandaMesa').classList.add('show');
+
+  const { data, error } = await sb.rpc('admin_detalle_pedido', { p_pedido: pedido.id });
+  const cont = document.getElementById('comandaMesaItems');
+  if (error){ cont.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
+  cont.innerHTML = (data && data.length)
+    ? data.map(it => `
+        <div class="fila" style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--outline);">
+          <span>${it.cantidad}× ${it.nombre}</span>
+          <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+        </div>`).join('')
+    : '<p class="muted">Sin platillos registrados.</p>';
+}
+
+function agregarProductosAOrdenAbierta(){
+  document.getElementById('comandaMesaMsg').innerHTML =
+    '<div class="msg-box msg-err">Esta parte todavía no está lista — falta confirmar cómo está armada tu tabla de pedidos antes de conectarla.</div>';
+}
+
+async function marcarEntregadoDesdeMesa(){
+  if (!comandaMesaPedidoActual) return;
+  await activarPedido(comandaMesaPedidoActual.id);
+  document.getElementById('modalComandaMesa').classList.remove('show');
+  cargarMesasActivas();
+}
+
+function imprimirComandaDesdeMesa(){
+  if (!comandaMesaPedidoActual) return;
+  imprimirComanda(comandaMesaPedidoActual.id);
 }
 
 /* ---------- historial de mostrador ---------- */
