@@ -70,6 +70,32 @@
   .pedido-detalle-body .fila{display:flex;justify-content:space-between;gap:8px;}
   .pedido-card-acciones{display:flex;gap:8px;}
   .pedido-card-acciones .btn{flex:1;}
+
+  /* Punto de Venta (Nueva Orden) */
+  .pos-layout{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;}
+  .pos-menu{flex:2;min-width:300px;}
+  .pos-cart{flex:1;min-width:280px;background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:16px;position:sticky;top:20px;}
+  .pos-cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .pos-cat-tabs button{background:var(--low);border:1px solid var(--outline);color:var(--on-var);font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:16px;cursor:pointer;}
+  .pos-cat-tabs button.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .pos-items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+  .pos-item-btn{background:var(--paper);border:1px solid var(--outline);border-radius:10px;padding:12px;text-align:left;cursor:pointer;transition:border-color .15s;}
+  .pos-item-btn:hover{border-color:var(--sage);}
+  .pos-item-btn .nombre{font-size:13px;font-weight:600;display:block;margin-bottom:4px;}
+  .pos-item-btn .precio{font-size:13px;color:var(--sage);font-weight:700;}
+  .pos-cart-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--outline);font-size:13px;}
+  .pos-cart-line .qty-controls{display:flex;align-items:center;gap:6px;}
+  .pos-cart-line .qty-controls button{width:22px;height:22px;border-radius:50%;border:1px solid var(--outline);background:var(--low);cursor:pointer;font-weight:700;line-height:1;}
+  .pos-cart-empty{text-align:center;color:var(--on-var);font-size:13px;padding:30px 10px;}
+
+  /* Modal de cobro */
+  .pos-pago-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;}
+  .pos-pago-methods button{height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border:2px solid var(--outline);background:var(--low);border-radius:10px;font-size:11.5px;font-weight:600;color:var(--on-var);cursor:pointer;}
+  .pos-pago-methods button.active{border-color:var(--sage);background:var(--ok-soft);color:var(--ok);}
+  .pos-monto-input{font-family:var(--serif);font-weight:700;font-size:26px;text-align:center;padding:12px;border:2px solid var(--sage);border-radius:10px;width:100%;background:#fff;}
+  .pos-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px;}
+  .pos-keypad button{height:44px;background:var(--low);border:1px solid var(--outline);border-radius:8px;font-weight:700;font-size:16px;cursor:pointer;}
+  .pos-cambio-box{display:flex;justify-content:space-between;align-items:center;background:var(--ok-soft);color:var(--ok);padding:12px 14px;border-radius:10px;margin-top:12px;font-weight:700;}
   .stat-card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:18px;}
   .stat-card .num{font-family:var(--serif);font-weight:700;font-size:28px;color:var(--on);}
   .stat-card .lbl{font-size:12px;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
@@ -174,6 +200,7 @@
     <div class="nav-item" data-tab="pedidos" onclick="goTab('pedidos')">🧾 Pedidos <span class="badge" id="badgePedidos" style="display:none;"></span></div>
     <div class="nav-item" data-tab="clientes" onclick="goTab('clientes')">👥 Clientes</div>
     <div class="nav-item" data-tab="fidelidad" onclick="goTab('fidelidad')">🏷️ Fidelidad</div>
+    <div class="nav-item" data-tab="pos" onclick="goTab('pos')">🧾 Nueva Orden</div>
     <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
     <div class="nav-item" data-tab="inventarios" onclick="goTab('inventarios')">📦 Inventarios <span class="badge" id="badgeInventarios" style="display:none;"></span></div>
     <div class="nav-item" data-tab="costeo" onclick="goTab('costeo')">💰 Costeo</div>
@@ -267,6 +294,35 @@
     </div>
 
     <!-- MENU -->
+    <!-- NUEVA ORDEN (Punto de Venta) -->
+    <div id="tab-pos" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Nueva Orden</h2>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Para pedidos de mostrador o por teléfono. Al cobrar, se crea con el mismo sistema que los pedidos del sitio — aparece igual en Pedidos y en tus reportes de ventas.</p>
+
+      <div class="pos-layout" style="margin-top:16px;">
+        <div class="pos-menu">
+          <div class="pos-cat-tabs" id="posCatTabs"></div>
+          <div class="pos-items-grid" id="posItemsGrid"><div class="loading">Cargando menú…</div></div>
+        </div>
+
+        <div class="pos-cart">
+          <h3 style="font-size:15px;margin-bottom:10px;">Orden actual</h3>
+          <div class="field-group">
+            <label>Nombre del cliente (opcional)</label>
+            <input type="text" id="posClienteNombre" placeholder="Cliente de mostrador">
+          </div>
+          <div id="posCartLineas"><div class="pos-cart-empty">Agrega platillos del menú →</div></div>
+          <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid var(--outline);margin-top:8px;font-weight:700;font-size:16px;">
+            <span>Total</span><span id="posCartTotal">$0.00</span>
+          </div>
+          <button class="btn btn-primary" style="width:100%;" id="posBtnCobrar" onclick="abrirModalCobro()" disabled>Cobrar</button>
+          <button class="btn btn-ghost" style="width:100%;margin-top:8px;" onclick="vaciarCarritoPOS()">Vaciar orden</button>
+        </div>
+      </div>
+    </div>
+
     <div id="tab-menu" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Menú</h2>
@@ -549,6 +605,37 @@
 </div>
 
 <!-- MODAL: insumo de inventario -->
+<!-- MODAL: cobrar orden (POS) -->
+<div class="modal-overlay" id="modalCobro">
+  <div class="modal-card" style="width:420px;">
+    <h3 style="font-size:18px;margin-bottom:4px;">Cobrar orden</h3>
+    <p class="muted" style="font-size:13px;margin:0 0 16px;">Total a cobrar: <b id="cobroTotalTexto" style="color:var(--sage);"></b></p>
+
+    <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Método de pago</label>
+    <div class="pos-pago-methods" id="cobroMetodos">
+      <button type="button" class="active" onclick="elegirMetodoPago('efectivo', this)">💵<span>Efectivo</span></button>
+      <button type="button" onclick="elegirMetodoPago('tarjeta', this)">💳<span>Tarjeta</span></button>
+      <button type="button" onclick="elegirMetodoPago('digital', this)">📱<span>Digital</span></button>
+    </div>
+
+    <div id="cobroEfectivoBox">
+      <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Monto recibido</label>
+      <input type="text" id="cobroMontoInput" class="pos-monto-input" readonly value="0.00">
+      <div class="pos-keypad" id="cobroKeypad"></div>
+      <div class="pos-cambio-box">
+        <span>Cambio</span>
+        <span id="cobroCambioTexto">$0.00</span>
+      </div>
+    </div>
+
+    <div id="cobroMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCobro').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2;" id="cobroBtnConfirmar" onclick="confirmarCobro()">Confirmar pago</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalInsumo">
   <div class="modal-card">
     <h3 id="modalInsumoTitle" style="font-size:18px;margin-bottom:16px;">Nuevo insumo</h3>
@@ -758,6 +845,7 @@ function goTab(tab){
   if (tab === 'pedidos') cargarPedidos();
   if (tab === 'clientes') cargarClientes();
   if (tab === 'fidelidad') cargarFidelidad();
+  if (tab === 'pos') cargarPOS();
   if (tab === 'menu') cargarMenu();
   if (tab === 'inventarios') cargarInventario();
   if (tab === 'costeo') cargarCosteo();
@@ -954,6 +1042,207 @@ function filtrarPedidos(estado, btn){
   document.querySelectorAll('#pedidosFiltro button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   cargarPedidos();
+}
+
+/* ============================================================
+   PUNTO DE VENTA (Nueva Orden)
+   ============================================================
+   La orden se crea llamando a la MISMA Edge Function process-order
+   que usa el sitio público — mismo folio, mismo descuento de stock,
+   mismo cálculo de precio validado en servidor. Aquí solo se arma
+   el carrito y, después de crear la orden, se registra el método
+   de pago con admin_pedido_registrar_pago.
+   ============================================================ */
+let posCart = [];
+let posCategoriaActual = null;
+
+async function cargarPOS(){
+  if (!menuCache.length){
+    const { data } = await sb.rpc('admin_productos_list');
+    menuCache = data || [];
+  }
+  const categorias = [...new Set(menuCache.filter(p => p.activo).map(p => p.categoria))];
+  posCategoriaActual = categorias[0] || null;
+
+  document.getElementById('posCatTabs').innerHTML = categorias.map(c =>
+    `<button class="${c===posCategoriaActual?'active':''}" onclick="posFiltrarCategoria('${c}', this)">${c}</button>`
+  ).join('');
+
+  posRenderItems();
+  posRenderCarrito();
+}
+
+function posFiltrarCategoria(cat, btn){
+  posCategoriaActual = cat;
+  document.querySelectorAll('#posCatTabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  posRenderItems();
+}
+
+function posRenderItems(){
+  const cont = document.getElementById('posItemsGrid');
+  const items = menuCache.filter(p => p.activo && p.categoria === posCategoriaActual);
+  if (!items.length){ cont.innerHTML = '<p class="muted">Sin platillos en esta categoría.</p>'; return; }
+  cont.innerHTML = items.map(p => `
+    <button class="pos-item-btn" onclick="posAgregarItem('${p.id}')">
+      <span class="nombre">${p.nombre}</span>
+      <span class="precio">$${Number(p.precio).toFixed(2)}</span>
+    </button>`).join('');
+}
+
+function posAgregarItem(id){
+  const prod = menuCache.find(p => p.id === id);
+  if (!prod) return;
+  const linea = posCart.find(l => l.id === id);
+  if (linea) linea.qty++;
+  else posCart.push({ id, nombre: prod.nombre, precio: Number(prod.precio), qty: 1 });
+  posRenderCarrito();
+}
+
+function posCambiarCantidad(id, delta){
+  const linea = posCart.find(l => l.id === id);
+  if (!linea) return;
+  linea.qty += delta;
+  if (linea.qty <= 0) posCart = posCart.filter(l => l.id !== id);
+  posRenderCarrito();
+}
+
+function vaciarCarritoPOS(){
+  posCart = [];
+  posRenderCarrito();
+}
+
+function posCartTotal(){
+  return posCart.reduce((s, l) => s + l.precio * l.qty, 0);
+}
+
+function posRenderCarrito(){
+  const cont = document.getElementById('posCartLineas');
+  cont.innerHTML = posCart.length
+    ? posCart.map(l => `
+        <div class="pos-cart-line">
+          <span>${l.nombre}</span>
+          <div class="qty-controls">
+            <button onclick="posCambiarCantidad('${l.id}', -1)">−</button>
+            <span>${l.qty}</span>
+            <button onclick="posCambiarCantidad('${l.id}', 1)">+</button>
+          </div>
+          <span>$${(l.precio * l.qty).toFixed(2)}</span>
+        </div>`).join('')
+    : '<div class="pos-cart-empty">Agrega platillos del menú →</div>';
+
+  document.getElementById('posCartTotal').textContent = '$' + posCartTotal().toFixed(2);
+  document.getElementById('posBtnCobrar').disabled = posCart.length === 0;
+}
+
+/* ---------- modal de cobro ---------- */
+let cobroMetodoActual = 'efectivo';
+let cobroMontoStr = '0';
+
+function abrirModalCobro(){
+  const total = posCartTotal();
+  document.getElementById('cobroTotalTexto').textContent = '$' + total.toFixed(2);
+  cobroMetodoActual = 'efectivo';
+  cobroMontoStr = '0';
+  document.getElementById('cobroMsg').innerHTML = '';
+  document.querySelectorAll('#cobroMetodos button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#cobroMetodos button')[0].classList.add('active');
+  document.getElementById('cobroEfectivoBox').style.display = 'block';
+  posActualizarKeypad();
+  posActualizarMontoYCambio();
+  document.getElementById('modalCobro').classList.add('show');
+}
+
+function elegirMetodoPago(metodo, btn){
+  cobroMetodoActual = metodo;
+  document.querySelectorAll('#cobroMetodos button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cajaEfectivo = document.getElementById('cobroEfectivoBox');
+  if (metodo === 'efectivo'){
+    cajaEfectivo.style.display = 'block';
+    cobroMontoStr = '0';
+  } else {
+    cajaEfectivo.style.display = 'none';
+  }
+  posActualizarMontoYCambio();
+}
+
+function posActualizarKeypad(){
+  const teclas = ['1','2','3','4','5','6','7','8','9','.','0','⌫'];
+  document.getElementById('cobroKeypad').innerHTML = teclas.map(t =>
+    `<button type="button" onclick="posTeclaKeypad('${t}')">${t === '⌫' ? '⌫' : t}</button>`
+  ).join('');
+}
+
+function posTeclaKeypad(t){
+  if (t === '⌫'){
+    cobroMontoStr = cobroMontoStr.length > 1 ? cobroMontoStr.slice(0, -1) : '0';
+  } else if (t === '.'){
+    if (!cobroMontoStr.includes('.')) cobroMontoStr += '.';
+  } else {
+    cobroMontoStr = (cobroMontoStr === '0') ? t : cobroMontoStr + t;
+  }
+  posActualizarMontoYCambio();
+}
+
+function posActualizarMontoYCambio(){
+  const total = posCartTotal();
+  const monto = cobroMetodoActual === 'efectivo' ? (parseFloat(cobroMontoStr) || 0) : total;
+  document.getElementById('cobroMontoInput').value = monto.toFixed(2);
+  const cambio = Math.max(0, monto - total);
+  document.getElementById('cobroCambioTexto').textContent = '$' + cambio.toFixed(2);
+}
+
+async function confirmarCobro(){
+  const total = posCartTotal();
+  const monto = cobroMetodoActual === 'efectivo' ? (parseFloat(cobroMontoStr) || 0) : total;
+  const msg = document.getElementById('cobroMsg');
+
+  if (cobroMetodoActual === 'efectivo' && monto < total){
+    msg.innerHTML = '<div class="msg-box msg-err">El monto recibido es menor al total.</div>';
+    return;
+  }
+  const cambio = Math.max(0, monto - total);
+  const btn = document.getElementById('cobroBtnConfirmar');
+  btn.disabled = true; btn.textContent = 'Procesando…';
+
+  try {
+    const nombreCliente = document.getElementById('posClienteNombre').value.trim() || 'Cliente de mostrador';
+    const guestEmail = `mostrador+${Date.now()}@lorangerie.local`;
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/process-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
+      body: JSON.stringify({
+        items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: null })),
+        puntos_a_usar: 0,
+        horario_recogida: 'Pedido de mostrador',
+        guest_email: guestEmail,
+        guest_nombre: nombreCliente,
+      }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'No se pudo crear la orden.');
+
+    const { error: pagoErr } = await sb.rpc('admin_pedido_registrar_pago', {
+      p_pedido_id: data.pedido_id,
+      p_metodo_pago: cobroMetodoActual,
+      p_monto_recibido: monto,
+      p_cambio: cambio,
+    });
+    if (pagoErr) throw new Error('Orden creada (#' + data.pedido_id + ') pero el pago no se pudo registrar: ' + pagoErr.message);
+
+    msg.innerHTML = `<div class="msg-box msg-ok">Orden #${data.pedido_id} cobrada correctamente.</div>`;
+    setTimeout(() => {
+      document.getElementById('modalCobro').classList.remove('show');
+      vaciarCarritoPOS();
+      document.getElementById('posClienteNombre').value = '';
+    }, 1400);
+  } catch(e){
+    msg.innerHTML = `<div class="msg-box msg-err">${e.message}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Confirmar pago';
+  }
 }
 
 /* ---------- imprimir comanda ---------- */
