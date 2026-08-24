@@ -1039,6 +1039,21 @@ const SUPABASE_URL  = "https://ijxihmmbufoagibdskza.supabase.co";
 const SUPABASE_ANON = "sb_publishable_oXyHnZYo0zuizNaGsnRqLw_aEiRRmTQ";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// Escapa texto antes de insertarlo en HTML. OBLIGATORIO para cualquier
+// dato que haya sido escrito por un cliente o un miembro del personal
+// (nota del pedido, nombre de "para llevar", correo, etc.) — sin esto,
+// alguien podría escribir un <script> como "nota" y ejecutarlo en la
+// pantalla de cualquier otro administrador que vea ese pedido.
+function escHtml(str){
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 let pedidosCache = [];
 let clientesCache = [];
 let menuCache = [];
@@ -1422,7 +1437,7 @@ function renderPedidosFiltrados(){
         <span class="pedido-card-total">$${Number(p.total_a_pagar).toFixed(2)}</span>
       </div>
       <div>
-        <div class="pedido-card-cliente">${p.cliente_email}</div>
+        <div class="pedido-card-cliente">${escHtml(p.cliente_email)}</div>
         ${esInvitado ? '<div class="muted" style="font-size:12px;">(invitado)</div>' : ''}
       </div>
       <div class="pedido-card-meta">
@@ -1458,8 +1473,8 @@ async function toggleDetallePedido(id, btn){
   if (error){ body.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
   const html = (data && data.length)
     ? data.map(it => `
-        <div class="fila"><span>${it.cantidad}× ${it.nombre}</span><span class="muted">$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span></div>
-        ${it.opciones ? `<div class="muted" style="font-size:11px;margin-top:-3px;">${it.opciones}</div>` : ''}`).join('')
+        <div class="fila"><span>${it.cantidad}× ${escHtml(it.nombre)}</span><span class="muted">$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span></div>
+        ${it.opciones ? `<div class="muted" style="font-size:11px;margin-top:-3px;">${escHtml(it.opciones)}</div>` : ''}`).join('')
     : '<p class="muted">Sin platillos registrados.</p>';
   detallePedidoCache[id] = html;
   body.innerHTML = html;
@@ -2021,7 +2036,7 @@ async function abrirComandaMesa(mesa){
   cont.innerHTML = (data && data.length)
     ? data.map(it => `
         <div class="fila" style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--outline);">
-          <span>${it.cantidad}× ${it.nombre}</span>
+          <span>${it.cantidad}× ${escHtml(it.nombre)}</span>
           <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
         </div>`).join('')
     : '<p class="muted">Sin platillos registrados.</p>';
@@ -2057,7 +2072,7 @@ async function comandaCargarItemsActuales(){
     ? `<label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">En la orden</label>` +
       data.map(it => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--outline);font-size:13px;">
-          <span>${it.cantidad}× ${it.nombre}</span>
+          <span>${it.cantidad}× ${escHtml(it.nombre)}</span>
           <div style="display:flex;align-items:center;gap:10px;">
             <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
             <button class="btn btn-danger btn-sm" onclick="comandaQuitarItem(${it.id})">✕ Quitar</button>
@@ -2197,21 +2212,21 @@ function renderComandas(){
         <div class="comanda-card-head">
           <div>
             <div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;">${esLlevar ? 'Para llevar' : 'Mesa'}</div>
-            <span class="tipo" style="font-size:26px;">${esLlevar ? '🥡 ' + o.mesa : '🍽️ ' + o.mesa}</span>
+            <span class="tipo" style="font-size:26px;">${esLlevar ? '🥡 ' : '🍽️ '}${escHtml(o.mesa)}</span>
           </div>
           <span class="tiempo">⏱ ${minutos} min</span>
         </div>
         <div class="muted" style="font-size:11.5px;">Pedido #${o.id} · ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</div>
-        ${o.nota ? `<div class="comanda-card-nota">⚠️ ${o.nota}</div>` : ''}
+        ${o.nota ? `<div class="comanda-card-nota">⚠️ ${escHtml(o.nota)}</div>` : ''}
         <div class="comanda-card-items">
           ${o.items.length
-            ? o.items.map(it => `<div class="comanda-card-item"><span class="cant">${it.cantidad}×</span> ${it.nombre}</div>`).join('')
+            ? o.items.map(it => `<div class="comanda-card-item"><span class="cant">${it.cantidad}×</span> ${escHtml(it.nombre)}</div>`).join('')
             : '<p class="muted" style="font-size:12.5px;">Sin platillos registrados.</p>'}
         </div>
         <div class="comanda-card-acciones">
           <button class="btn btn-ghost btn-sm" onclick="imprimirComanda(${o.id})">🖨️</button>
-          <button class="btn btn-ghost btn-sm" onclick="editarComandaDesdeTablero('${o.mesa}')">✏️ Editar</button>
-          <button class="btn btn-primary btn-sm" onclick="cobrarComandaDesdeTablero('${o.mesa}')">💰 Cobrar</button>
+          <button class="btn btn-ghost btn-sm" data-mesa="${escHtml(o.mesa)}" onclick="editarComandaDesdeTablero(this.dataset.mesa)">✏️ Editar</button>
+          <button class="btn btn-primary btn-sm" data-mesa="${escHtml(o.mesa)}" onclick="cobrarComandaDesdeTablero(this.dataset.mesa)">💰 Cobrar</button>
         </div>
         <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="marcarEntregadoDesdeComanda(${o.id})">✅ Marcar entregado (sin cobrar)</button>
       </div>`;
@@ -2250,7 +2265,7 @@ async function abrirModalHistorial(){
   cont.innerHTML = data.map(o => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--outline);font-size:13px;">
       <div>
-        <b>#${o.id}</b> · 🪑 ${o.mesa || '—'}
+        <b>#${o.id}</b> · 🪑 ${escHtml(o.mesa) || '—'}
         <div class="muted" style="font-size:11.5px;">${new Date(o.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
       </div>
       <div style="text-align:right;">
@@ -2285,8 +2300,8 @@ function renderYImprimirComanda(pedido, items){
   const cont = document.getElementById('comItems');
   cont.innerHTML = (items && items.length)
     ? items.map(it => `
-        <div class="comanda-item">${it.cantidad}× ${it.nombre}
-          ${it.opciones ? `<div class="opciones">${it.opciones}</div>` : ''}
+        <div class="comanda-item">${it.cantidad}× ${escHtml(it.nombre)}
+          ${it.opciones ? `<div class="opciones">${escHtml(it.opciones)}</div>` : ''}
         </div>`).join('')
     : '<p>Sin platillos registrados.</p>';
 
@@ -2303,7 +2318,7 @@ async function verDetallePedido(id){
   body.innerHTML = (data && data.length)
     ? data.map(it => `
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--outline);font-size:13px;">
-          <span>${it.cantidad}× ${it.nombre}${it.opciones ? `<br><span class="muted" style="font-size:11.5px;">${it.opciones}</span>` : ''}</span>
+          <span>${it.cantidad}× ${escHtml(it.nombre)}${it.opciones ? `<br><span class="muted" style="font-size:11.5px;">${escHtml(it.opciones)}</span>` : ''}</span>
           <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
         </div>`).join('')
     : '<p class="muted">Sin platillos registrados.</p>';
@@ -2338,12 +2353,12 @@ function renderClientesTabla(lista){
   if (!lista.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">Sin clientes.</td></tr>'; return; }
   tbody.innerHTML = lista.map(c => `
     <tr>
-      <td>${c.nombre}</td>
-      <td class="muted">${c.email}</td>
+      <td>${escHtml(c.nombre)}</td>
+      <td class="muted">${escHtml(c.email)}</td>
       <td><b>${c.saldo_disponible}</b> pts</td>
       <td>${c.total_pedidos}</td>
       <td class="muted">${new Date(c.fecha_registro).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="ajustarPuntosCliente('${c.id}','${c.email}')">Ajustar puntos</button></td>
+      <td><button class="btn btn-ghost btn-sm" data-id="${escHtml(c.id)}" data-email="${escHtml(c.email)}" onclick="ajustarPuntosCliente(this.dataset.id, this.dataset.email)">Ajustar puntos</button></td>
     </tr>`).join('');
 }
 
@@ -2795,14 +2810,14 @@ async function cargarMensajes(){
     <div class="card" style="margin-bottom:12px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
         <div>
-          <b>${!m.leido ? '<span class="unread-dot"></span>' : ''}${m.nombre}</b>
-          <span class="muted" style="font-size:12px;"> — ${m.email}</span>
+          <b>${!m.leido ? '<span class="unread-dot"></span>' : ''}${escHtml(m.nombre)}</b>
+          <span class="muted" style="font-size:12px;"> — ${escHtml(m.email)}</span>
         </div>
         <span class="muted" style="font-size:11.5px;white-space:nowrap;">${new Date(m.fecha_creacion).toLocaleDateString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</span>
       </div>
-      <p style="margin:10px 0;font-size:13.5px;">${m.mensaje}</p>
+      <p style="margin:10px 0;font-size:13.5px;">${escHtml(m.mensaje)}</p>
       <div style="display:flex;gap:8px;">
-        <a href="mailto:${m.email}" class="btn btn-ghost btn-sm">Responder por correo</a>
+        <a href="mailto:${encodeURIComponent(m.email)}" class="btn btn-ghost btn-sm">Responder por correo</a>
         ${!m.leido ? `<button class="btn btn-ghost btn-sm" onclick="marcarLeido(${m.id})">Marcar como leído</button>` : ''}
       </div>
     </div>`).join('');
