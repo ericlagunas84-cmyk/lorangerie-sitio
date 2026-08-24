@@ -40,6 +40,14 @@
   .nav-item:hover{background:rgba(255,255,255,.06);}
   .nav-item.active{background:rgba(255,255,255,.1);color:#fff;border-left-color:var(--sage);border-left-width:4px;}
   .nav-item .badge{margin-left:auto;background:var(--gold);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;}
+  .nav-group-header{display:flex;justify-content:space-between;align-items:center;padding:13px 20px 9px;color:rgba(255,255,255,.5);cursor:pointer;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;position:relative;}
+  .nav-group-header.has-badge::after{content:'';position:absolute;left:8px;top:16px;width:7px;height:7px;border-radius:50%;background:var(--gold);}
+  .nav-group-header:hover{color:rgba(255,255,255,.85);}
+  .nav-group-chevron{font-size:10px;transition:transform .15s;}
+  .nav-group.open .nav-group-chevron{transform:rotate(180deg);}
+  .nav-group-items{display:none;}
+  .nav-group.open .nav-group-items{display:block;}
+  .nav-subitem{padding-left:38px;font-size:13px;font-weight:500;}
   .sidebar-foot{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.12);font-size:11.5px;color:rgba(255,255,255,.6);}
   .main{margin-left:220px;flex:1;padding:28px 32px;max-width:1200px;}
   @media(max-width:820px){
@@ -47,6 +55,10 @@
     .sidebar-brand{display:none;} .sidebar-foot{display:none;}
     .nav-item{border-left:none;border-bottom:3px solid transparent;white-space:nowrap;}
     .nav-item.active{border-left-color:transparent;border-bottom-color:var(--sage);}
+    .nav-group{display:contents;}
+    .nav-group-items{display:contents !important;}
+    .nav-group-header{display:none;}
+    .nav-subitem{padding-left:20px;}
     .main{margin-left:0;padding:20px;}
   }
 
@@ -219,19 +231,60 @@
   <div class="sidebar">
     <div class="sidebar-brand">L'Orangerie</div>
     <div class="nav-item active" data-tab="resumen" onclick="goTab('resumen')">📊 Resumen y Ventas</div>
-    <div class="nav-item" data-tab="pedidos" onclick="goTab('pedidos')">🧾 Pedidos <span class="badge" id="badgePedidos" style="display:none;"></span></div>
-    <div class="nav-item" data-tab="clientes" onclick="goTab('clientes')">👥 Clientes</div>
-    <div class="nav-item" data-tab="fidelidad" onclick="goTab('fidelidad')">🏷️ Fidelidad</div>
-    <div class="nav-item" data-tab="pos" onclick="goTab('pos')">🧾 Nueva Orden</div>
-    <div class="nav-item" data-tab="mesas" onclick="goTab('mesas')">🪑 Mesas <span class="badge" id="badgeMesas" style="display:none;"></span></div>
-    <div class="nav-item" data-tab="comandas" onclick="goTab('comandas')">🍳 Comandas <span class="badge" id="badgeComandas" style="display:none;"></span></div>
-    <div class="nav-item" data-tab="menu" onclick="goTab('menu')">🍽️ Menú</div>
-    <div class="nav-item" data-tab="inventarios" onclick="goTab('inventarios')">📦 Inventarios <span class="badge" id="badgeInventarios" style="display:none;"></span></div>
-    <div class="nav-item" data-tab="costeo" onclick="goTab('costeo')">💰 Costeo</div>
-    <div class="nav-item" data-tab="mensajes" onclick="goTab('mensajes')">✉️ Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
-    <div class="nav-item" data-tab="tickets" onclick="goTab('tickets')">🎫 Tickets de Sucursal</div>
-    <div class="nav-item" data-tab="usuarios" onclick="goTab('usuarios')">👤 Usuarios</div>
-    <div class="nav-item" data-tab="configuracion" onclick="goTab('configuracion')">⚙️ Configuración</div>
+
+    <div class="nav-group" data-group="operacion">
+      <div class="nav-group-header" onclick="toggleNavGroup(this)">
+        <span>🧾 Operación</span><span class="nav-group-chevron">▾</span>
+      </div>
+      <div class="nav-group-items">
+        <div class="nav-item nav-subitem" data-tab="pedidos" onclick="goTab('pedidos')">Pedidos <span class="badge" id="badgePedidos" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="pos" onclick="goTab('pos')">Nueva Orden</div>
+        <div class="nav-item nav-subitem" data-tab="mesas" onclick="goTab('mesas')">Mesas <span class="badge" id="badgeMesas" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="comandas" onclick="goTab('comandas')">Comandas <span class="badge" id="badgeComandas" style="display:none;"></span></div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="clientes">
+      <div class="nav-group-header" onclick="toggleNavGroup(this)">
+        <span>👥 Clientes</span><span class="nav-group-chevron">▾</span>
+      </div>
+      <div class="nav-group-items">
+        <div class="nav-item nav-subitem" data-tab="clientes" onclick="goTab('clientes')">Clientes</div>
+        <div class="nav-item nav-subitem" data-tab="fidelidad" onclick="goTab('fidelidad')">Fidelidad</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="catalogo">
+      <div class="nav-group-header" onclick="toggleNavGroup(this)">
+        <span>📋 Catálogo</span><span class="nav-group-chevron">▾</span>
+      </div>
+      <div class="nav-group-items">
+        <div class="nav-item nav-subitem" data-tab="menu" onclick="goTab('menu')">Menú</div>
+        <div class="nav-item nav-subitem" data-tab="inventarios" onclick="goTab('inventarios')">Inventarios <span class="badge" id="badgeInventarios" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="costeo" onclick="goTab('costeo')">Costeo</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="comunicacion">
+      <div class="nav-group-header" onclick="toggleNavGroup(this)">
+        <span>✉️ Comunicación</span><span class="nav-group-chevron">▾</span>
+      </div>
+      <div class="nav-group-items">
+        <div class="nav-item nav-subitem" data-tab="mensajes" onclick="goTab('mensajes')">Mensajes <span class="badge" id="badgeMensajes" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="tickets" onclick="goTab('tickets')">Tickets de Sucursal</div>
+      </div>
+    </div>
+
+    <div class="nav-group" data-group="admin">
+      <div class="nav-group-header" onclick="toggleNavGroup(this)">
+        <span>⚙️ Administración</span><span class="nav-group-chevron">▾</span>
+      </div>
+      <div class="nav-group-items">
+        <div class="nav-item nav-subitem" data-tab="usuarios" onclick="goTab('usuarios')">Usuarios</div>
+        <div class="nav-item nav-subitem" data-tab="configuracion" onclick="goTab('configuracion')">Configuración</div>
+      </div>
+    </div>
+
     <div class="sidebar-foot">
       <div id="adminEmailFoot" style="margin-bottom:8px;word-break:break-all;"></div>
       <a href="#" onclick="abrirModalAccesos(); return false;" style="color:rgba(255,255,255,.75);text-decoration:none;display:block;margin-bottom:6px;">🔐 Historial de accesos</a>
@@ -257,6 +310,24 @@
         </div>
       </div>
       <div class="cards-row" id="statsCards"></div>
+
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:2px;">Estado del negocio</h3>
+        <p class="muted" style="font-size:12px;margin:0 0 14px;">Datos actuales de inventario y costeo — no dependen del rango de fechas de arriba.</p>
+        <div class="cards-row" id="statsNegocioCards"><div class="loading">Cargando…</div></div>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size:15px;margin-bottom:14px;">⚡ Acciones rápidas</h3>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="goTab('pos')">+ Nueva Orden</button>
+          <button class="btn btn-ghost btn-sm" onclick="goTab('comandas')">🍳 Ver Comandas</button>
+          <button class="btn btn-ghost btn-sm" onclick="goTab('mesas')">🪑 Ver Mesas</button>
+          <button class="btn btn-ghost btn-sm" onclick="goTab('inventarios')">📦 Ver Inventario</button>
+          <button class="btn btn-ghost btn-sm" onclick="goTab('costeo')">💰 Ver Costeo</button>
+        </div>
+      </div>
+
       <div class="card">
         <h3 style="font-size:15px;margin-bottom:14px;">Ventas por día</h3>
         <div id="ventasPorDia" class="loading">Cargando…</div>
@@ -974,6 +1045,7 @@ async function adminLogin(){
   cargarMensajes();  // precarga silenciosa, solo para el contador del menú
   cargarTotalMesas(); // precarga silenciosa, para que POS_MESAS ya no sea el default de 14
   iniciarAlertasPedidos();
+  inicializarIndicadoresGrupo();
 }
 
 async function cerrarSesion(){
@@ -1006,11 +1078,35 @@ async function abrirModalAccesos(){
 }
 
 /* ---------- navegación ---------- */
+function toggleNavGroup(headerEl){
+  headerEl.closest('.nav-group').classList.toggle('open');
+}
+
+// Pone un puntito en el encabezado de cada grupo si alguno de sus badges
+// internos (pedidos pendientes, mensajes sin leer, etc.) está visible —
+// así no se pierden avisos cuando el grupo está colapsado.
+function inicializarIndicadoresGrupo(){
+  document.querySelectorAll('.nav-group').forEach(grupo => {
+    const header = grupo.querySelector('.nav-group-header');
+    const badges = grupo.querySelectorAll('.badge[id]');
+    if (!header || !badges.length) return;
+    const actualizar = () => {
+      const algunoVisible = [...badges].some(b => b.style.display !== 'none');
+      header.classList.toggle('has-badge', algunoVisible);
+    };
+    badges.forEach(b => new MutationObserver(actualizar).observe(b, { attributes: true, attributeFilter: ['style'] }));
+    actualizar();
+  });
+}
+
 function goTab(tab){
   document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('tab-' + tab).style.display = 'block';
-  document.querySelector(`.nav-item[data-tab="${tab}"]`).classList.add('active');
+  const navItem = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+  navItem.classList.add('active');
+  const grupoPadre = navItem.closest('.nav-group');
+  if (grupoPadre) grupoPadre.classList.add('open');
   if (comandasIntervalo){ clearInterval(comandasIntervalo); comandasIntervalo = null; }
   if (tab === 'resumen') cargarResumen();
   if (tab === 'pedidos') cargarPedidos();
@@ -1118,6 +1214,58 @@ async function cargarResumen(){
 
   window._ventasPorDiaCache = porDia || [];
   window._topPlatillosCache = top || [];
+
+  cargarEstadoNegocio(r.total_ventas, top || []);
+}
+
+// Tarjetas de "Estado del negocio": usan datos que YA existen en Inventarios
+// y Costeo (no se inventa ninguna cifra) — Valor de Inventario real,
+// Food Cost % del periodo (solo sobre platillos con receta cargada), y
+// alertas de stock bajo/agotado.
+async function cargarEstadoNegocio(totalVentasPeriodo, topPlatillos){
+  const cont = document.getElementById('statsNegocioCards');
+
+  const [{ data: insumos, error: errIns }, { data: costos, error: errCos }] = await Promise.all([
+    sb.rpc('admin_insumos_list'),
+    sb.rpc('admin_costeo_insumos'),
+  ]);
+
+  if (errIns || errCos){
+    cont.innerHTML = `<p class="muted">Todavía no está conectado Inventarios/Costeo para mostrar esto.</p>`;
+    return;
+  }
+
+  const listaInsumos = insumos || [];
+  const valorInventario = listaInsumos.reduce((s, i) => s + Number(i.stock_actual || 0) * Number(i.costo_unitario || 0), 0);
+  const stockBajo = listaInsumos.filter(i => Number(i.stock_actual) > 0 && Number(i.stock_actual) <= Number(i.stock_minimo)).length;
+  const stockAgotado = listaInsumos.filter(i => Number(i.stock_actual) <= 0).length;
+
+  const costeoMap = {};
+  (costos || []).forEach(c => { costeoMap[c.producto_id] = Number(c.costo_insumos); });
+  const nombreAId = {};
+  menuCache.forEach(p => { nombreAId[p.nombre] = p.id; });
+
+  let costoVendido = 0, ingresosConReceta = 0, sinReceta = 0;
+  topPlatillos.forEach(t => {
+    const id = nombreAId[t.nombre];
+    const costo = id !== undefined ? costeoMap[id] : undefined;
+    if (costo !== undefined){
+      costoVendido += costo * Number(t.veces_vendido);
+      ingresosConReceta += Number(t.total_ingresos);
+    } else {
+      sinReceta++;
+    }
+  });
+  const foodCostPct = ingresosConReceta > 0 ? (costoVendido / ingresosConReceta) * 100 : null;
+
+  cont.innerHTML = `
+    <div class="stat-card"><div class="num">$${valorInventario.toLocaleString('es-MX',{minimumFractionDigits:2})}</div><div class="lbl">Valor de inventario</div></div>
+    <div class="stat-card"><div class="num">${foodCostPct !== null ? foodCostPct.toFixed(1)+'%' : '—'}</div><div class="lbl">Food cost del periodo${sinReceta ? ' *' : ''}</div></div>
+    <div class="stat-card"><div class="num" style="color:${(stockBajo+stockAgotado)>0?'var(--warn)':'inherit'};">${stockBajo + stockAgotado}</div><div class="lbl">Alertas de stock</div></div>
+  `;
+  if (sinReceta){
+    cont.innerHTML += `<p class="muted" style="grid-column:1/-1;font-size:11.5px;margin-top:-6px;">* Calculado solo sobre los platillos que ya tienen receta en Costeo. Hay ${sinReceta} platillo(s) vendido(s) sin receta cargada, así que el food cost real puede ser distinto.</p>`;
+  }
 }
 
 function exportarVentasCSV(){
