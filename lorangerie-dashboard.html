@@ -134,6 +134,16 @@
   .stat-card .num{font-family:var(--serif);font-weight:700;font-size:28px;color:var(--on);}
   .stat-card .lbl{font-size:12px;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
 
+  .quick-actions-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;}
+  .quick-action-card{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px 10px;background:var(--paper);border:1px solid var(--outline);border-radius:12px;cursor:pointer;font-family:inherit;transition:border-color .15s,transform .1s;}
+  .quick-action-card:hover{border-color:var(--sage);transform:translateY(-1px);}
+  .quick-action-card:active{transform:translateY(0);}
+  .quick-action-card .qa-icon{font-size:28px;line-height:1;}
+  .quick-action-card .qa-label{font-size:12.5px;font-weight:600;color:var(--on);text-align:center;}
+  .quick-action-card.primary{background:var(--sage);border-color:var(--sage);}
+  .quick-action-card.primary .qa-icon{filter:brightness(0) invert(1);}
+  .quick-action-card.primary .qa-label{color:#fff;}
+
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--on-var);padding:8px 10px;border-bottom:2px solid var(--outline);}
   td{padding:10px;border-bottom:1px solid var(--outline);vertical-align:middle;}
@@ -319,12 +329,31 @@
 
       <div class="card">
         <h3 style="font-size:15px;margin-bottom:14px;">⚡ Acciones rápidas</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn btn-primary btn-sm" onclick="goTab('pos')">+ Nueva Orden</button>
-          <button class="btn btn-ghost btn-sm" onclick="goTab('comandas')">🍳 Ver Comandas</button>
-          <button class="btn btn-ghost btn-sm" onclick="goTab('mesas')">🪑 Ver Mesas</button>
-          <button class="btn btn-ghost btn-sm" onclick="goTab('inventarios')">📦 Ver Inventario</button>
-          <button class="btn btn-ghost btn-sm" onclick="goTab('costeo')">💰 Ver Costeo</button>
+        <div class="quick-actions-grid">
+          <button class="quick-action-card primary" onclick="goTab('pos')">
+            <span class="qa-icon">➕</span><span class="qa-label">Nueva Orden</span>
+          </button>
+          <button class="quick-action-card" onclick="goTab('comandas')">
+            <span class="qa-icon">🍳</span><span class="qa-label">Comandas</span>
+          </button>
+          <button class="quick-action-card" onclick="goTab('mesas')">
+            <span class="qa-icon">🪑</span><span class="qa-label">Mesas</span>
+          </button>
+          <button class="quick-action-card" onclick="goTab('inventarios')">
+            <span class="qa-icon">📦</span><span class="qa-label">Inventario</span>
+          </button>
+          <button class="quick-action-card" onclick="goTab('costeo')">
+            <span class="qa-icon">💰</span><span class="qa-label">Costeo</span>
+          </button>
+          <button class="quick-action-card" onclick="goTab('menu')">
+            <span class="qa-icon">🍽️</span><span class="qa-label">Menú</span>
+          </button>
+          <button class="quick-action-card" onclick="goTab('clientes')">
+            <span class="qa-icon">👥</span><span class="qa-label">Clientes</span>
+          </button>
+          <button class="quick-action-card" onclick="goTab('tickets')">
+            <span class="qa-icon">🎫</span><span class="qa-label">Tickets</span>
+          </button>
         </div>
       </div>
 
