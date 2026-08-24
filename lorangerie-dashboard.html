@@ -404,7 +404,17 @@
     <div id="tab-pedidos" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Pedidos</h2>
-        <button class="btn btn-ghost btn-sm" onclick="cargarPedidos()">↻ Actualizar</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="pedidosRango" onchange="cambiarRangoPedidos()">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+            <option value="todos">Todo el historial</option>
+            <option value="custom">Fecha personalizada…</option>
+          </select>
+          <input type="date" id="pedidosDesde" style="display:none;width:auto;" onchange="renderPedidosFiltrados()">
+          <button class="btn btn-ghost btn-sm" onclick="cargarPedidos()">↻ Actualizar</button>
+        </div>
       </div>
       <div class="tabs-row" id="pedidosFiltro">
         <button class="active" onclick="filtrarPedidos(null, this)">Todos</button>
@@ -1346,6 +1356,32 @@ function exportarVentasCSV(){
    PEDIDOS
    ============================================================ */
 let filtroPedidoActual = null;
+function cambiarRangoPedidos(){
+  const sel = document.getElementById('pedidosRango').value;
+  const inputFecha = document.getElementById('pedidosDesde');
+  if (sel === 'custom'){
+    inputFecha.style.display = 'inline-block';
+    if (!inputFecha.value){
+      const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
+      inputFecha.value = hace30.toISOString().slice(0, 10);
+    }
+  } else {
+    inputFecha.style.display = 'none';
+  }
+  renderPedidosFiltrados();
+}
+
+function fechaMinimaPedidos(){
+  const sel = document.getElementById('pedidosRango').value;
+  if (sel === 'todos') return null;
+  if (sel === 'custom'){
+    const v = document.getElementById('pedidosDesde').value;
+    return v ? new Date(v + 'T00:00:00') : null;
+  }
+  const d = new Date(); d.setDate(d.getDate() - Number(sel)); d.setHours(0,0,0,0);
+  return d;
+}
+
 async function cargarPedidos(){
   const cont = document.getElementById('pedidosGrid');
   cont.innerHTML = '<div class="loading">Cargando…</div>';
@@ -1358,10 +1394,23 @@ async function cargarPedidos(){
   if (pendientes > 0){ badge.style.display = 'inline-block'; badge.textContent = pendientes; }
   else badge.style.display = 'none';
 
-  if (!pedidosCache.length){ cont.innerHTML = '<p class="muted">No hay pedidos en este filtro.</p>'; return; }
+  renderPedidosFiltrados();
+}
+
+function renderPedidosFiltrados(){
+  const cont = document.getElementById('pedidosGrid');
+  const desde = fechaMinimaPedidos();
+  const lista = desde
+    ? pedidosCache.filter(p => new Date(p.fecha_creacion) >= desde)
+    : pedidosCache;
+
+  if (!lista.length){
+    cont.innerHTML = `<p class="muted">No hay pedidos en este filtro${desde ? ' ni en este rango de fechas' : ''}.</p>`;
+    return;
+  }
 
   const badgeClase = { pendiente:'b-pendiente', entregado:'b-entregado', cancelado:'b-cancelado' };
-  cont.innerHTML = pedidosCache.map(p => {
+  cont.innerHTML = lista.map(p => {
     const esInvitado = p.es_invitado || p.invitado || p.guest_email;
     return `
     <div class="pedido-card">
