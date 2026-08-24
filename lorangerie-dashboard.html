@@ -32,6 +32,24 @@
   .login-gate{max-width:380px;margin:100px auto;padding:0 20px;}
   .login-card{background:var(--paper);border:1px solid var(--outline);border-radius:14px;padding:28px;}
 
+  .login-split{display:flex;min-height:100vh;}
+  .login-split-visual{flex:1.2;position:relative;overflow:hidden;}
+  .login-split-visual img{width:100%;height:100%;object-fit:cover;}
+  .login-split-visual-overlay{position:absolute;inset:0;background:linear-gradient(0deg,rgba(19,27,46,.85) 0%,rgba(19,27,46,.15) 55%,rgba(19,27,46,.35) 100%);}
+  .login-split-visual-text{position:absolute;left:36px;bottom:36px;right:36px;color:#fff;}
+  .login-split-visual-brand{font-family:var(--serif);font-weight:800;font-size:30px;margin-bottom:6px;}
+  .login-split-visual-text p{font-size:13px;opacity:.85;margin:0;}
+  .login-split-form{flex:1;display:flex;flex-direction:column;justify-content:center;position:relative;background:var(--surface);min-width:340px;}
+  .login-split-form-inner{width:100%;max-width:360px;margin:0 auto;padding:40px 24px;}
+  .login-split-logo{font-family:var(--serif);font-weight:800;font-size:26px;color:var(--on);text-align:center;}
+  .login-split-tagline{text-align:center;color:var(--on-var);font-size:13px;margin:2px 0 28px;}
+  .login-split-accent-bar{height:5px;background:linear-gradient(90deg,var(--sage-dark),var(--sage),var(--warn));}
+  @media(max-width:720px){
+    .login-split{flex-direction:column;}
+    .login-split-visual{flex:none;height:180px;}
+    .login-split-form{min-width:0;}
+  }
+
   /* shell */
   .shell{display:flex;min-height:100vh;}
   .sidebar{width:220px;flex-shrink:0;background:var(--sidebar-bg);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;}
@@ -202,29 +220,40 @@
 <body>
 
 <!-- LOGIN -->
-<div class="login-gate" id="loginGate">
-  <div class="login-card">
-    <h2 style="font-size:22px;margin-bottom:6px;">L'Orangerie</h2>
-    <p class="muted" style="margin:0 0 18px;">Dashboard de administración</p>
-    <div class="field-group"><label>Correo</label><input type="text" id="admEmail" placeholder="admin@lorangerie.com"></div>
-    <div class="field-group">
-      <label>Contraseña</label>
-      <div style="position:relative;">
-        <input type="password" id="admPass" style="padding-right:40px;">
-        <button type="button" aria-label="Mostrar contraseña" onclick="togglePasswordVisibility()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:6px;line-height:1;">
-          <span id="pwToggleIcon">👁️</span>
-        </button>
+<div class="login-split" id="loginGate">
+  <div class="login-split-visual">
+    <img src="hero-barista.jpg" alt="">
+    <div class="login-split-visual-overlay"></div>
+    <div class="login-split-visual-text">
+      <div class="login-split-visual-brand">L'Orangerie</div>
+      <p>Blvd. Francisco Villarreal Torres 11204, Local 15 · Juárez, Chih.</p>
+    </div>
+  </div>
+  <div class="login-split-form">
+    <div class="login-split-form-inner">
+      <div class="login-split-logo">L'Orangerie</div>
+      <p class="login-split-tagline">Panel de Administración</p>
+
+      <div class="field-group"><label>Correo</label><input type="text" id="admEmail" placeholder="admin@lorangerie.com"></div>
+      <div class="field-group">
+        <label>Contraseña</label>
+        <div style="position:relative;">
+          <input type="password" id="admPass" style="padding-right:40px;">
+          <button type="button" aria-label="Mostrar contraseña" onclick="togglePasswordVisibility()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:6px;line-height:1;">
+            <span id="pwToggleIcon">👁️</span>
+          </button>
+        </div>
       </div>
+      <button class="btn btn-primary" style="width:100%;margin-top:6px;height:48px;font-size:15px;" onclick="adminLogin()">Iniciar sesión</button>
+      <div style="text-align:center;margin-top:14px;">
+        <a href="#" onclick="recuperarContrasena(); return false;" style="font-size:13px;">¿Olvidaste tu contraseña?</a>
+      </div>
+      <div id="loginMsg"></div>
     </div>
-    <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="adminLogin()">Entrar</button>
-    <div style="text-align:right;margin-top:10px;">
-      <a href="#" onclick="recuperarContrasena(); return false;" style="font-size:12.5px;">¿Olvidaste tu contraseña?</a>
-    </div>
-    <div id="loginMsg"></div>
+    <div class="login-split-accent-bar"></div>
   </div>
 </div>
 
-<!-- RESTABLECER CONTRASEÑA (aparece si vienes del correo de recuperación) -->
 <div class="login-gate" id="resetGate" style="display:none;">
   <div class="login-card">
     <h2 style="font-size:22px;margin-bottom:6px;">Nueva contraseña</h2>
