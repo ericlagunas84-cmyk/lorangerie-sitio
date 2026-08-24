@@ -1383,7 +1383,7 @@ function cambiarRangoPedidos(){
   } else {
     inputFecha.style.display = 'none';
   }
-  renderPedidosFiltrados();
+  cargarPedidos();
 }
 
 function fechaMinimaPedidos(){
@@ -1400,7 +1400,11 @@ function fechaMinimaPedidos(){
 async function cargarPedidos(){
   const cont = document.getElementById('pedidosGrid');
   cont.innerHTML = '<div class="loading">Cargando…</div>';
-  const { data, error } = await sb.rpc('admin_pedidos_todos', { p_estado: filtroPedidoActual });
+  const desde = fechaMinimaPedidos();
+  const { data, error } = await sb.rpc('admin_pedidos_todos', {
+    p_estado: filtroPedidoActual,
+    p_desde: desde ? desde.toISOString() : null,
+  });
   if (error){ cont.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
   pedidosCache = data || [];
 
@@ -1413,14 +1417,13 @@ async function cargarPedidos(){
 }
 
 function renderPedidosFiltrados(){
+  // La fecha ya se filtró en la base de datos (cargarPedidos) — aquí
+  // solo se pinta lo que ya llegó filtrado, no se vuelve a filtrar.
   const cont = document.getElementById('pedidosGrid');
-  const desde = fechaMinimaPedidos();
-  const lista = desde
-    ? pedidosCache.filter(p => new Date(p.fecha_creacion) >= desde)
-    : pedidosCache;
+  const lista = pedidosCache;
 
   if (!lista.length){
-    cont.innerHTML = `<p class="muted">No hay pedidos en este filtro${desde ? ' ni en este rango de fechas' : ''}.</p>`;
+    cont.innerHTML = '<p class="muted">No hay pedidos en este filtro.</p>';
     return;
   }
 
