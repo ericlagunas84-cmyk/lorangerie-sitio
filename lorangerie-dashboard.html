@@ -91,9 +91,10 @@
 
     .main{margin-left:0;padding:16px;padding-top:72px;max-width:100%;}
 
-    /* Tablas: en vez de romper el layout, se vuelven scrollables */
+    /* Tablas: en vez de romper el layout, se vuelven scrollables.
+       (Ojo: NO se le fuerza display:table a thead/tbody/tr — eso fue
+       lo que causó que el texto de columnas distintas se encimara.) */
     table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;}
-    table thead, table tbody, table tr{display:table;width:100%;table-layout:fixed;}
 
     /* Nueva Orden: el carrito deja de ser "sticky" (se encima con la
        barra superior) y todo se apila en una sola columna */
