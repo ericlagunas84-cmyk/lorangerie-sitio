@@ -974,52 +974,60 @@
 <!-- MODAL: insumo de inventario -->
 <!-- MODAL: cobrar orden (POS) -->
 <div class="modal-overlay" id="modalCobro">
-  <div class="modal-card" style="width:700px;max-width:95vw;">
+  <div class="modal-card" style="width:760px;max-width:95vw;">
     <h3 style="font-size:22px;margin-bottom:4px;">Cobrar orden</h3>
-    <p class="muted" style="font-size:14px;margin:0 0 20px;" id="cobroMesaTexto"></p>
+    <p class="muted" style="font-size:14px;margin:0 0 16px;" id="cobroMesaTexto"></p>
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;">
+      <div style="flex:1;min-width:140px;background:var(--low);border-radius:12px;padding:14px;text-align:center;">
+        <div class="muted" style="font-size:11.5px;text-transform:uppercase;">Total</div>
+        <div style="font-family:var(--serif);font-weight:800;font-size:22px;" id="cobroTotalTexto"></div>
+      </div>
+      <div style="flex:1;min-width:140px;background:var(--low);border-radius:12px;padding:14px;text-align:center;">
+        <div class="muted" style="font-size:11.5px;text-transform:uppercase;">Pagado</div>
+        <div style="font-family:var(--serif);font-weight:800;font-size:22px;color:var(--sage-dark);" id="cobroPagadoTexto">$0.00</div>
+      </div>
+      <div style="flex:1;min-width:140px;border-radius:12px;padding:14px;text-align:center;" id="cobroRestanteBox">
+        <div class="muted" style="font-size:11.5px;text-transform:uppercase;" id="cobroRestanteLabel">Restante</div>
+        <div style="font-family:var(--serif);font-weight:800;font-size:22px;" id="cobroRestanteTexto">$0.00</div>
+      </div>
+    </div>
 
     <div style="display:flex;gap:28px;flex-wrap:wrap;">
       <div style="flex:1;min-width:220px;">
-        <div style="background:var(--low);border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;">
-          <div class="muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Total a cobrar</div>
-          <div style="font-family:var(--serif);font-weight:800;font-size:36px;color:var(--sage-dark);" id="cobroTotalTexto"></div>
-          <div class="muted" style="font-size:12.5px;margin-top:2px;display:none;" id="cobroTotalUsdTexto"></div>
-        </div>
-
-        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Moneda</label>
+        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Moneda de esta parte del pago</label>
         <div class="pos-pago-methods" id="cobroMonedas" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px;">
           <button type="button" class="active" onclick="elegirMonedaCobro('MXN', this)">🇲🇽<span>Pesos</span></button>
           <button type="button" onclick="elegirMonedaCobro('USD', this)">🇺🇸<span>Dólares</span></button>
         </div>
 
-        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Método de pago</label>
+        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Método de esta parte</label>
         <div class="pos-pago-methods" id="cobroMetodos">
           <button type="button" class="active" onclick="elegirMetodoPago('efectivo', this)">💵<span>Efectivo</span></button>
           <button type="button" onclick="elegirMetodoPago('tarjeta_debito', this)">💳<span>Débito</span></button>
           <button type="button" onclick="elegirMetodoPago('tarjeta_credito', this)">💳<span>Crédito</span></button>
           <button type="button" onclick="elegirMetodoPago('cortesia', this)">🎁<span>Cortesía</span></button>
         </div>
-
-        <div class="pos-cambio-box" style="margin-top:20px;">
-          <span>Cambio</span>
-          <span id="cobroCambioTexto">$0.00</span>
-        </div>
       </div>
 
       <div id="cobroEfectivoBox" style="flex:1;min-width:240px;">
-        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Monto recibido</label>
+        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Monto de esta parte</label>
         <input type="text" id="cobroMontoInput" class="pos-monto-input" readonly value="0.00">
         <div class="pos-keypad" id="cobroKeypad"></div>
+        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="agregarLineaPago()">+ Agregar este pago</button>
       </div>
       <div id="cobroInfoBox" style="display:none;flex:1;min-width:240px;">
         <p class="muted" style="font-size:13px;" id="cobroInfoTexto"></p>
+        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="agregarLineaPago()">+ Agregar este pago</button>
       </div>
     </div>
 
+    <div id="cobroLineasLista" style="margin-top:18px;"></div>
+
     <div id="cobroMsg"></div>
-    <div style="display:flex;gap:10px;margin-top:24px;">
+    <div style="display:flex;gap:10px;margin-top:20px;">
       <button class="btn btn-ghost" style="flex:1;height:52px;" onclick="document.getElementById('modalCobro').classList.remove('show')">Cancelar</button>
-      <button class="btn btn-primary" style="flex:2;height:52px;font-size:15px;" id="cobroBtnConfirmar" onclick="confirmarCobro()">Confirmar pago</button>
+      <button class="btn btn-primary" style="flex:2;height:52px;font-size:15px;" id="cobroBtnConfirmar" onclick="confirmarCobro()" disabled>Confirmar pago</button>
     </div>
   </div>
 </div>
@@ -1944,10 +1952,15 @@ function posRenderCarrito(){
 let cobroMetodoActual = 'efectivo';
 let cobroMontoStr = '0';
 
+/* ============================================================
+   COBRO — pago dividido: se pueden agregar varias líneas de pago
+   (distintas monedas y/o métodos) hasta cubrir el total.
+   ============================================================ */
 let cobroModoExistente = false;
 let cobroPedidoExistenteId = null;
 let cobroTotalActual = 0; // siempre en pesos (moneda base del sistema)
 let cobroMonedaActual = 'MXN';
+let cobroLineas = []; // { metodo, moneda, monto, tipoCambio, montoPesos }
 let TIPO_CAMBIO_USD = 18.50;
 
 async function cargarTipoCambio(){
@@ -1956,6 +1969,7 @@ async function cargarTipoCambio(){
 }
 
 function resetCajaCobro(){
+  cobroLineas = [];
   cobroMetodoActual = 'efectivo';
   cobroMonedaActual = 'MXN';
   cobroMontoStr = '0';
@@ -1967,7 +1981,7 @@ function resetCajaCobro(){
   document.getElementById('cobroEfectivoBox').style.display = 'block';
   document.getElementById('cobroInfoBox').style.display = 'none';
   posActualizarKeypad();
-  posActualizarMontoYCambio();
+  renderLineasPago();
 }
 
 function abrirModalCobro(){
@@ -1998,7 +2012,7 @@ function elegirMonedaCobro(moneda, btn){
   document.querySelectorAll('#cobroMonedas button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   cobroMontoStr = '0';
-  posActualizarMontoYCambio();
+  posActualizarMontoInput();
 }
 
 function elegirMetodoPago(metodo, btn){
@@ -2007,18 +2021,16 @@ function elegirMetodoPago(metodo, btn){
   btn.classList.add('active');
   const cajaEfectivo = document.getElementById('cobroEfectivoBox');
   const cajaInfo = document.getElementById('cobroInfoBox');
-  if (metodo === 'efectivo'){
+  if (metodo === 'cortesia'){
+    cajaEfectivo.style.display = 'none';
+    cajaInfo.style.display = 'block';
+    document.getElementById('cobroInfoTexto').textContent = 'Perdona el restante como cortesía — no se cobra nada por esta parte.';
+  } else {
     cajaEfectivo.style.display = 'block';
     cajaInfo.style.display = 'none';
     cobroMontoStr = '0';
-  } else {
-    cajaEfectivo.style.display = 'none';
-    cajaInfo.style.display = 'block';
-    document.getElementById('cobroInfoTexto').textContent = (metodo === 'tarjeta_debito' || metodo === 'tarjeta_credito')
-      ? 'Cobra el total completo en la terminal física. Aquí solo se registra que el pago fue con tarjeta ' + (metodo === 'tarjeta_debito' ? 'de débito.' : 'de crédito.')
-      : 'No se cobra nada — se registra como cortesía o consumo interno.';
+    posActualizarMontoInput();
   }
-  posActualizarMontoYCambio();
 }
 
 function posActualizarKeypad(){
@@ -2036,38 +2048,106 @@ function posTeclaKeypad(t){
   } else {
     cobroMontoStr = (cobroMontoStr === '0') ? t : cobroMontoStr + t;
   }
-  posActualizarMontoYCambio();
+  posActualizarMontoInput();
 }
 
-// El total real del pedido siempre vive en pesos (cobroTotalActual).
-// Si se cobra en dólares, se convierte solo para mostrar/cobrar —
-// el pedido se sigue guardando en pesos para que tus reportes no
-// se compliquen con dos monedas mezcladas en la misma columna.
-function totalEnMonedaCobro(){
-  return cobroMonedaActual === 'USD' ? cobroTotalActual / TIPO_CAMBIO_USD : cobroTotalActual;
+function cobroRestantePesos(){
+  const pagado = cobroLineas.reduce((s, l) => s + l.montoPesos, 0);
+  return cobroTotalActual - pagado;
 }
 
-function posActualizarMontoYCambio(){
-  const total = totalEnMonedaCobro();
+// Llena el input del teclado con el restante convertido a la moneda que
+// se está por agregar, como sugerencia — el cajero lo puede cambiar.
+function posActualizarMontoInput(){
   const simbolo = cobroMonedaActual === 'USD' ? 'US$' : '$';
-  let monto;
-  if (cobroMetodoActual === 'efectivo') monto = parseFloat(cobroMontoStr) || 0;
-  else if (cobroMetodoActual === 'cortesia') monto = 0;
-  else monto = total; // tarjeta: se cobra el total completo en la terminal
+  const restante = Math.max(0, cobroRestantePesos());
+  if (cobroMontoStr === '0'){
+    const sugerido = cobroMonedaActual === 'USD' ? restante / TIPO_CAMBIO_USD : restante;
+    cobroMontoStr = sugerido > 0 ? sugerido.toFixed(2) : '0';
+  }
+  document.getElementById('cobroMontoInput').value = parseFloat(cobroMontoStr || 0).toFixed(2);
+}
 
-  document.getElementById('cobroTotalTexto').textContent = simbolo + total.toFixed(2);
-  const otro = document.getElementById('cobroTotalUsdTexto');
-  if (cobroMonedaActual === 'USD'){
-    otro.style.display = 'block';
-    otro.textContent = `≈ $${cobroTotalActual.toFixed(2)} MXN · tipo de cambio $${TIPO_CAMBIO_USD.toFixed(2)}`;
-  } else {
-    otro.style.display = 'block';
-    otro.textContent = `≈ US$${(cobroTotalActual / TIPO_CAMBIO_USD).toFixed(2)} · tipo de cambio $${TIPO_CAMBIO_USD.toFixed(2)}`;
+function agregarLineaPago(){
+  const restante = cobroRestantePesos();
+  if (restante <= 0.005){
+    document.getElementById('cobroMsg').innerHTML = '<div class="msg-box msg-err">Ya no queda nada pendiente por cobrar.</div>';
+    return;
   }
 
-  document.getElementById('cobroMontoInput').value = monto.toFixed(2);
-  const cambio = cobroMetodoActual === 'cortesia' ? 0 : Math.max(0, monto - total);
-  document.getElementById('cobroCambioTexto').textContent = simbolo + cambio.toFixed(2);
+  let monto, montoPesos;
+  if (cobroMetodoActual === 'cortesia'){
+    // la cortesía siempre perdona TODO el restante de un jalón
+    montoPesos = restante;
+    monto = cobroMonedaActual === 'USD' ? restante / TIPO_CAMBIO_USD : restante;
+  } else {
+    monto = parseFloat(cobroMontoStr) || 0;
+    if (monto <= 0){
+      document.getElementById('cobroMsg').innerHTML = '<div class="msg-box msg-err">Escribe un monto mayor a 0.</div>';
+      return;
+    }
+    montoPesos = cobroMonedaActual === 'USD' ? monto * TIPO_CAMBIO_USD : monto;
+  }
+
+  cobroLineas.push({
+    metodo: cobroMetodoActual,
+    moneda: cobroMonedaActual,
+    monto: monto,
+    tipoCambio: cobroMonedaActual === 'USD' ? TIPO_CAMBIO_USD : null,
+    montoPesos: montoPesos,
+  });
+
+  cobroMontoStr = '0';
+  document.getElementById('cobroMsg').innerHTML = '';
+  renderLineasPago();
+}
+
+function quitarLineaPago(idx){
+  cobroLineas.splice(idx, 1);
+  renderLineasPago();
+}
+
+const METODO_LABEL_COBRO = { efectivo: '💵 Efectivo', tarjeta_debito: '💳 Débito', tarjeta_credito: '💳 Crédito', cortesia: '🎁 Cortesía' };
+
+function renderLineasPago(){
+  const total = cobroTotalActual;
+  const pagado = cobroLineas.reduce((s, l) => s + l.montoPesos, 0);
+  const restante = total - pagado;
+
+  document.getElementById('cobroTotalTexto').textContent = '$' + total.toFixed(2);
+  document.getElementById('cobroPagadoTexto').textContent = '$' + pagado.toFixed(2);
+
+  const cajaRestante = document.getElementById('cobroRestanteBox');
+  const lblRestante = document.getElementById('cobroRestanteLabel');
+  const txtRestante = document.getElementById('cobroRestanteTexto');
+  if (restante > 0.005){
+    cajaRestante.style.background = 'var(--danger-soft)';
+    lblRestante.textContent = 'Restante';
+    lblRestante.style.color = 'var(--danger)';
+    txtRestante.style.color = 'var(--danger)';
+    txtRestante.textContent = '$' + restante.toFixed(2);
+  } else {
+    cajaRestante.style.background = 'var(--ok-soft)';
+    lblRestante.textContent = restante < -0.005 ? 'Cambio' : 'Completo';
+    lblRestante.style.color = 'var(--ok)';
+    txtRestante.style.color = 'var(--ok)';
+    txtRestante.textContent = '$' + Math.max(0, -restante).toFixed(2);
+  }
+
+  const cont = document.getElementById('cobroLineasLista');
+  cont.innerHTML = cobroLineas.length
+    ? cobroLineas.map((l, i) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--low);border-radius:8px;margin-bottom:6px;font-size:13.5px;">
+          <span>${METODO_LABEL_COBRO[l.metodo]} — ${l.moneda === 'USD' ? 'US$' : '$'}${l.monto.toFixed(2)} ${l.moneda}</span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="muted">≈ $${l.montoPesos.toFixed(2)} MXN</span>
+            <button class="btn btn-ghost btn-sm" onclick="quitarLineaPago(${i})">✕</button>
+          </div>
+        </div>`).join('')
+    : '<p class="muted" style="font-size:12.5px;">Todavía no has agregado ninguna forma de pago.</p>';
+
+  document.getElementById('cobroBtnConfirmar').disabled = restante > 0.005;
+  posActualizarMontoInput();
 }
 
 /* ---------- enviar orden a cocina SIN cobrar ---------- */
@@ -2134,35 +2214,75 @@ async function enviarOrdenCompleta(){
 }
 
 async function confirmarCobro(){
-  const total = totalEnMonedaCobro();
-  let monto;
-  if (cobroMetodoActual === 'efectivo') monto = parseFloat(cobroMontoStr) || 0;
-  else if (cobroMetodoActual === 'cortesia') monto = 0;
-  else monto = total;
   const msg = document.getElementById('cobroMsg');
-
-  if (cobroMetodoActual === 'efectivo' && monto < total){
-    msg.innerHTML = '<div class="msg-box msg-err">El monto recibido es menor al total.</div>';
+  if (cobroRestantePesos() > 0.005){
+    msg.innerHTML = '<div class="msg-box msg-err">Todavía falta cubrir el total.</div>';
     return;
   }
-  const cambio = cobroMetodoActual === 'cortesia' ? 0 : Math.max(0, monto - total);
+  if (!cobroLineas.length){
+    msg.innerHTML = '<div class="msg-box msg-err">Agrega al menos una forma de pago.</div>';
+    return;
+  }
+
   const btn = document.getElementById('cobroBtnConfirmar');
   btn.disabled = true; btn.textContent = 'Procesando…';
 
   try {
-    // ---------- Modo: cobrar un pedido que YA EXISTE (venía de "Orden completa") ----------
-    if (cobroModoExistente){
-      const { error: pagoErr } = await sb.rpc('admin_pedido_registrar_pago', {
-        p_pedido_id: cobroPedidoExistenteId,
-        p_metodo_pago: cobroMetodoActual,
-        p_monto_recibido: monto,
-        p_cambio: cambio,
-        p_moneda: cobroMonedaActual,
-        p_tipo_cambio: cobroMonedaActual === 'USD' ? TIPO_CAMBIO_USD : null,
-      });
-      if (pagoErr) throw new Error(pagoErr.message);
+    let pedidoId = cobroPedidoExistenteId;
+    let mesaTexto = null, nota = null, nombreCliente = null;
 
-      msg.innerHTML = `<div class="msg-box msg-ok">Pedido #${cobroPedidoExistenteId} cobrado correctamente.</div>`;
+    // ---------- Modo: crear un pedido nuevo (viene del carrito de Nueva Orden) ----------
+    if (!cobroModoExistente){
+      nombreCliente = document.getElementById('posClienteNombre').value.trim() || 'Cliente de mostrador';
+      nota = document.getElementById('posNota').value.trim();
+      const guestEmail = `mostrador+${Date.now()}@lorangerie.local`;
+      mesaTexto = posTipoServicioActual === 'mesa' ? posMesasElegidas.sort().join(' + ') : posMesasElegidas[0];
+
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/process-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
+        body: JSON.stringify({
+          items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: null })),
+          puntos_a_usar: 0,
+          horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
+          guest_email: guestEmail,
+          guest_nombre: nombreCliente,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || 'No se pudo crear la orden.');
+      pedidoId = data.pedido_id;
+
+      const pctDescuento = posDescuentoPct();
+      if (pctDescuento > 0){
+        const { error: descErr } = await sb.rpc('admin_pedido_aplicar_descuento', {
+          p_pedido_id: pedidoId, p_descuento_pct: pctDescuento,
+        });
+        if (descErr) throw new Error('Orden creada (#' + pedidoId + ') pero el descuento no se pudo aplicar: ' + descErr.message);
+      }
+    }
+
+    // ---------- Registra cada línea de pago agregada ----------
+    for (const linea of cobroLineas){
+      const { error: lineaErr } = await sb.rpc('admin_pedido_agregar_pago', {
+        p_pedido_id: pedidoId, p_metodo_pago: linea.metodo, p_moneda: linea.moneda,
+        p_monto: linea.monto, p_tipo_cambio: linea.tipoCambio,
+      });
+      if (lineaErr) throw new Error('No se pudo registrar un pago: ' + lineaErr.message);
+    }
+
+    // ---------- Cierra el pedido ----------
+    const { error: finErr } = await sb.rpc('admin_pedido_finalizar_pago', {
+      p_pedido_id: pedidoId,
+      p_mesa: mesaTexto,
+      p_nota: nota || null,
+      p_tipo_servicio: cobroModoExistente ? null : posTipoServicioActual,
+    });
+    if (finErr) throw new Error('El pago se registró pero no se pudo cerrar el pedido: ' + finErr.message);
+
+    // ---------- Si era un pedido existente (Mesas → Cobrar) ----------
+    if (cobroModoExistente){
+      msg.innerHTML = `<div class="msg-box msg-ok">Pedido #${pedidoId} cobrado correctamente.</div>`;
       setTimeout(() => {
         document.getElementById('modalCobro').classList.remove('show');
         document.getElementById('modalComandaMesa').classList.remove('show');
@@ -2171,52 +2291,17 @@ async function confirmarCobro(){
       return;
     }
 
-    // ---------- Modo: crear un pedido nuevo y cobrarlo de una vez ----------
-    const nombreCliente = document.getElementById('posClienteNombre').value.trim() || 'Cliente de mostrador';
-    const nota = document.getElementById('posNota').value.trim();
-    const guestEmail = `mostrador+${Date.now()}@lorangerie.local`;
-    const mesaTexto = posTipoServicioActual === 'mesa' ? posMesasElegidas.sort().join(' + ') : posMesasElegidas[0];
-
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/process-order`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
-      body: JSON.stringify({
-        items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: null })),
-        puntos_a_usar: 0,
-        horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
-        guest_email: guestEmail,
-        guest_nombre: nombreCliente,
-      }),
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'No se pudo crear la orden.');
-
-    const { error: pagoErr } = await sb.rpc('admin_pedido_registrar_pago', {
-      p_pedido_id: data.pedido_id,
-      p_metodo_pago: cobroMetodoActual,
-      p_monto_recibido: monto,
-      p_cambio: cambio,
-      p_mesa: mesaTexto,
-      p_nota: nota || null,
-      p_tipo_servicio: posTipoServicioActual,
-      p_moneda: cobroMonedaActual,
-      p_tipo_cambio: cobroMonedaActual === 'USD' ? TIPO_CAMBIO_USD : null,
-    });
-    if (pagoErr) throw new Error('Orden creada (#' + data.pedido_id + ') pero el pago no se pudo registrar: ' + pagoErr.message);
-
-    // Descuenta insumos por receta — no bloquea el flujo si algún platillo
-    // todavía no tiene receta cargada en Costeo.
+    // ---------- Si era un pedido nuevo: descuenta insumos e imprime ----------
     for (const linea of posCart){
       try {
         await sb.rpc('admin_descontar_insumos_por_receta', { p_producto_id: linea.id, p_cantidad: linea.qty });
       } catch(e){ /* sin receta cargada: no pasa nada, se ignora */ }
     }
 
-    msg.innerHTML = `<div class="msg-box msg-ok">Orden #${data.pedido_id} cobrada correctamente. Mandando a imprimir…</div>`;
+    msg.innerHTML = `<div class="msg-box msg-ok">Orden #${pedidoId} cobrada correctamente. Mandando a imprimir…</div>`;
 
-    // Imprime la comanda automáticamente con lo que ya tenemos en el carrito
     renderYImprimirComanda(
-      { id: data.pedido_id, horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
+      { id: pedidoId, horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
         fecha_creacion: new Date().toISOString(), cliente_email: nombreCliente + (mesaTexto ? ' · ' + mesaTexto : '') },
       posCart.map(l => ({ cantidad: l.qty, nombre: l.nombre, precio_unitario: l.precio, opciones: null }))
     );
