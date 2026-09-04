@@ -313,6 +313,7 @@
         <div class="nav-item nav-subitem" data-tab="pos" onclick="goTab('pos')">Nueva Orden</div>
         <div class="nav-item nav-subitem" data-tab="mesas" onclick="goTab('mesas')">Mesas <span class="badge" id="badgeMesas" style="display:none;"></span></div>
         <div class="nav-item nav-subitem" data-tab="comandas" onclick="goTab('comandas')">Comandas <span class="badge" id="badgeComandas" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="reportes" onclick="goTab('reportes')">Reportes de Ventas</div>
       </div>
     </div>
 
@@ -565,7 +566,14 @@
               <label>Nota del pedido (opcional)</label>
               <input type="text" id="posNota" placeholder="Ej. Alergia a los lácteos">
             </div>
-            <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid var(--outline);margin-top:8px;font-weight:700;font-size:16px;">
+            <div class="field-group" style="margin-top:10px;">
+              <label>Descuento (%, opcional)</label>
+              <input type="number" id="posDescuentoPct" min="0" max="100" placeholder="0" oninput="posRenderCarrito()">
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--on-var);margin-top:8px;" id="posSubtotalFila">
+              <span>Subtotal</span><span id="posCartSubtotal">$0.00</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:14px 0;border-top:1px solid var(--outline);margin-top:4px;font-weight:700;font-size:16px;">
               <span>Total</span><span id="posCartTotal">$0.00</span>
             </div>
             <button class="btn btn-primary" style="width:100%;" id="posBtnOrdenCompleta" onclick="enviarOrdenCompleta()" disabled>✅ Orden completa (a cocina)</button>
@@ -602,6 +610,40 @@
         <button onclick="filtrarComandas('llevar', this)">🥡 Para llevar</button>
       </div>
       <div class="comandas-grid" id="comandasGrid" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- REPORTES DE VENTAS -->
+    <div id="tab-reportes" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Reportes de Ventas</h2>
+        <select id="reportesRango" onchange="cargarReportesVentas()" style="max-width:200px;">
+          <option value="7">Últimos 7 días</option>
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+          <option value="todos">Todo el historial</option>
+        </select>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Solo pedidos de mostrador ya cobrados (no incluye pedidos del sitio web ni pendientes). Las líneas marcadas como cortesía no suman a los ingresos.</p>
+
+      <div class="card" style="margin-top:14px;">
+        <h3 style="font-size:15px;margin-bottom:14px;">Por método de pago y moneda</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Método</th><th>Moneda</th><th>Pedidos</th><th>Total cobrado</th></tr></thead>
+            <tbody id="reportesMetodoTable"><tr><td colspan="4" class="loading">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <h3 style="font-size:15px;margin-bottom:14px;">Por producto</h3>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr><th>Platillo</th><th>Cantidad vendida</th><th>Ingresos</th></tr></thead>
+            <tbody id="reportesProductoTable"><tr><td colspan="3" class="loading">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div id="tab-menu" class="tab-panel" style="display:none;">
@@ -787,8 +829,31 @@
           </div>
         </div>
 
+        <div class="field-group">
+          <label>Tipo de cambio USD → MXN</label>
+          <p class="muted" style="font-size:12px;margin:0 0 8px;">Se usa en el Punto de Venta cuando alguien paga en dólares, para calcular el equivalente en pesos y el cambio.</p>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="muted">$1 USD =</span>
+            <input type="number" id="cfgTipoCambio" min="0" step="0.01" style="max-width:110px;">
+            <span class="muted">MXN</span>
+          </div>
+        </div>
+
         <div id="cfgMsg"></div>
         <button class="btn btn-primary" style="margin-top:10px;" onclick="guardarConfiguracion()">Guardar cambios</button>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <h3 style="font-size:15px;margin-bottom:2px;">PIN de gerente</h3>
+        <p class="muted" style="font-size:12px;margin:0 0 14px;">Se pide para autorizar la cancelación de un pedido. Se guarda de forma segura — nunca se puede volver a ver, solo cambiar. Mínimo 4 dígitos.</p>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="field-group" style="margin:0;">
+            <label>Nuevo PIN</label>
+            <input type="password" id="cfgNuevoPin" inputmode="numeric" style="max-width:140px;" placeholder="••••">
+          </div>
+          <button class="btn btn-primary" onclick="guardarPinGerente()">Guardar PIN</button>
+        </div>
+        <div id="cfgPinMsg"></div>
       </div>
 
       <div class="card" style="max-width:560px;">
@@ -915,16 +980,24 @@
 
     <div style="display:flex;gap:28px;flex-wrap:wrap;">
       <div style="flex:1;min-width:220px;">
-        <div style="background:var(--low);border-radius:12px;padding:20px;text-align:center;margin-bottom:20px;">
+        <div style="background:var(--low);border-radius:12px;padding:20px;text-align:center;margin-bottom:16px;">
           <div class="muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Total a cobrar</div>
           <div style="font-family:var(--serif);font-weight:800;font-size:36px;color:var(--sage-dark);" id="cobroTotalTexto"></div>
+          <div class="muted" style="font-size:12.5px;margin-top:2px;display:none;" id="cobroTotalUsdTexto"></div>
+        </div>
+
+        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Moneda</label>
+        <div class="pos-pago-methods" id="cobroMonedas" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px;">
+          <button type="button" class="active" onclick="elegirMonedaCobro('MXN', this)">🇲🇽<span>Pesos</span></button>
+          <button type="button" onclick="elegirMonedaCobro('USD', this)">🇺🇸<span>Dólares</span></button>
         </div>
 
         <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Método de pago</label>
         <div class="pos-pago-methods" id="cobroMetodos">
           <button type="button" class="active" onclick="elegirMetodoPago('efectivo', this)">💵<span>Efectivo</span></button>
-          <button type="button" onclick="elegirMetodoPago('tarjeta', this)">💳<span>Tarjeta</span></button>
-          <button type="button" onclick="elegirMetodoPago('cortesia', this)">🎁<span>Cortesía/Interno</span></button>
+          <button type="button" onclick="elegirMetodoPago('tarjeta_debito', this)">💳<span>Débito</span></button>
+          <button type="button" onclick="elegirMetodoPago('tarjeta_credito', this)">💳<span>Crédito</span></button>
+          <button type="button" onclick="elegirMetodoPago('cortesia', this)">🎁<span>Cortesía</span></button>
         </div>
 
         <div class="pos-cambio-box" style="margin-top:20px;">
@@ -1021,6 +1094,20 @@
         <button class="btn btn-ghost" style="flex:1;" onclick="cerrarModalImportar()">Cancelar</button>
         <button class="btn btn-primary" style="flex:1;" id="importarBtnConfirmar" onclick="confirmarImportacion()">Confirmar e importar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PIN de gerente para cancelar un pedido -->
+<div class="modal-overlay" id="modalPinGerente">
+  <div class="modal-card" style="width:360px;text-align:center;">
+    <h3 style="font-size:17px;margin-bottom:6px;" id="pinGerenteTitulo">Cancelar pedido</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Se necesita el PIN de gerente para autorizar esto.</p>
+    <input type="password" id="pinGerenteInput" inputmode="numeric" placeholder="PIN de gerente" style="width:100%;text-align:center;font-size:20px;letter-spacing:.2em;padding:12px;border:1px solid var(--outline);border-radius:8px;">
+    <div id="pinGerenteMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalPinGerente').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-danger" style="flex:1;" onclick="confirmarCancelarConPin()">Confirmar</button>
     </div>
   </div>
 </div>
@@ -1229,6 +1316,7 @@ async function adminLogin(){
   cargarPedidos();   // precarga silenciosa, solo para el contador del menú
   cargarMensajes();  // precarga silenciosa, solo para el contador del menú
   cargarTotalMesas(); // precarga silenciosa, para que POS_MESAS ya no sea el default de 14
+  cargarTipoCambio(); // precarga silenciosa, para que el cobro en USD use el tipo de cambio real
   iniciarAlertasPedidos();
   inicializarIndicadoresGrupo();
 }
@@ -1310,6 +1398,7 @@ function goTab(tab){
   if (tab === 'pos') cargarPOS();
   if (tab === 'mesas') cargarMesasActivas();
   if (tab === 'comandas') { cargarComandas(); comandasIntervalo = setInterval(cargarComandas, 20000); }
+  if (tab === 'reportes') cargarReportesVentas();
   if (tab === 'menu') cargarMenu();
   if (tab === 'inventarios') cargarInventario();
   if (tab === 'costeo') cargarCosteo();
@@ -1810,11 +1899,21 @@ function posCambiarCantidad(id, delta){
 
 function vaciarCarritoPOS(){
   posCart = [];
+  document.getElementById('posDescuentoPct').value = '';
   posRenderCarrito();
 }
 
 function posCartTotal(){
   return posCart.reduce((s, l) => s + l.precio * l.qty, 0);
+}
+
+function posDescuentoPct(){
+  const v = parseFloat(document.getElementById('posDescuentoPct').value);
+  return (isNaN(v) || v < 0) ? 0 : Math.min(v, 100);
+}
+
+function posCartTotalConDescuento(){
+  return posCartTotal() * (1 - posDescuentoPct() / 100);
 }
 
 function posRenderCarrito(){
@@ -1832,7 +1931,11 @@ function posRenderCarrito(){
         </div>`).join('')
     : '<div class="pos-cart-empty">Agrega platillos del menú →</div>';
 
-  document.getElementById('posCartTotal').textContent = '$' + posCartTotal().toFixed(2);
+  const subtotal = posCartTotal();
+  const pct = posDescuentoPct();
+  document.getElementById('posCartSubtotal').textContent = '$' + subtotal.toFixed(2);
+  document.getElementById('posSubtotalFila').style.display = pct > 0 ? 'flex' : 'none';
+  document.getElementById('posCartTotal').textContent = '$' + posCartTotalConDescuento().toFixed(2) + (pct > 0 ? ` (-${pct}%)` : '');
   document.getElementById('posBtnCobrar').disabled = posCart.length === 0;
   document.getElementById('posBtnOrdenCompleta').disabled = posCart.length === 0;
 }
@@ -1843,25 +1946,38 @@ let cobroMontoStr = '0';
 
 let cobroModoExistente = false;
 let cobroPedidoExistenteId = null;
-let cobroTotalActual = 0;
+let cobroTotalActual = 0; // siempre en pesos (moneda base del sistema)
+let cobroMonedaActual = 'MXN';
+let TIPO_CAMBIO_USD = 18.50;
 
-function abrirModalCobro(){
-  cobroModoExistente = false;
-  cobroPedidoExistenteId = null;
-  cobroTotalActual = posCartTotal();
-  document.getElementById('cobroTotalTexto').textContent = '$' + cobroTotalActual.toFixed(2);
-  document.getElementById('cobroMesaTexto').textContent = posTipoServicioActual === 'mesa'
-    ? '🍽️ Mesa ' + posMesasElegidas.sort().join(' + ')
-    : '🥡 ' + posMesasElegidas[0];
+async function cargarTipoCambio(){
+  const { data } = await sb.rpc('admin_tipo_cambio_get');
+  if (data) TIPO_CAMBIO_USD = Number(data);
+}
+
+function resetCajaCobro(){
   cobroMetodoActual = 'efectivo';
+  cobroMonedaActual = 'MXN';
   cobroMontoStr = '0';
   document.getElementById('cobroMsg').innerHTML = '';
   document.querySelectorAll('#cobroMetodos button').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('#cobroMetodos button')[0].classList.add('active');
+  document.querySelectorAll('#cobroMonedas button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#cobroMonedas button')[0].classList.add('active');
   document.getElementById('cobroEfectivoBox').style.display = 'block';
   document.getElementById('cobroInfoBox').style.display = 'none';
   posActualizarKeypad();
   posActualizarMontoYCambio();
+}
+
+function abrirModalCobro(){
+  cobroModoExistente = false;
+  cobroPedidoExistenteId = null;
+  cobroTotalActual = posCartTotalConDescuento();
+  document.getElementById('cobroMesaTexto').textContent = posTipoServicioActual === 'mesa'
+    ? '🍽️ Mesa ' + posMesasElegidas.sort().join(' + ')
+    : '🥡 ' + posMesasElegidas[0];
+  resetCajaCobro();
   document.getElementById('modalCobro').classList.add('show');
 }
 
@@ -1870,20 +1986,19 @@ function abrirModalCobroExistente(){
   cobroModoExistente = true;
   cobroPedidoExistenteId = comandaMesaPedidoActual.id;
   cobroTotalActual = Number(comandaMesaPedidoActual.total_a_pagar) || 0;
-  document.getElementById('cobroTotalTexto').textContent = '$' + cobroTotalActual.toFixed(2);
   document.getElementById('cobroMesaTexto').textContent = comandaMesaPedidoActual.tipo_servicio === 'llevar'
     ? '🥡 ' + comandaMesaPedidoActual.mesa
     : '🍽️ Mesa ' + comandaMesaPedidoActual.mesa + ` · Pedido #${comandaMesaPedidoActual.id}`;
-  cobroMetodoActual = 'efectivo';
-  cobroMontoStr = '0';
-  document.getElementById('cobroMsg').innerHTML = '';
-  document.querySelectorAll('#cobroMetodos button').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#cobroMetodos button')[0].classList.add('active');
-  document.getElementById('cobroEfectivoBox').style.display = 'block';
-  document.getElementById('cobroInfoBox').style.display = 'none';
-  posActualizarKeypad();
-  posActualizarMontoYCambio();
+  resetCajaCobro();
   document.getElementById('modalCobro').classList.add('show');
+}
+
+function elegirMonedaCobro(moneda, btn){
+  cobroMonedaActual = moneda;
+  document.querySelectorAll('#cobroMonedas button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  cobroMontoStr = '0';
+  posActualizarMontoYCambio();
 }
 
 function elegirMetodoPago(metodo, btn){
@@ -1899,8 +2014,8 @@ function elegirMetodoPago(metodo, btn){
   } else {
     cajaEfectivo.style.display = 'none';
     cajaInfo.style.display = 'block';
-    document.getElementById('cobroInfoTexto').textContent = metodo === 'tarjeta'
-      ? 'Cobra el total completo en la terminal física. Aquí solo se registra que el pago fue con tarjeta.'
+    document.getElementById('cobroInfoTexto').textContent = (metodo === 'tarjeta_debito' || metodo === 'tarjeta_credito')
+      ? 'Cobra el total completo en la terminal física. Aquí solo se registra que el pago fue con tarjeta ' + (metodo === 'tarjeta_debito' ? 'de débito.' : 'de crédito.')
       : 'No se cobra nada — se registra como cortesía o consumo interno.';
   }
   posActualizarMontoYCambio();
@@ -1924,15 +2039,35 @@ function posTeclaKeypad(t){
   posActualizarMontoYCambio();
 }
 
+// El total real del pedido siempre vive en pesos (cobroTotalActual).
+// Si se cobra en dólares, se convierte solo para mostrar/cobrar —
+// el pedido se sigue guardando en pesos para que tus reportes no
+// se compliquen con dos monedas mezcladas en la misma columna.
+function totalEnMonedaCobro(){
+  return cobroMonedaActual === 'USD' ? cobroTotalActual / TIPO_CAMBIO_USD : cobroTotalActual;
+}
+
 function posActualizarMontoYCambio(){
-  const total = cobroTotalActual;
+  const total = totalEnMonedaCobro();
+  const simbolo = cobroMonedaActual === 'USD' ? 'US$' : '$';
   let monto;
   if (cobroMetodoActual === 'efectivo') monto = parseFloat(cobroMontoStr) || 0;
   else if (cobroMetodoActual === 'cortesia') monto = 0;
   else monto = total; // tarjeta: se cobra el total completo en la terminal
+
+  document.getElementById('cobroTotalTexto').textContent = simbolo + total.toFixed(2);
+  const otro = document.getElementById('cobroTotalUsdTexto');
+  if (cobroMonedaActual === 'USD'){
+    otro.style.display = 'block';
+    otro.textContent = `≈ $${cobroTotalActual.toFixed(2)} MXN · tipo de cambio $${TIPO_CAMBIO_USD.toFixed(2)}`;
+  } else {
+    otro.style.display = 'block';
+    otro.textContent = `≈ US$${(cobroTotalActual / TIPO_CAMBIO_USD).toFixed(2)} · tipo de cambio $${TIPO_CAMBIO_USD.toFixed(2)}`;
+  }
+
   document.getElementById('cobroMontoInput').value = monto.toFixed(2);
   const cambio = cobroMetodoActual === 'cortesia' ? 0 : Math.max(0, monto - total);
-  document.getElementById('cobroCambioTexto').textContent = '$' + cambio.toFixed(2);
+  document.getElementById('cobroCambioTexto').textContent = simbolo + cambio.toFixed(2);
 }
 
 /* ---------- enviar orden a cocina SIN cobrar ---------- */
@@ -1968,6 +2103,14 @@ async function enviarOrdenCompleta(){
     });
     if (asigErr) throw new Error('Orden creada (#' + data.pedido_id + ') pero no se pudo asignar la mesa: ' + asigErr.message);
 
+    const pctDescuento = posDescuentoPct();
+    if (pctDescuento > 0){
+      const { error: descErr } = await sb.rpc('admin_pedido_aplicar_descuento', {
+        p_pedido_id: data.pedido_id, p_descuento_pct: pctDescuento,
+      });
+      if (descErr) throw new Error('Orden creada (#' + data.pedido_id + ') pero el descuento no se pudo aplicar: ' + descErr.message);
+    }
+
     for (const linea of posCart){
       try { await sb.rpc('admin_descontar_insumos_por_receta', { p_producto_id: linea.id, p_cantidad: linea.qty }); }
       catch(e){ /* sin receta cargada: se ignora */ }
@@ -1991,7 +2134,7 @@ async function enviarOrdenCompleta(){
 }
 
 async function confirmarCobro(){
-  const total = cobroTotalActual;
+  const total = totalEnMonedaCobro();
   let monto;
   if (cobroMetodoActual === 'efectivo') monto = parseFloat(cobroMontoStr) || 0;
   else if (cobroMetodoActual === 'cortesia') monto = 0;
@@ -2014,6 +2157,8 @@ async function confirmarCobro(){
         p_metodo_pago: cobroMetodoActual,
         p_monto_recibido: monto,
         p_cambio: cambio,
+        p_moneda: cobroMonedaActual,
+        p_tipo_cambio: cobroMonedaActual === 'USD' ? TIPO_CAMBIO_USD : null,
       });
       if (pagoErr) throw new Error(pagoErr.message);
 
@@ -2054,6 +2199,8 @@ async function confirmarCobro(){
       p_mesa: mesaTexto,
       p_nota: nota || null,
       p_tipo_servicio: posTipoServicioActual,
+      p_moneda: cobroMonedaActual,
+      p_tipo_cambio: cobroMonedaActual === 'USD' ? TIPO_CAMBIO_USD : null,
     });
     if (pagoErr) throw new Error('Orden creada (#' + data.pedido_id + ') pero el pago no se pudo registrar: ' + pagoErr.message);
 
@@ -2188,13 +2335,22 @@ async function comandaCargarItemsActuales(){
     ? `<label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">En la orden</label>` +
       data.map(it => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--outline);font-size:13px;">
-          <span>${it.cantidad}× ${escHtml(it.nombre)}</span>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+          <span>${it.cantidad}× ${escHtml(it.nombre)}${it.es_cortesia ? ' <span class="badge b-entregado" style="font-size:10px;">🎁 cortesía</span>' : ''}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="${it.es_cortesia ? 'text-decoration:line-through;color:var(--on-var);' : ''}">$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+            <button class="btn btn-ghost btn-sm" onclick="comandaToggleCortesia(${it.id}, ${it.es_cortesia})">${it.es_cortesia ? 'Quitar cortesía' : '🎁 Cortesía'}</button>
             <button class="btn btn-danger btn-sm" onclick="comandaQuitarItem(${it.id})">✕ Quitar</button>
           </div>
         </div>`).join('')
     : '<p class="muted" style="font-size:12.5px;">Sin platillos todavía.</p>';
+}
+
+async function comandaToggleCortesia(itemId, esCortesiaActual){
+  const { error } = await sb.rpc('admin_pedido_marcar_item_cortesia', {
+    p_item_id: itemId, p_es_cortesia: !esCortesiaActual,
+  });
+  if (error){ alert('Error: ' + error.message); return; }
+  await comandaCargarItemsActuales();
 }
 
 async function comandaQuitarItem(itemId){
@@ -2364,6 +2520,61 @@ async function marcarEntregadoDesdeComanda(id){
   cargarComandas();
 }
 
+/* ============================================================
+   REPORTES DE VENTAS (por producto, por método de pago/moneda)
+   ============================================================ */
+function fechaMinimaReportes(){
+  const sel = document.getElementById('reportesRango').value;
+  if (sel === 'todos') return null;
+  const d = new Date(); d.setDate(d.getDate() - Number(sel)); d.setHours(0,0,0,0);
+  return d;
+}
+
+async function cargarReportesVentas(){
+  const desde = fechaMinimaReportes();
+  const desdeIso = desde ? desde.toISOString() : null;
+
+  const tbodyMetodo = document.getElementById('reportesMetodoTable');
+  const tbodyProducto = document.getElementById('reportesProductoTable');
+  tbodyMetodo.innerHTML = '<tr><td colspan="4" class="loading">Cargando…</td></tr>';
+  tbodyProducto.innerHTML = '<tr><td colspan="3" class="loading">Cargando…</td></tr>';
+
+  const [{ data: porMetodo, error: errMetodo }, { data: porProducto, error: errProducto }] = await Promise.all([
+    sb.rpc('admin_reporte_ventas_por_metodo', { p_desde: desdeIso }),
+    sb.rpc('admin_reporte_ventas_por_producto', { p_desde: desdeIso }),
+  ]);
+
+  const metodoLabel = { efectivo: '💵 Efectivo', tarjeta_debito: '💳 Débito', tarjeta_credito: '💳 Crédito', cortesia: '🎁 Cortesía' };
+  const monedaLabel = { MXN: '🇲🇽 Pesos', USD: '🇺🇸 Dólares' };
+
+  if (errMetodo){
+    tbodyMetodo.innerHTML = `<tr><td colspan="4" class="muted">Este módulo todavía no está conectado (falta correr el SQL). Detalle: ${errMetodo.message}</td></tr>`;
+  } else if (!porMetodo || !porMetodo.length){
+    tbodyMetodo.innerHTML = '<tr><td colspan="4" class="muted">Sin ventas en este rango.</td></tr>';
+  } else {
+    tbodyMetodo.innerHTML = porMetodo.map(r => `
+      <tr>
+        <td>${metodoLabel[r.metodo_pago] || escHtml(r.metodo_pago) || '—'}</td>
+        <td>${monedaLabel[r.moneda_pago] || escHtml(r.moneda_pago) || '—'}</td>
+        <td>${r.total_ordenes}</td>
+        <td>$${Number(r.total_cobrado).toFixed(2)}</td>
+      </tr>`).join('');
+  }
+
+  if (errProducto){
+    tbodyProducto.innerHTML = `<tr><td colspan="3" class="muted">Este módulo todavía no está conectado (falta correr el SQL). Detalle: ${errProducto.message}</td></tr>`;
+  } else if (!porProducto || !porProducto.length){
+    tbodyProducto.innerHTML = '<tr><td colspan="3" class="muted">Sin ventas en este rango.</td></tr>';
+  } else {
+    tbodyProducto.innerHTML = porProducto.map(r => `
+      <tr>
+        <td>${escHtml(r.nombre)}</td>
+        <td>${r.cantidad_vendida}</td>
+        <td>$${Number(r.ingresos).toFixed(2)}</td>
+      </tr>`).join('');
+  }
+}
+
 /* ---------- historial de mostrador ---------- */
 async function abrirModalHistorial(){
   const cont = document.getElementById('historialLista');
@@ -2446,11 +2657,29 @@ async function activarPedido(id){
   if (error){ alert('Error: ' + error.message); return; }
   cargarPedidos();
 }
-async function cancelarPedido(id){
-  if (!confirm(`¿Cancelar el pedido #${id}?`)) return;
-  const { error } = await sb.rpc('admin_cancelar_pedido', { p_pedido: id });
-  if (error){ alert('Error: ' + error.message); return; }
+let pedidoIdParaCancelar = null;
+
+function cancelarPedido(id){
+  pedidoIdParaCancelar = id;
+  document.getElementById('pinGerenteInput').value = '';
+  document.getElementById('pinGerenteMsg').innerHTML = '';
+  document.getElementById('pinGerenteTitulo').textContent = `Cancelar pedido #${id}`;
+  document.getElementById('modalPinGerente').classList.add('show');
+}
+
+async function confirmarCancelarConPin(){
+  const pin = document.getElementById('pinGerenteInput').value.trim();
+  const msg = document.getElementById('pinGerenteMsg');
+  if (!pin){ msg.innerHTML = '<div class="msg-box msg-err">Escribe el PIN.</div>'; return; }
+
+  const { error } = await sb.rpc('admin_cancelar_pedido_con_pin', {
+    p_pedido_id: pedidoIdParaCancelar, p_pin: pin,
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+
+  document.getElementById('modalPinGerente').classList.remove('show');
   cargarPedidos();
+  cargarMesasActivas();
 }
 
 /* ============================================================
@@ -3404,6 +3633,9 @@ async function cargarConfiguracion(){
   document.getElementById('cfgZonaHoraria').value = cfg.zona_horaria || 'America/Ciudad_Juarez';
   document.getElementById('cfgTiempoMin').value = cfg.tiempo_espera_min ?? 15;
   document.getElementById('cfgTiempoMax').value = cfg.tiempo_espera_max ?? 20;
+
+  const { data: tc } = await sb.rpc('admin_tipo_cambio_get');
+  document.getElementById('cfgTipoCambio').value = tc ?? 18.50;
   if (cfg.logo_url){
     document.getElementById('cfgLogoPreview').src = cfg.logo_url;
     document.getElementById('cfgLogoPreview').style.display = 'block';
@@ -3459,7 +3691,26 @@ async function guardarConfiguracion(){
     p_favicon_url: window._cfgFaviconUrl || null,
   });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+
+  const tipoCambio = parseFloat(document.getElementById('cfgTipoCambio').value);
+  if (!isNaN(tipoCambio) && tipoCambio > 0){
+    await sb.rpc('admin_tipo_cambio_set', { p_valor: tipoCambio });
+  }
+
   msg.innerHTML = '<div class="msg-box msg-ok">Configuración guardada.</div>';
+}
+
+async function guardarPinGerente(){
+  const pin = document.getElementById('cfgNuevoPin').value.trim();
+  const msg = document.getElementById('cfgPinMsg');
+  if (pin.length < 4){
+    msg.innerHTML = '<div class="msg-box msg-err">El PIN debe tener al menos 4 dígitos.</div>';
+    return;
+  }
+  const { error } = await sb.rpc('admin_pin_gerente_set', { p_pin: pin });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  document.getElementById('cfgNuevoPin').value = '';
+  msg.innerHTML = '<div class="msg-box msg-ok">PIN de gerente actualizado.</div>';
 }
 
 /* ============================================================
