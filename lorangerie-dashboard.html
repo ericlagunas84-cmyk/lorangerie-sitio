@@ -334,6 +334,7 @@
         <div class="nav-item nav-subitem" data-tab="menu" onclick="goTab('menu')">Menú</div>
         <div class="nav-item nav-subitem" data-tab="inventarios" onclick="goTab('inventarios')">Inventarios <span class="badge" id="badgeInventarios" style="display:none;"></span></div>
         <div class="nav-item nav-subitem" data-tab="costeo" onclick="goTab('costeo')">Costeo</div>
+        <div class="nav-item nav-subitem" data-tab="proveedores" onclick="goTab('proveedores')">Proveedores</div>
       </div>
     </div>
 
@@ -606,7 +607,10 @@
     <div id="tab-menu" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Menú</h2>
-        <button class="btn btn-primary btn-sm" onclick="abrirModalProducto(null)">+ Nuevo platillo</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalImportar('menu')">📥 Importar Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalProducto(null)">+ Nuevo platillo</button>
+        </div>
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Esto edita los precios oficiales que usa el sitio para cobrar. Si también editas tu Google Sheet, procura mantener ambos igual.</p>
       <div style="margin-top:14px;">
@@ -633,7 +637,10 @@
     <div id="tab-inventarios" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Inventarios</h2>
-        <button class="btn btn-primary btn-sm" onclick="abrirModalInsumo(null)">+ Nuevo insumo</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalImportar('inventarios')">📥 Importar Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalInsumo(null)">+ Nuevo insumo</button>
+        </div>
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Materia prima e insumos generales de cocina (harina, lácteos, empaques, etc.) — separado del stock por platillo que ya manejas en Menú.</p>
       <div class="cards-row" id="inventarioCards" style="margin-top:14px;"></div>
@@ -662,6 +669,21 @@
         <table>
           <thead><tr><th>Platillo</th><th>Categoría</th><th>Costo insumos</th><th>Precio venta</th><th>Margen</th><th>Margen %</th><th></th></tr></thead>
           <tbody id="costeoTable"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROVEEDORES -->
+    <div id="tab-proveedores" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Proveedores</h2>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalProveedor(null)">+ Nuevo proveedor</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Directorio de contactos de proveedores — nombre, teléfono, correo, para tenerlos a la mano cuando necesites pedir insumos.</p>
+      <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
+        <table>
+          <thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th></th></tr></thead>
+          <tbody id="proveedoresTable"><tr><td colspan="5" class="loading">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -977,6 +999,52 @@
   </div>
 </div>
 
+<!-- MODAL: nuevo/editar proveedor -->
+<!-- MODAL: importar desde Excel (Menú o Inventarios) -->
+<div class="modal-overlay" id="modalImportar">
+  <div class="modal-card" style="width:600px;max-width:95vw;">
+    <h3 style="font-size:18px;margin-bottom:4px;" id="importarTitulo">Importar desde Excel</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 14px;" id="importarFormato"></p>
+
+    <div id="importarPasoArchivo">
+      <input type="file" id="importarArchivo" accept=".xlsx,.xls,.csv" onchange="leerArchivoImportar(event)">
+      <div id="importarArchivoMsg" style="margin-top:10px;"></div>
+    </div>
+
+    <div id="importarPasoPreview" style="display:none;margin-top:14px;">
+      <p style="font-size:13.5px;font-weight:600;" id="importarResumen"></p>
+      <div class="card" style="padding:0;overflow-x:auto;max-height:260px;overflow-y:auto;">
+        <table id="importarTablaPreview"></table>
+      </div>
+      <div id="importarResultadoMsg" style="margin-top:10px;"></div>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="cerrarModalImportar()">Cancelar</button>
+        <button class="btn btn-primary" style="flex:1;" id="importarBtnConfirmar" onclick="confirmarImportacion()">Confirmar e importar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalProveedor">
+  <div class="modal-card" style="width:520px;">
+    <h3 style="font-size:18px;margin-bottom:16px;" id="modalProveedorTitulo">Nuevo proveedor</h3>
+    <input type="hidden" id="provId">
+    <div class="field-group"><label>Nombre del proveedor *</label><input type="text" id="provNombre"></div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <div class="field-group" style="flex:1;min-width:200px;"><label>Contacto</label><input type="text" id="provContacto"></div>
+      <div class="field-group" style="flex:1;min-width:200px;"><label>Teléfono</label><input type="text" id="provTelefono"></div>
+    </div>
+    <div class="field-group"><label>Email</label><input type="text" id="provEmail"></div>
+    <div class="field-group"><label>Dirección</label><input type="text" id="provDireccion"></div>
+    <div class="field-group"><label>Notas</label><textarea id="provNotas" rows="2" style="width:100%;padding:10px;border:1px solid var(--outline);border-radius:8px;font-family:inherit;"></textarea></div>
+    <div id="modalProveedorMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalProveedor').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="guardarProveedor()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalInsumo">
   <div class="modal-card">
     <h3 id="modalInsumoTitle" style="font-size:18px;margin-bottom:16px;">Nuevo insumo</h3>
@@ -1067,6 +1135,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SUPABASE_URL  = "https://ijxihmmbufoagibdskza.supabase.co";
 const SUPABASE_ANON = "sb_publishable_oXyHnZYo0zuizNaGsnRqLw_aEiRRmTQ";
@@ -1244,6 +1313,7 @@ function goTab(tab){
   if (tab === 'menu') cargarMenu();
   if (tab === 'inventarios') cargarInventario();
   if (tab === 'costeo') cargarCosteo();
+  if (tab === 'proveedores') cargarProveedores();
   if (tab === 'mensajes') cargarMensajes();
   if (tab === 'tickets') cargarTickets();
   if (tab === 'usuarios') cargarUsuarios();
@@ -2872,6 +2942,231 @@ async function cargarMensajes(){
 async function marcarLeido(id){
   await sb.rpc('admin_mensaje_marcar_leido', { p_id: id, p_leido: true });
   cargarMensajes();
+}
+
+/* ============================================================
+   IMPORTAR DESDE EXCEL (Menú o Inventarios)
+   ============================================================
+   Reutiliza las MISMAS funciones que usa el formulario de "+ Nuevo
+   platillo" / "+ Nuevo insumo" (admin_producto_guardar / admin_
+   insumo_guardar), una fila a la vez — no hay lógica de guardado
+   nueva ni distinta, solo se automatiza llamarla muchas veces.
+   ============================================================ */
+const IMPORTAR_CONFIG = {
+  menu: {
+    titulo: 'Importar platillos desde Excel',
+    columnas: ['id', 'nombre', 'categoria', 'precio', 'activo'],
+    formato: 'Columnas esperadas: id, nombre, categoria, precio, activo (opcional — "si"/"no", si no se pone se asume activo). El "id" debe ser único, en minúsculas, sin espacios (ej. "hamburguesa-lo").',
+  },
+  inventarios: {
+    titulo: 'Importar insumos desde Excel',
+    columnas: ['id', 'nombre', 'categoria', 'unidad', 'stock_actual', 'stock_minimo', 'costo_unitario', 'proveedor'],
+    formato: 'Columnas esperadas: id, nombre, categoria, unidad, stock_actual, stock_minimo, costo_unitario, proveedor (opcional). El "id" debe ser único, en minúsculas, sin espacios.',
+  },
+};
+let importarTipoActual = null;
+let importarFilasActual = [];
+
+function abrirModalImportar(tipo){
+  importarTipoActual = tipo;
+  importarFilasActual = [];
+  const cfg = IMPORTAR_CONFIG[tipo];
+  document.getElementById('importarTitulo').textContent = cfg.titulo;
+  document.getElementById('importarFormato').textContent = cfg.formato;
+  document.getElementById('importarArchivo').value = '';
+  document.getElementById('importarArchivoMsg').innerHTML = '';
+  document.getElementById('importarResultadoMsg').innerHTML = '';
+  document.getElementById('importarPasoArchivo').style.display = 'block';
+  document.getElementById('importarPasoPreview').style.display = 'none';
+  document.getElementById('modalImportar').classList.add('show');
+}
+
+function cerrarModalImportar(){
+  document.getElementById('modalImportar').classList.remove('show');
+}
+
+function leerArchivoImportar(ev){
+  const file = ev.target.files[0];
+  if (!file) return;
+  const msg = document.getElementById('importarArchivoMsg');
+  msg.innerHTML = '<div class="loading">Leyendo archivo…</div>';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const hoja = wb.Sheets[wb.SheetNames[0]];
+      const filas = XLSX.utils.sheet_to_json(hoja, { defval: '' });
+      if (!filas.length){
+        msg.innerHTML = '<div class="msg-box msg-err">El archivo no tiene filas de datos.</div>';
+        return;
+      }
+      importarFilasActual = filas;
+      mostrarPreviewImportar(filas);
+      msg.innerHTML = '';
+    } catch(err){
+      msg.innerHTML = `<div class="msg-box msg-err">No se pudo leer el archivo: ${err.message}</div>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function mostrarPreviewImportar(filas){
+  const cfg = IMPORTAR_CONFIG[importarTipoActual];
+  document.getElementById('importarPasoPreview').style.display = 'block';
+  document.getElementById('importarResumen').textContent = `${filas.length} fila(s) encontradas. Vista previa de las primeras 8:`;
+
+  const cols = cfg.columnas;
+  const tabla = document.getElementById('importarTablaPreview');
+  tabla.innerHTML = `
+    <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>
+      ${filas.slice(0, 8).map(f => `<tr>${cols.map(c => `<td>${escHtml(String(f[c] ?? ''))}</td>`).join('')}</tr>`).join('')}
+    </tbody>`;
+}
+
+async function confirmarImportacion(){
+  const btn = document.getElementById('importarBtnConfirmar');
+  const msg = document.getElementById('importarResultadoMsg');
+  btn.disabled = true;
+  let ok = 0, fallo = 0;
+  const errores = [];
+
+  for (let i = 0; i < importarFilasActual.length; i++){
+    const fila = importarFilasActual[i];
+    btn.textContent = `Importando… (${i + 1}/${importarFilasActual.length})`;
+    try {
+      if (importarTipoActual === 'menu'){
+        await importarFilaMenu(fila);
+      } else {
+        await importarFilaInventario(fila);
+      }
+      ok++;
+    } catch(err){
+      fallo++;
+      errores.push(`Fila ${i + 2} (${fila.nombre || fila.id || '?'}): ${err.message}`);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Confirmar e importar';
+  msg.innerHTML = `<div class="msg-box ${fallo ? 'msg-err' : 'msg-ok'}">
+    ${ok} importado(s) correctamente${fallo ? `, ${fallo} con error` : ''}.
+    ${errores.length ? '<br><br>' + errores.slice(0, 10).map(escHtml).join('<br>') : ''}
+  </div>`;
+
+  if (importarTipoActual === 'menu') cargarMenu(); else cargarInventario();
+}
+
+async function importarFilaMenu(f){
+  const id = String(f.id || '').trim().toLowerCase();
+  const nombre = String(f.nombre || '').trim();
+  const precio = parseFloat(f.precio);
+  const categoria = String(f.categoria || '').trim();
+  const activo = !/^(no|false|0)$/i.test(String(f.activo ?? 'si').trim());
+
+  if (!id || !/^[a-z0-9\-]+$/.test(id)) throw new Error('id inválido o vacío (solo minúsculas, números y guiones)');
+  if (!nombre) throw new Error('falta el nombre');
+  if (isNaN(precio) || precio < 0) throw new Error('precio inválido');
+
+  const { error } = await sb.rpc('admin_producto_guardar', {
+    p_id: id, p_nombre: nombre, p_precio: precio, p_categoria: categoria, p_activo: activo,
+  });
+  if (error) throw new Error(error.message);
+}
+
+async function importarFilaInventario(f){
+  const id = String(f.id || '').trim().toLowerCase();
+  const nombre = String(f.nombre || '').trim();
+  const stock = parseFloat(f.stock_actual);
+  const categoria = String(f.categoria || '').trim();
+  const unidad = String(f.unidad || '').trim();
+  const stockMin = parseFloat(f.stock_minimo) || 0;
+  const costo = parseFloat(f.costo_unitario) || 0;
+  const proveedor = String(f.proveedor || '').trim();
+
+  if (!id || !/^[a-z0-9\-]+$/.test(id)) throw new Error('id inválido o vacío (solo minúsculas, números y guiones)');
+  if (!nombre) throw new Error('falta el nombre');
+  if (isNaN(stock) || stock < 0) throw new Error('stock_actual inválido');
+
+  const { error } = await sb.rpc('admin_insumo_guardar', {
+    p_id: id, p_nombre: nombre, p_categoria: categoria, p_stock_actual: stock,
+    p_unidad: unidad, p_stock_minimo: stockMin, p_proveedor: proveedor || null,
+    p_costo_unitario: costo,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/* ============================================================
+   PROVEEDORES
+   ============================================================ */
+let proveedoresCache = [];
+
+async function cargarProveedores(){
+  const tbody = document.getElementById('proveedoresTable');
+  tbody.innerHTML = '<tr><td colspan="5" class="loading">Cargando…</td></tr>';
+  const { data, error } = await sb.rpc('admin_proveedores_list');
+  if (error){
+    tbody.innerHTML = `<tr><td colspan="5" class="muted">Este módulo todavía no está conectado (falta correr el SQL de Proveedores). Detalle: ${error.message}</td></tr>`;
+    return;
+  }
+  proveedoresCache = data || [];
+  if (!proveedoresCache.length){
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">Sin proveedores registrados todavía.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = proveedoresCache.map(p => `
+    <tr>
+      <td>${escHtml(p.nombre)}</td>
+      <td class="muted">${escHtml(p.contacto) || '—'}</td>
+      <td class="muted">${escHtml(p.telefono) || '—'}</td>
+      <td class="muted">${escHtml(p.email) || '—'}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" data-id="${p.id}" onclick="abrirModalProveedor(this.dataset.id)">Editar</button>
+        <button class="btn btn-danger btn-sm" data-id="${p.id}" onclick="eliminarProveedor(this.dataset.id)">Eliminar</button>
+      </td>
+    </tr>`).join('');
+}
+
+function abrirModalProveedor(id){
+  const p = id ? proveedoresCache.find(x => String(x.id) === String(id)) : null;
+  document.getElementById('modalProveedorTitulo').textContent = p ? 'Editar proveedor' : 'Nuevo proveedor';
+  document.getElementById('provId').value = p ? p.id : '';
+  document.getElementById('provNombre').value = p?.nombre || '';
+  document.getElementById('provContacto').value = p?.contacto || '';
+  document.getElementById('provTelefono').value = p?.telefono || '';
+  document.getElementById('provEmail').value = p?.email || '';
+  document.getElementById('provDireccion').value = p?.direccion || '';
+  document.getElementById('provNotas').value = p?.notas || '';
+  document.getElementById('modalProveedorMsg').innerHTML = '';
+  document.getElementById('modalProveedor').classList.add('show');
+}
+
+async function guardarProveedor(){
+  const idRaw = document.getElementById('provId').value;
+  const nombre = document.getElementById('provNombre').value.trim();
+  const msg = document.getElementById('modalProveedorMsg');
+  if (!nombre){ msg.innerHTML = '<div class="msg-box msg-err">El nombre es obligatorio.</div>'; return; }
+
+  const { error } = await sb.rpc('admin_proveedor_guardar', {
+    p_id: idRaw ? Number(idRaw) : null,
+    p_nombre: nombre,
+    p_contacto: document.getElementById('provContacto').value.trim() || null,
+    p_telefono: document.getElementById('provTelefono').value.trim() || null,
+    p_email: document.getElementById('provEmail').value.trim() || null,
+    p_direccion: document.getElementById('provDireccion').value.trim() || null,
+    p_notas: document.getElementById('provNotas').value.trim() || null,
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  document.getElementById('modalProveedor').classList.remove('show');
+  cargarProveedores();
+}
+
+async function eliminarProveedor(id){
+  if (!confirm('¿Eliminar este proveedor?')) return;
+  const { error } = await sb.rpc('admin_proveedor_eliminar', { p_id: Number(id) });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarProveedores();
 }
 
 /* ============================================================
