@@ -2289,14 +2289,25 @@ function cobroRestantePesos(){
 
 // Llena el input del teclado con el restante convertido a la moneda que
 // se está por agregar, como sugerencia — el cajero lo puede cambiar.
-function posActualizarMontoInput(){
-  const simbolo = cobroMonedaActual === 'USD' ? 'US$' : '$';
+// El monto sugerido es solo para MOSTRAR mientras no se haya tecleado
+// nada — cobroMontoStr se queda en '0' de verdad hasta que el cajero
+// presiona una tecla, así el primer dígito empieza de cero y no se
+// pega al final del total sugerido.
+function posMontoSugeridoEnMoneda(){
   const restante = Math.max(0, cobroRestantePesos());
+  return cobroMonedaActual === 'USD' ? restante / TIPO_CAMBIO_USD : restante;
+}
+
+function posMontoActualEnMoneda(){
   if (cobroMontoStr === '0'){
-    const sugerido = cobroMonedaActual === 'USD' ? restante / TIPO_CAMBIO_USD : restante;
-    cobroMontoStr = sugerido > 0 ? sugerido.toFixed(2) : '0';
+    const sugerido = posMontoSugeridoEnMoneda();
+    return sugerido > 0 ? sugerido : 0;
   }
-  document.getElementById('cobroMontoInput').value = parseFloat(cobroMontoStr || 0).toFixed(2);
+  return parseFloat(cobroMontoStr) || 0;
+}
+
+function posActualizarMontoInput(){
+  document.getElementById('cobroMontoInput').value = posMontoActualEnMoneda().toFixed(2);
 }
 
 function agregarLineaPago(){
@@ -2312,7 +2323,7 @@ function agregarLineaPago(){
     montoPesos = restante;
     monto = cobroMonedaActual === 'USD' ? restante / TIPO_CAMBIO_USD : restante;
   } else {
-    monto = parseFloat(cobroMontoStr) || 0;
+    monto = posMontoActualEnMoneda(); // usa lo tecleado, o el sugerido si no tecleó nada
     if (monto <= 0){
       document.getElementById('cobroMsg').innerHTML = '<div class="msg-box msg-err">Escribe un monto mayor a 0.</div>';
       return;
