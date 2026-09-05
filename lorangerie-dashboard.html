@@ -674,6 +674,7 @@
           <button class="active" onclick="filtrarComandas(null, this)">Todos</button>
           <button onclick="filtrarComandas('mesa', this)">🍽️ Comer aquí</button>
           <button onclick="filtrarComandas('llevar', this)">🥡 Para llevar</button>
+          <button onclick="filtrarComandas('web', this)">🌐 Pedidos web</button>
           <button onclick="filtrarComandas('demoradas', this)" class="kds-filtro-demorada">⏱ Demoradas (&gt;15m)</button>
         </div>
         <button class="btn btn-ghost btn-sm" onclick="cargarComandas()">↻ Actualizar</button>
@@ -1828,8 +1829,9 @@ function renderPedidosFiltrados(){
       <div class="pedido-detalle-body" id="detalle-${p.id}" style="display:none;"><div class="loading" style="padding:10px;">Cargando…</div></div>
       ${p.estado === 'pendiente' ? `
         <button class="btn btn-ghost btn-sm" onclick="editarPedidoDesdeLista(${p.id})">✏️ Editar orden (agregar / quitar)</button>
+        <button class="btn btn-primary btn-sm" onclick="cobrarPedidoDesdeLista(${p.id})">💰 Cobrar</button>
         <div class="pedido-card-acciones">
-          <button class="btn btn-primary btn-sm" onclick="activarPedido(${p.id})">Entregado</button>
+          <button class="btn btn-ghost btn-sm" onclick="activarPedido(${p.id})">Entregado (sin cobrar)</button>
           <button class="btn btn-danger btn-sm" onclick="cancelarPedido(${p.id})">Cancelar</button>
         </div>` : ''}
     </div>`;
@@ -2516,6 +2518,7 @@ async function confirmarCobro(){
         document.getElementById('modalCobro').classList.remove('show');
         document.getElementById('modalComandaMesa').classList.remove('show');
         cargarMesasActivas();
+        if (document.getElementById('tab-pedidos').style.display !== 'none') cargarPedidos();
       }, 1200);
       return;
     }
@@ -2705,6 +2708,21 @@ async function editarPedidoDesdeLista(id){
   await mostrarAgregarProductos();
 }
 
+// Cobra CUALQUIER pedido pendiente desde la pestaña Pedidos — incluidos
+// los que llegaron del sitio web, que no tienen "mesa" asignada. Reusa
+// el mismo modal de cobro dividido que ya usan Mesas y Comandas.
+function cobrarPedidoDesdeLista(id){
+  const p = pedidosCache.find(x => x.id === id);
+  if (!p) return;
+  comandaMesaPedidoActual = {
+    id: p.id,
+    total_a_pagar: p.total_a_pagar,
+    tipo_servicio: 'llevar',
+    mesa: p.cliente_email || ('Pedido #' + p.id),
+  };
+  abrirModalCobroExistente();
+}
+
 function comandaAgregarFiltrarCategoria(cat, btn){
   comandaAgregarCategoriaActual = cat;
   document.querySelectorAll('#comandaAgregarCatTabs button').forEach(b => b.classList.remove('active'));
@@ -2806,7 +2824,8 @@ function kdsEsDemorada(o){ return kdsMinutos(o) >= 15; }
 function kdsListaFiltrada(){
   if (!comandasFiltroActual) return comandasCache;
   if (comandasFiltroActual === 'demoradas') return comandasCache.filter(kdsEsDemorada);
-  return comandasCache.filter(o => o.tipo_servicio === comandasFiltroActual);
+  if (comandasFiltroActual === 'web') return comandasCache.filter(o => o.origen !== 'admin');
+  return comandasCache.filter(o => o.origen === 'admin' && o.tipo_servicio === comandasFiltroActual);
 }
 
 function renderComandas(){
@@ -2825,6 +2844,15 @@ function renderComandas(){
   renderKdsEnfocada(lista);
 }
 
+function kdsIcono(o){
+  if (o.origen !== 'admin') return '🌐';
+  return o.tipo_servicio === 'llevar' ? '🥡' : '🍽️';
+}
+function kdsEtiqueta(o){
+  if (o.origen !== 'admin') return 'Pedido web';
+  return o.tipo_servicio === 'llevar' ? 'Para llevar' : 'Mesa';
+}
+
 function renderKdsCola(lista){
   const cont = document.getElementById('kdsCola');
   if (!lista.length){ cont.innerHTML = ''; return; }
@@ -2837,7 +2865,7 @@ function renderKdsCola(lista){
       <div class="kds-mini-card ${enfocada?'enfocada':''} ${demorada?'demorada':''}" onclick="seleccionarComandaEnfocada(${o.id})">
         ${enfocada ? '<span class="kds-mini-badge">En pantalla</span>' : (demorada ? '<span class="kds-mini-badge demorada">Demorada</span>' : '')}
         <div class="kds-mini-top">
-          <span class="kds-mini-mesa">${o.tipo_servicio==='llevar'?'🥡':'🍽️'} ${escHtml(o.mesa)}</span>
+          <span class="kds-mini-mesa">${kdsIcono(o)} ${escHtml(o.mesa)}</span>
           <span class="kds-mini-tiempo">${min} min</span>
         </div>
         <div class="kds-mini-pedido">Pedido #${o.id} · ${o.items.length} ítem${o.items.length===1?'':'s'}</div>
@@ -2870,7 +2898,7 @@ function renderKdsEnfocada(lista){
   }
   const min = kdsMinutos(o);
   const demorada = kdsEsDemorada(o);
-  const esLlevar = o.tipo_servicio === 'llevar';
+  const esWeb = o.origen !== 'admin';
   const idx = lista.findIndex(x => x.id === o.id);
   const anterior = lista[(idx - 1 + lista.length) % lista.length];
   const siguiente = lista[(idx + 1) % lista.length];
@@ -2879,14 +2907,14 @@ function renderKdsEnfocada(lista){
     <div class="kds-ticket">
       <div class="kds-ticket-head">
         <div style="display:flex;align-items:center;gap:14px;">
-          <div class="kds-ticket-icon">${esLlevar?'🥡':'🍽️'}</div>
+          <div class="kds-ticket-icon">${kdsIcono(o)}</div>
           <div>
             <div class="kds-ticket-titulo">
-              <span class="lbl">${esLlevar?'Para llevar':'Mesa'}</span>
+              <span class="lbl">${kdsEtiqueta(o)}</span>
               <h2>${escHtml(o.mesa)}</h2>
-              <span class="badge ${esLlevar?'b-pendiente':'b-entregado'}">${esLlevar?'Para llevar':'Comer en salón'}</span>
+              <span class="badge ${esWeb?'b-cancelado':(o.tipo_servicio==='llevar'?'b-pendiente':'b-entregado')}">${kdsEtiqueta(o)}</span>
             </div>
-            <div class="kds-ticket-sub">Pedido #${o.id} · Registrado a las ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</div>
+            <div class="kds-ticket-sub">Pedido #${o.id} · Registrado a las ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}${esWeb && o.horario_recogida ? ' · Recoge: ' + escHtml(o.horario_recogida) : ''}</div>
           </div>
         </div>
         <div class="kds-timer ${demorada?'demorada':''}">
