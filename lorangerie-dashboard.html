@@ -1731,6 +1731,7 @@ function renderPedidosFiltrados(){
       </button>
       <div class="pedido-detalle-body" id="detalle-${p.id}" style="display:none;"><div class="loading" style="padding:10px;">Cargando…</div></div>
       ${p.estado === 'pendiente' ? `
+        <button class="btn btn-ghost btn-sm" onclick="editarPedidoDesdeLista(${p.id})">✏️ Editar orden (agregar / quitar)</button>
         <div class="pedido-card-acciones">
           <button class="btn btn-primary btn-sm" onclick="activarPedido(${p.id})">Entregado</button>
           <button class="btn btn-danger btn-sm" onclick="cancelarPedido(${p.id})">Cancelar</button>
@@ -2393,6 +2394,7 @@ async function confirmarCobro(){
    ============================================================ */
 let mesasActivasCache = [];
 let comandaMesaPedidoActual = null;
+let comandaEdicionDesdeLista = false; // true cuando se entró desde Pedidos, no desde Mesas
 
 async function cargarMesasActivas(silencioso){
   const cont = document.getElementById('mesasActivasGrid');
@@ -2515,10 +2517,32 @@ async function comandaQuitarItem(itemId){
 
 function ocultarAgregarProductos(){
   document.getElementById('comandaMesaVistaAgregar').style.display = 'none';
+
+  if (comandaEdicionDesdeLista){
+    // se entró desde Pedidos (no desde Mesas) — no hay "mesa" que recargar,
+    // solo se cierra el modal y se refresca la lista de Pedidos.
+    comandaEdicionDesdeLista = false;
+    document.getElementById('modalComandaMesa').classList.remove('show');
+    cargarPedidos();
+    return;
+  }
+
   document.getElementById('comandaMesaVistaNormal').style.display = 'block';
   // refresca la comanda por si se agregaron/quitaron productos mientras tanto
   if (comandaMesaPedidoActual) abrirComandaMesa((comandaMesaPedidoActual.mesa || '').split('+')[0].trim());
   cargarMesasActivas();
+}
+
+// Entra directo a "Editar orden" desde una tarjeta de Pedidos, sin pasar
+// por Mesas (útil para pedidos del sitio web, que no tienen mesa asignada).
+async function editarPedidoDesdeLista(id){
+  comandaEdicionDesdeLista = true;
+  comandaMesaPedidoActual = { id };
+  document.getElementById('comandaMesaTipoTexto').textContent = 'PEDIDO';
+  document.getElementById('comandaMesaTitulo').textContent = '#' + id;
+  document.getElementById('comandaMesaSub').textContent = 'Agregando o quitando platillos de este pedido';
+  document.getElementById('modalComandaMesa').classList.add('show');
+  await mostrarAgregarProductos();
 }
 
 function comandaAgregarFiltrarCategoria(cat, btn){
