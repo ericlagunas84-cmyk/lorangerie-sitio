@@ -2093,6 +2093,16 @@ function aplicarMaximo(maxPts){
 }
 
 function pickupSlotsHTML(){
+  const ahora = new Date();
+  const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+  const isSunday = ahora.getDay() === 0; // 0 = domingo
+  const open = 7*60+30;                  // 7:30 am, todos los días
+  const close = isSunday ? 13*60 : 22*60; // domingo hasta 1pm, resto hasta 10pm
+
+  if (minutosAhora >= close){
+    return `<option disabled selected>Ya cerramos por hoy — inténtalo mañana</option>`;
+  }
+
   let opts = [`<option>Lo antes posible (${TIEMPO_ESPERA_MIN}–${TIEMPO_ESPERA_MAX} min)</option>`];
   const label = (totalMin) => {
     let hh = Math.floor(totalMin/60), mm = totalMin%60;
@@ -2100,10 +2110,14 @@ function pickupSlotsHTML(){
     let disp = hh % 12; if (disp === 0) disp = 12;
     return `${disp}:${mm===0?'00':mm} ${ampm}`;
   };
-  const isSunday = new Date().getDay() === 0; // 0 = domingo
-  const start = 7*60+30;                     // 7:30 am, todos los días
-  const end = isSunday ? 13*60 : 22*60;       // domingo hasta 1pm, resto hasta 10pm
-  for (let t = start; t < end; t += 30){
+
+  // El primer horario que se ofrece es "ahora + tiempo mínimo de espera",
+  // redondeado hacia arriba al siguiente bloque de 30 min — nunca antes
+  // de la hora de apertura ni antes de que cocina pueda tenerlo listo.
+  const minimoDesdeAhora = minutosAhora + TIEMPO_ESPERA_MIN;
+  const start = Math.max(open, Math.ceil(minimoDesdeAhora / 30) * 30);
+
+  for (let t = start; t < close; t += 30){
     opts.push(`<option>${label(t)} – ${label(t+30)}</option>`);
   }
   return opts.join('');
