@@ -420,6 +420,7 @@
       <div class="nav-group-items">
         <div class="nav-item nav-subitem" data-tab="usuarios" onclick="goTab('usuarios')">Usuarios</div>
         <div class="nav-item nav-subitem" data-tab="configuracion" onclick="goTab('configuracion')">Configuración</div>
+        <div class="nav-item nav-subitem" data-tab="auditoria" onclick="goTab('auditoria')">Auditoría</div>
       </div>
     </div>
 
@@ -952,6 +953,21 @@
         <p class="muted" style="font-size:13px;">La longitud mínima y los requisitos de caracteres especiales se configuran directo en Supabase, no aquí, para que apliquen de verdad a nivel de autenticación:</p>
         <p class="muted" style="font-size:13px;">Panel de Supabase → <b>Authentication → Policies → Password Requirements</b></p>
         <p class="muted" style="font-size:12px;margin-top:10px;">Nota: la caducidad automática de contraseñas (forzar cambio cada X días) no es algo que Supabase soporte de forma nativa por ahora.</p>
+      </div>
+    </div>
+
+    <!-- AUDITORÍA -->
+    <div id="tab-auditoria" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Auditoría</h2>
+        <button class="btn btn-ghost btn-sm" onclick="cargarAuditoria()">↻ Actualizar</button>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Quién hizo qué, en las acciones más delicadas: cancelar pedidos, marcar cortesías, aplicar descuentos, y crear/editar/borrar grupos adicionales.</p>
+      <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
+        <table>
+          <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
+          <tbody id="auditoriaTable"><tr><td colspan="4" class="loading">Cargando…</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -1562,6 +1578,7 @@ function goTab(tab){
   if (tab === 'tickets') cargarTickets();
   if (tab === 'usuarios') cargarUsuarios();
   if (tab === 'configuracion') cargarConfiguracion();
+  if (tab === 'auditoria') cargarAuditoria();
 }
 
 /* ============================================================
@@ -3990,6 +4007,39 @@ async function eliminarGrupoModificador(id){
   const { error } = await sb.rpc('admin_grupo_modificador_eliminar', { p_id: Number(id) });
   if (error){ alert('Error: ' + error.message); return; }
   cargarGrupos();
+}
+
+/* ============================================================
+   AUDITORÍA
+   ============================================================ */
+async function cargarAuditoria(){
+  const tbody = document.getElementById('auditoriaTable');
+  tbody.innerHTML = '<tr><td colspan="4" class="loading">Cargando…</td></tr>';
+  const { data, error } = await sb.rpc('admin_audit_log_list', { p_limite: 200 });
+  if (error){
+    tbody.innerHTML = `<tr><td colspan="4" class="muted">Este módulo todavía no está conectado (falta correr el SQL de Auditoría). Detalle: ${error.message}</td></tr>`;
+    return;
+  }
+  if (!data || !data.length){
+    tbody.innerHTML = '<tr><td colspan="4" class="muted">Sin acciones registradas todavía.</td></tr>';
+    return;
+  }
+  const accionLabel = {
+    cancelar_pedido: '❌ Canceló pedido',
+    marcar_cortesia: '🎁 Marcó cortesía',
+    quitar_cortesia: '🎁 Quitó cortesía',
+    aplicar_descuento: '％ Aplicó descuento',
+    crear_grupo: '➕ Creó grupo',
+    editar_grupo: '✏️ Editó grupo',
+    eliminar_grupo: '🗑️ Eliminó grupo',
+  };
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td class="muted" style="white-space:nowrap;">${new Date(a.creado_en).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${escHtml(a.usuario_email)}</td>
+      <td>${accionLabel[a.accion] || escHtml(a.accion)}</td>
+      <td class="muted">${escHtml(a.detalle) || '—'}</td>
+    </tr>`).join('');
 }
 
 /* ============================================================
