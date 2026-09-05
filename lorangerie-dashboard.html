@@ -236,6 +236,9 @@
   .pos-keypad button:hover{background:var(--outline-variant);}
   .pos-cambio-box{display:flex;justify-content:space-between;align-items:center;background:var(--ok-soft);color:var(--ok);padding:14px 16px;border-radius:10px;font-weight:700;font-size:16px;}
   .stat-card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:18px;}
+  .grupo-chip{display:flex;align-items:center;gap:6px;background:var(--low);border:1px solid var(--outline);border-radius:16px;padding:4px 6px 4px 12px;font-size:12.5px;}
+  .grupo-chip button{background:none;border:none;cursor:pointer;color:var(--on-var);font-size:14px;line-height:1;padding:2px 4px;}
+  .grupo-articulo-row{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:13px;}
   .stat-card .num{font-family:var(--serif);font-weight:700;font-size:28px;color:var(--on);}
   .stat-card .lbl{font-size:12px;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
 
@@ -395,6 +398,7 @@
         <div class="nav-item nav-subitem" data-tab="inventarios" onclick="goTab('inventarios')">Inventarios <span class="badge" id="badgeInventarios" style="display:none;"></span></div>
         <div class="nav-item nav-subitem" data-tab="costeo" onclick="goTab('costeo')">Costeo</div>
         <div class="nav-item nav-subitem" data-tab="proveedores" onclick="goTab('proveedores')">Proveedores</div>
+        <div class="nav-item nav-subitem" data-tab="grupos" onclick="goTab('grupos')">Grupos Adicionales</div>
       </div>
     </div>
 
@@ -798,6 +802,24 @@
       </div>
     </div>
 
+    <!-- GRUPOS ADICIONALES (modificadores) -->
+    <div id="tab-grupos" class="tab-panel" style="display:none;">
+      <div class="section-head">
+        <h2>Grupos Adicionales</h2>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="abrirModalImportar('grupos')">📥 Importar Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalGrupo(null)">+ Nuevo grupo</button>
+        </div>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Opciones que el cliente puede elegir dentro de un platillo (ej. "estilo de huevo": estrellado/revuelto/volteado). Un grupo se puede usar en varios platillos a la vez.</p>
+      <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
+        <table>
+          <thead><tr><th>Nombre</th><th>Nota</th><th>Tipo</th><th>Opciones</th><th>Platillos</th><th></th></tr></thead>
+          <tbody id="gruposTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- TICKETS DE SUCURSAL -->
     <div id="tab-tickets" class="tab-panel" style="display:none;">
       <div class="section-head">
@@ -1188,6 +1210,47 @@
   </div>
 </div>
 
+<!-- MODAL: nuevo/editar grupo adicional (modificador) -->
+<div class="modal-overlay" id="modalGrupo">
+  <div class="modal-card" style="width:560px;max-height:90vh;overflow-y:auto;">
+    <h3 style="font-size:18px;margin-bottom:16px;" id="modalGrupoTitulo">Nuevo grupo adicional</h3>
+    <input type="hidden" id="grupoId">
+
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <div class="field-group" style="flex:2;min-width:200px;"><label>Nombre del grupo *</label><input type="text" id="grupoNombre" placeholder="Ej. Estilo de huevo"></div>
+      <div class="field-group" style="flex:1;min-width:140px;">
+        <label>Tipo</label>
+        <select id="grupoTipo">
+          <option value="personalizable">Personalizable</option>
+          <option value="presentacion">Presentación</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-group"><label>Nota (opcional)</label><input type="text" id="grupoNota" placeholder="Ej. relleno, cubierta…"></div>
+
+    <div class="field-group">
+      <label>Opciones que puede elegir el cliente</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="grupoNuevaOpcion" placeholder="Ej. Estrellado" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarOpcionGrupo();}">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="agregarOpcionGrupo()">+ Agregar</button>
+      </div>
+      <div id="grupoOpcionesLista" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+    </div>
+
+    <div class="field-group">
+      <label>Platillos donde aparece este grupo</label>
+      <input type="text" id="grupoBuscarPlatillo" placeholder="Buscar platillo…" oninput="renderGrupoArticulosLista()">
+      <div id="grupoArticulosLista" style="max-height:200px;overflow-y:auto;border:1px solid var(--outline);border-radius:8px;padding:8px;margin-top:8px;"></div>
+    </div>
+
+    <div id="modalGrupoMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalGrupo').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="guardarGrupoModificador()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalProveedor">
   <div class="modal-card" style="width:520px;">
     <h3 style="font-size:18px;margin-bottom:16px;" id="modalProveedorTitulo">Nuevo proveedor</h3>
@@ -1479,6 +1542,7 @@ function goTab(tab){
   if (tab === 'inventarios') cargarInventario();
   if (tab === 'costeo') cargarCosteo();
   if (tab === 'proveedores') cargarProveedores();
+  if (tab === 'grupos') cargarGrupos();
   if (tab === 'mensajes') cargarMensajes();
   if (tab === 'tickets') cargarTickets();
   if (tab === 'usuarios') cargarUsuarios();
@@ -3467,6 +3531,11 @@ const IMPORTAR_CONFIG = {
     columnas: ['id', 'nombre', 'categoria', 'unidad', 'stock_actual', 'stock_minimo', 'costo_unitario', 'proveedor'],
     formato: 'Columnas esperadas: id, nombre, categoria, unidad, stock_actual, stock_minimo, costo_unitario, proveedor (opcional). El "id" debe ser único, en minúsculas, sin espacios.',
   },
+  grupos: {
+    titulo: 'Importar grupos adicionales desde Excel',
+    columnas: ['nombre', 'nota', 'tipo', 'opciones', 'articulos'],
+    formato: 'Columnas esperadas: nombre, nota (opcional), tipo ("personalizable" o "presentacion"), opciones (separadas por punto y coma ";"), articulos (nombres de platillos EXACTOS como aparecen en tu Menú, separados por ";"). Si un platillo no coincide exactamente, esa fila se marca con error pero el resto se importa igual.',
+  },
 };
 let importarTipoActual = null;
 let importarFilasActual = [];
@@ -3542,8 +3611,10 @@ async function confirmarImportacion(){
     try {
       if (importarTipoActual === 'menu'){
         await importarFilaMenu(fila);
-      } else {
+      } else if (importarTipoActual === 'inventarios'){
         await importarFilaInventario(fila);
+      } else {
+        await importarFilaGrupo(fila);
       }
       ok++;
     } catch(err){
@@ -3559,7 +3630,9 @@ async function confirmarImportacion(){
     ${errores.length ? '<br><br>' + errores.slice(0, 10).map(escHtml).join('<br>') : ''}
   </div>`;
 
-  if (importarTipoActual === 'menu') cargarMenu(); else cargarInventario();
+  if (importarTipoActual === 'menu') cargarMenu();
+  else if (importarTipoActual === 'inventarios') cargarInventario();
+  else cargarGrupos();
 }
 
 async function importarFilaMenu(f){
@@ -3599,6 +3672,37 @@ async function importarFilaInventario(f){
     p_costo_unitario: costo,
   });
   if (error) throw new Error(error.message);
+}
+
+async function importarFilaGrupo(f){
+  const nombre = String(f.nombre || '').trim();
+  const tipoRaw = String(f.tipo || 'personalizable').trim().toLowerCase();
+  const tipo = tipoRaw.startsWith('present') ? 'presentacion' : 'personalizable';
+  const opciones = String(f.opciones || '').split(';').map(s => s.trim()).filter(Boolean);
+  const nombresArticulos = String(f.articulos || '').split(';').map(s => s.trim()).filter(Boolean);
+
+  if (!nombre) throw new Error('falta el nombre del grupo');
+  if (!opciones.length) throw new Error('falta al menos una opción');
+
+  if (!menuCache.length){
+    const { data } = await sb.rpc('admin_productos_list');
+    menuCache = data || [];
+  }
+
+  const productoIds = [];
+  const noEncontrados = [];
+  for (const nombreArticulo of nombresArticulos){
+    const match = menuCache.find(p => p.nombre.trim().toLowerCase() === nombreArticulo.toLowerCase());
+    if (match) productoIds.push(match.id);
+    else noEncontrados.push(nombreArticulo);
+  }
+
+  const { error: errorGrupo } = await sb.rpc('admin_grupo_modificador_guardar', {
+    p_id: null, p_nombre: nombre, p_nota: String(f.nota || '').trim() || null, p_tipo: tipo,
+    p_opciones: opciones, p_producto_ids: productoIds,
+  });
+  if (errorGrupo) throw new Error(errorGrupo.message);
+  if (noEncontrados.length) throw new Error(`grupo creado, pero no encontré estos platillos en tu Menú: ${noEncontrados.join(', ')}`);
 }
 
 /* ============================================================
@@ -3671,6 +3775,142 @@ async function eliminarProveedor(id){
   const { error } = await sb.rpc('admin_proveedor_eliminar', { p_id: Number(id) });
   if (error){ alert('Error: ' + error.message); return; }
   cargarProveedores();
+}
+
+/* ============================================================
+   GRUPOS ADICIONALES (modificadores de platillos)
+   ============================================================ */
+let gruposCache = [];
+let grupoOpcionesActuales = [];
+let grupoArticulosSeleccionados = new Set();
+
+async function cargarGrupos(){
+  const tbody = document.getElementById('gruposTable');
+  tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando…</td></tr>';
+  const { data, error } = await sb.rpc('admin_grupos_modificadores_list');
+  if (error){
+    tbody.innerHTML = `<tr><td colspan="6" class="muted">Este módulo todavía no está conectado (falta correr el SQL de Grupos Adicionales). Detalle: ${error.message}</td></tr>`;
+    return;
+  }
+  gruposCache = data || [];
+  if (!gruposCache.length){
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Sin grupos creados todavía.</td></tr>';
+    return;
+  }
+  const tipoLabel = { personalizable: 'Personalizable', presentacion: 'Presentación' };
+  tbody.innerHTML = gruposCache.map(g => `
+    <tr>
+      <td>${escHtml(g.nombre)}</td>
+      <td class="muted">${escHtml(g.nota) || '—'}</td>
+      <td>${tipoLabel[g.tipo] || escHtml(g.tipo)}</td>
+      <td>${g.total_opciones}</td>
+      <td>${g.total_articulos}</td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" data-id="${g.id}" onclick="abrirModalGrupo(this.dataset.id)">Editar</button>
+        <button class="btn btn-danger btn-sm" data-id="${g.id}" onclick="eliminarGrupoModificador(this.dataset.id)">Eliminar</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function abrirModalGrupo(id){
+  if (!menuCache.length){
+    const { data } = await sb.rpc('admin_productos_list');
+    menuCache = data || [];
+  }
+  document.getElementById('modalGrupoMsg').innerHTML = '';
+  document.getElementById('grupoBuscarPlatillo').value = '';
+  document.getElementById('grupoId').value = id || '';
+
+  if (id){
+    const g = gruposCache.find(x => String(x.id) === String(id));
+    document.getElementById('modalGrupoTitulo').textContent = 'Editar grupo';
+    document.getElementById('grupoNombre').value = g?.nombre || '';
+    document.getElementById('grupoNota').value = g?.nota || '';
+    document.getElementById('grupoTipo').value = g?.tipo || 'personalizable';
+
+    const { data, error } = await sb.rpc('admin_grupo_modificador_detalle', { p_grupo_id: Number(id) });
+    if (error){ alert('Error: ' + error.message); return; }
+    grupoOpcionesActuales = (data?.[0]?.opciones) || [];
+    grupoArticulosSeleccionados = new Set((data?.[0]?.producto_ids) || []);
+  } else {
+    document.getElementById('modalGrupoTitulo').textContent = 'Nuevo grupo adicional';
+    document.getElementById('grupoNombre').value = '';
+    document.getElementById('grupoNota').value = '';
+    document.getElementById('grupoTipo').value = 'personalizable';
+    grupoOpcionesActuales = [];
+    grupoArticulosSeleccionados = new Set();
+  }
+
+  renderGrupoOpcionesLista();
+  renderGrupoArticulosLista();
+  document.getElementById('modalGrupo').classList.add('show');
+}
+
+function agregarOpcionGrupo(){
+  const input = document.getElementById('grupoNuevaOpcion');
+  const valor = input.value.trim();
+  if (!valor) return;
+  grupoOpcionesActuales.push(valor);
+  input.value = '';
+  renderGrupoOpcionesLista();
+}
+
+function quitarOpcionGrupo(idx){
+  grupoOpcionesActuales.splice(idx, 1);
+  renderGrupoOpcionesLista();
+}
+
+function renderGrupoOpcionesLista(){
+  const cont = document.getElementById('grupoOpcionesLista');
+  cont.innerHTML = grupoOpcionesActuales.length
+    ? grupoOpcionesActuales.map((op, i) => `
+        <span class="grupo-chip">${escHtml(op)}<button type="button" onclick="quitarOpcionGrupo(${i})">✕</button></span>`).join('')
+    : '<p class="muted" style="font-size:12px;">Sin opciones todavía — agrega al menos una arriba.</p>';
+}
+
+function toggleGrupoArticulo(productoId){
+  if (grupoArticulosSeleccionados.has(productoId)) grupoArticulosSeleccionados.delete(productoId);
+  else grupoArticulosSeleccionados.add(productoId);
+}
+
+function renderGrupoArticulosLista(){
+  const cont = document.getElementById('grupoArticulosLista');
+  const filtro = document.getElementById('grupoBuscarPlatillo').value.trim().toLowerCase();
+  const lista = menuCache.filter(p => !filtro || p.nombre.toLowerCase().includes(filtro));
+  cont.innerHTML = lista.length
+    ? lista.map(p => `
+        <label class="grupo-articulo-row">
+          <input type="checkbox" data-id="${p.id}" ${grupoArticulosSeleccionados.has(p.id) ? 'checked' : ''} onchange="toggleGrupoArticulo('${p.id}')">
+          ${escHtml(p.nombre)}
+        </label>`).join('')
+    : '<p class="muted" style="font-size:12px;">Sin platillos que coincidan.</p>';
+}
+
+async function guardarGrupoModificador(){
+  const idRaw = document.getElementById('grupoId').value;
+  const nombre = document.getElementById('grupoNombre').value.trim();
+  const msg = document.getElementById('modalGrupoMsg');
+  if (!nombre){ msg.innerHTML = '<div class="msg-box msg-err">El nombre del grupo es obligatorio.</div>'; return; }
+  if (!grupoOpcionesActuales.length){ msg.innerHTML = '<div class="msg-box msg-err">Agrega al menos una opción.</div>'; return; }
+
+  const { error } = await sb.rpc('admin_grupo_modificador_guardar', {
+    p_id: idRaw ? Number(idRaw) : null,
+    p_nombre: nombre,
+    p_nota: document.getElementById('grupoNota').value.trim() || null,
+    p_tipo: document.getElementById('grupoTipo').value,
+    p_opciones: grupoOpcionesActuales,
+    p_producto_ids: [...grupoArticulosSeleccionados],
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  document.getElementById('modalGrupo').classList.remove('show');
+  cargarGrupos();
+}
+
+async function eliminarGrupoModificador(id){
+  if (!confirm('¿Eliminar este grupo? Se quitará de todos los platillos donde aparece.')) return;
+  const { error } = await sb.rpc('admin_grupo_modificador_eliminar', { p_id: Number(id) });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarGrupos();
 }
 
 /* ============================================================
