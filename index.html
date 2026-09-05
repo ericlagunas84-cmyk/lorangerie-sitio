@@ -307,6 +307,11 @@
   .drawer-item{display:flex;gap:12px;padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--outline-variant);}
   .drawer-item-icon{width:44px;height:44px;flex-shrink:0;border-radius:50%;background:var(--surface-container-low);display:flex;align-items:center;justify-content:center;font-size:20px;}
   .qty-ctrl{display:flex;align-items:center;gap:10px;background:var(--surface-container-low);border-radius:20px;padding:4px 10px;width:fit-content;}
+  .pm-grupo{margin-bottom:16px;}
+  .pm-grupo-nombre{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--on-surface-variant);}
+  .pm-opciones{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .pm-opcion-btn{background:var(--surface-container-low);border:1.5px solid var(--outline-variant);border-radius:20px;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;color:var(--on-surface-variant);}
+  .pm-opcion-btn.elegida{background:var(--primary);border-color:var(--primary);color:#fff;}
   .remove-item-btn{background:none;border:none;color:var(--on-surface-variant);cursor:pointer;padding:6px;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:background .15s,color .15s;}
   .remove-item-btn:hover{background:var(--danger-soft, #f6e5e5);color:#8c3c3c;}
   .qty-ctrl button{background:none;border:none;cursor:pointer;color:var(--primary);font-size:14px;width:18px;}
@@ -1010,6 +1015,8 @@
       </div>
       <p id="pmDesc" style="font-size:14px;color:var(--on-surface-variant);margin:10px 0 18px;line-height:1.5;"></p>
       <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--primary-dark);margin-bottom:20px;" id="pmPrice"></div>
+
+      <div id="pmGrupos" style="margin-bottom:8px;"></div>
 
       <div style="display:flex;align-items:center;gap:16px;">
         <div class="qty-ctrl">
@@ -1817,11 +1824,16 @@ function addCustomCoffee(){
 let pmProductoActual = null;
 let pmCantidad = 1;
 
-function openProductModal(id){
+let pmGruposActuales = [];
+let pmSeleccion = {};
+
+async function openProductModal(id){
   const item = MENU.find(m => m.id === id);
   if (!item) return;
   pmProductoActual = item;
   pmCantidad = 1;
+  pmGruposActuales = [];
+  pmSeleccion = {};
 
   document.getElementById('pmName').textContent = item.name;
   document.getElementById('pmDesc').textContent = item.desc || '';
@@ -1837,7 +1849,42 @@ function openProductModal(id){
   else { img.style.display = 'none'; placeholder.style.display = 'block'; }
 
   pmActualizarPrecio();
+  document.getElementById('pmGrupos').innerHTML = '';
   document.getElementById('productOverlay').classList.add('show');
+
+  // Carga los grupos adicionales (si tiene) sin bloquear que se vea el modal
+  const { data: filas } = await sb.rpc('publico_grupos_de_producto', { p_producto_id: id });
+  if (filas && filas.length){
+    const gruposMap = {};
+    filas.forEach(r => {
+      if (!gruposMap[r.grupo_id]) gruposMap[r.grupo_id] = { nombre: r.grupo_nombre, opciones: [] };
+      gruposMap[r.grupo_id].opciones.push(r.opcion_nombre);
+    });
+    pmGruposActuales = Object.entries(gruposMap).map(([gid, g]) => ({ id: gid, ...g }));
+    renderPmGrupos();
+  }
+}
+
+function renderPmGrupos(){
+  document.getElementById('pmGrupos').innerHTML = pmGruposActuales.map(g => `
+    <div class="pm-grupo">
+      <div class="pm-grupo-nombre">${escHtmlPublico(g.nombre)}</div>
+      <div class="pm-opciones">
+        ${g.opciones.map(op => `
+          <button type="button" class="pm-opcion-btn ${pmSeleccion[g.id]===op?'elegida':''}" data-grupo="${g.id}" data-opcion="${escHtmlPublico(op)}" onclick="pmElegirOpcion(this.dataset.grupo, this.dataset.opcion)">${escHtmlPublico(op)}</button>
+        `).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function pmElegirOpcion(grupoId, opcion){
+  pmSeleccion[grupoId] = pmSeleccion[grupoId] === opcion ? null : opcion;
+  renderPmGrupos();
+}
+
+function escHtmlPublico(str){
+  if (str === null || str === undefined) return '';
+  return String(str).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 }
 
 function closeProductModal(){
@@ -1859,19 +1906,33 @@ function pmActualizarPrecio(){
 
 function pmAddToCart(){
   if (!pmProductoActual) return;
-  const existing = cart.find(c => c.id === pmProductoActual.id && !c.opts);
-  if (existing) existing.qty += pmCantidad;
-  else cart.push({ id: pmProductoActual.id, qty: pmCantidad });
+  const partes = pmGruposActuales
+    .filter(g => pmSeleccion[g.id])
+    .map(g => `${g.nombre}: ${pmSeleccion[g.id]}`);
+  const opts = partes.length ? partes.join(' · ') : null;
+
+  if (opts){
+    cart.push({ id: pmProductoActual.id, qty: pmCantidad, opts, lineId: 'L' + Date.now() });
+  } else {
+    const existing = cart.find(c => c.id === pmProductoActual.id && !c.opts);
+    if (existing) existing.qty += pmCantidad;
+    else cart.push({ id: pmProductoActual.id, qty: pmCantidad });
+  }
   updateBadge();
   renderDrawer();
   closeProductModal();
   openCart();
 }
 
-function addToCart(id){
+async function addToCart(id){
   const item = MENU.find(m => m.id === id);
   if (item && item.customizable){
     openCoffeeModal(id);
+    return;
+  }
+  const { data: filas } = await sb.rpc('publico_grupos_de_producto', { p_producto_id: id });
+  if (filas && filas.length){
+    openProductModal(id);
     return;
   }
   const existing = cart.find(c => c.id === id && !c.opts);
