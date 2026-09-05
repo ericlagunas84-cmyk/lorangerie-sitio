@@ -239,6 +239,7 @@
   .grupo-chip{display:flex;align-items:center;gap:6px;background:var(--low);border:1px solid var(--outline);border-radius:16px;padding:4px 6px 4px 12px;font-size:12.5px;}
   .grupo-chip button{background:none;border:none;cursor:pointer;color:var(--on-var);font-size:14px;line-height:1;padding:2px 4px;}
   .grupo-articulo-row{display:flex;align-items:center;gap:8px;padding:4px 2px;font-size:13px;}
+  .opcion-btn.elegida{background:var(--sage)!important;color:#fff!important;border-color:var(--sage)!important;}
   .stat-card .num{font-family:var(--serif);font-weight:700;font-size:28px;color:var(--on);}
   .stat-card .lbl{font-size:12px;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
 
@@ -1211,6 +1212,20 @@
 </div>
 
 <!-- MODAL: nuevo/editar grupo adicional (modificador) -->
+<!-- MODAL: personalizar platillo (grupos adicionales) en Nueva Orden -->
+<div class="modal-overlay" id="modalPersonalizarItem">
+  <div class="modal-card" style="width:480px;">
+    <h3 style="font-size:18px;margin-bottom:4px;" id="personalizarItemTitulo"></h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Elige las opciones para este platillo (opcional).</p>
+    <div id="personalizarItemGrupos"></div>
+    <div id="personalizarItemMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalPersonalizarItem').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmarPersonalizarItem()">Agregar a la orden</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalGrupo">
   <div class="modal-card" style="width:560px;max-height:90vh;overflow-y:auto;">
     <h3 style="font-size:18px;margin-bottom:16px;" id="modalGrupoTitulo">Nuevo grupo adicional</h3>
@@ -2021,20 +2036,81 @@ function posRenderItems(){
     </button>`).join('');
 }
 
-function posAgregarItem(id){
+async function posAgregarItem(id){
   const prod = menuCache.find(p => p.id === id);
   if (!prod) return;
-  const linea = posCart.find(l => l.id === id);
+
+  const { data: grupos } = await sb.rpc('publico_grupos_de_producto', { p_producto_id: id });
+  if (grupos && grupos.length){
+    abrirModalPersonalizarItem(prod, grupos);
+    return;
+  }
+  posAgregarItemDirecto(prod, null);
+}
+
+function posAgregarItemDirecto(prod, opts){
+  const linea = posCart.find(l => l.id === prod.id && (l.opts || null) === (opts || null));
   if (linea) linea.qty++;
-  else posCart.push({ id, nombre: prod.nombre, precio: Number(prod.precio), qty: 1 });
+  else posCart.push({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), qty: 1, opts: opts || null });
   posRenderCarrito();
 }
 
-function posCambiarCantidad(id, delta){
-  const linea = posCart.find(l => l.id === id);
+/* ---------- personalizar platillo (grupos adicionales) ---------- */
+let personalizarItemProducto = null;
+let personalizarItemGruposActuales = [];
+let personalizarItemSeleccion = {};
+
+function abrirModalPersonalizarItem(prod, filasGrupos){
+  personalizarItemProducto = prod;
+  personalizarItemSeleccion = {};
+
+  const gruposMap = {};
+  filasGrupos.forEach(r => {
+    if (!gruposMap[r.grupo_id]) gruposMap[r.grupo_id] = { nombre: r.grupo_nombre, nota: r.grupo_nota, opciones: [] };
+    gruposMap[r.grupo_id].opciones.push(r.opcion_nombre);
+  });
+  personalizarItemGruposActuales = Object.entries(gruposMap).map(([id, g]) => ({ id, ...g }));
+
+  document.getElementById('personalizarItemTitulo').textContent = prod.nombre;
+  document.getElementById('personalizarItemMsg').innerHTML = '';
+  renderPersonalizarItemGrupos();
+  document.getElementById('modalPersonalizarItem').classList.add('show');
+}
+
+function renderPersonalizarItemGrupos(){
+  const cont = document.getElementById('personalizarItemGrupos');
+  cont.innerHTML = personalizarItemGruposActuales.map(g => `
+    <div style="margin-bottom:16px;">
+      <label class="field-label" style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--on-var);letter-spacing:.03em;">${escHtml(g.nombre)}${g.nota ? ' · ' + escHtml(g.nota) : ''}</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+        ${g.opciones.map(op => `
+          <button type="button" class="btn btn-ghost btn-sm opcion-btn ${personalizarItemSeleccion[g.id]===op?'elegida':''}" data-grupo="${g.id}" data-opcion="${escHtml(op)}" onclick="elegirOpcionPersonalizar(this.dataset.grupo, this.dataset.opcion)">${escHtml(op)}</button>
+        `).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function elegirOpcionPersonalizar(grupoId, opcion){
+  // tocar la misma opción otra vez la deselecciona (por si se equivocó)
+  personalizarItemSeleccion[grupoId] = personalizarItemSeleccion[grupoId] === opcion ? null : opcion;
+  renderPersonalizarItemGrupos();
+}
+
+function confirmarPersonalizarItem(){
+  const partes = personalizarItemGruposActuales
+    .filter(g => personalizarItemSeleccion[g.id])
+    .map(g => `${g.nombre}: ${personalizarItemSeleccion[g.id]}`);
+  const opts = partes.length ? partes.join(' · ') : null;
+
+  posAgregarItemDirecto(personalizarItemProducto, opts);
+  document.getElementById('modalPersonalizarItem').classList.remove('show');
+}
+
+function posCambiarCantidad(idx, delta){
+  const linea = posCart[idx];
   if (!linea) return;
   linea.qty += delta;
-  if (linea.qty <= 0) posCart = posCart.filter(l => l.id !== id);
+  if (linea.qty <= 0) posCart.splice(idx, 1);
   posRenderCarrito();
 }
 
@@ -2060,13 +2136,16 @@ function posCartTotalConDescuento(){
 function posRenderCarrito(){
   const cont = document.getElementById('posCartLineas');
   cont.innerHTML = posCart.length
-    ? posCart.map(l => `
+    ? posCart.map((l, idx) => `
         <div class="pos-cart-line">
-          <span>${l.nombre}</span>
+          <div>
+            <span>${escHtml(l.nombre)}</span>
+            ${l.opts ? `<div class="muted" style="font-size:11px;">${escHtml(l.opts)}</div>` : ''}
+          </div>
           <div class="qty-controls">
-            <button onclick="posCambiarCantidad('${l.id}', -1)">−</button>
+            <button onclick="posCambiarCantidad(${idx}, -1)">−</button>
             <span>${l.qty}</span>
-            <button onclick="posCambiarCantidad('${l.id}', 1)">+</button>
+            <button onclick="posCambiarCantidad(${idx}, 1)">+</button>
           </div>
           <span>$${(l.precio * l.qty).toFixed(2)}</span>
         </div>`).join('')
@@ -2298,7 +2377,7 @@ async function enviarOrdenCompleta(){
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
       body: JSON.stringify({
-        items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: null })),
+        items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: l.opts || null })),
         puntos_a_usar: 0,
         horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
         guest_email: guestEmail,
@@ -2332,7 +2411,7 @@ async function enviarOrdenCompleta(){
     renderYImprimirComanda(
       { id: data.pedido_id, horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
         fecha_creacion: new Date().toISOString(), cliente_email: nombreCliente + (mesaTexto ? ' · ' + mesaTexto : '') },
-      posCart.map(l => ({ cantidad: l.qty, nombre: l.nombre, precio_unitario: l.precio, opciones: null }))
+      posCart.map(l => ({ cantidad: l.qty, nombre: l.nombre, precio_unitario: l.precio, opciones: l.opts || null }))
     );
 
     vaciarCarritoPOS();
@@ -2375,7 +2454,7 @@ async function confirmarCobro(){
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
         body: JSON.stringify({
-          items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: null })),
+          items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: l.opts || null })),
           puntos_a_usar: 0,
           horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
           guest_email: guestEmail,
@@ -2436,7 +2515,7 @@ async function confirmarCobro(){
     renderYImprimirComanda(
       { id: pedidoId, horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
         fecha_creacion: new Date().toISOString(), cliente_email: nombreCliente + (mesaTexto ? ' · ' + mesaTexto : '') },
-      posCart.map(l => ({ cantidad: l.qty, nombre: l.nombre, precio_unitario: l.precio, opciones: null }))
+      posCart.map(l => ({ cantidad: l.qty, nombre: l.nombre, precio_unitario: l.precio, opciones: l.opts || null }))
     );
 
     setTimeout(() => {
