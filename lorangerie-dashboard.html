@@ -2883,6 +2883,7 @@ async function confirmarCobro(){
    MESAS ACTIVAS
    ============================================================ */
 let mesasActivasCache = [];
+let comandasActivasCache = [];
 let comandaMesaPedidoActual = null;
 let comandaEdicionDesdeLista = false; // true cuando se entró desde Pedidos, no desde Mesas
 
@@ -2925,8 +2926,11 @@ async function cargarMesasActivas(silencioso){
 }
 
 async function abrirComandaMesa(mesa){
-  // toma el pedido más reciente de esa mesa (normalmente solo hay uno)
-  const pedidos = mesasActivasCache.filter(o => (o.mesa || '').split('+').map(x => x.trim()).includes(mesa));
+  // toma el pedido más reciente de esa mesa (normalmente solo hay uno) —
+  // se busca en ambas cachés porque esta modal se abre tanto desde Mesas
+  // como desde Comandas, y ya no comparten la misma lista.
+  const combinado = [...mesasActivasCache, ...comandasActivasCache];
+  const pedidos = combinado.filter(o => (o.mesa || '').split('+').map(x => x.trim()).includes(mesa));
   const pedido = pedidos[pedidos.length - 1];
   if (!pedido) return;
   comandaMesaPedidoActual = pedido;
@@ -3109,7 +3113,7 @@ let comandasFiltroActual = null;
 let comandaEnfocadaId = null;
 
 async function cargarComandas(){
-  const { data, error } = await sb.rpc('admin_pedidos_mesa_activos');
+  const { data, error } = await sb.rpc('admin_comandas_activas');
   if (error){
     document.getElementById('kdsEnfocada').innerHTML = `<p class="muted">Este módulo todavía no está conectado (falta correr el SQL del tablero de comandas). Detalle: ${error.message}</p>`;
     return;
@@ -3119,7 +3123,7 @@ async function cargarComandas(){
   if (data && data.length){ badge.style.display = 'inline-block'; badge.textContent = data.length; }
   else badge.style.display = 'none';
 
-  mesasActivasCache = data; // para que Editar/Cobrar puedan reusar abrirComandaMesa
+  comandasActivasCache = data; // caché aparte — Comandas y Mesas ya no comparten la misma lista
 
   if (!data || !data.length){
     comandasCache = [];
