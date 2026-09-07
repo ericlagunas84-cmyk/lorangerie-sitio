@@ -250,9 +250,9 @@
   .cobro-metodo-btn{display:block;width:100%;text-align:left;padding:20px 18px;margin-bottom:10px;border:2px solid var(--outline);background:var(--paper);border-radius:12px;font-size:16px;font-weight:600;color:var(--on);cursor:pointer;}
   .cobro-metodo-btn.active{border-color:var(--sage);background:var(--ok-soft);color:var(--ok);}
 
-  .cobro-monto-display{font-family:var(--serif);font-weight:800;font-size:44px;text-align:center;padding:20px;border:2px solid var(--sage);border-radius:14px;width:100%;background:#fff;margin-bottom:18px;}
+  .cobro-monto-display{font-family:var(--serif);font-weight:800;font-size:72px;line-height:1;text-align:center;padding:30px 16px;border:3px solid var(--sage);border-radius:16px;width:100%;background:#fff;margin-bottom:18px;box-shadow:0 4px 18px rgba(0,104,56,.14);letter-spacing:-.01em;}
   .cobro-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1;}
-  .cobro-keypad button{font-size:26px;font-weight:700;background:var(--low);border:1px solid var(--outline);border-radius:12px;cursor:pointer;min-height:64px;}
+  .cobro-keypad button{font-size:28px;font-weight:700;background:var(--low);border:1px solid var(--outline);border-radius:12px;cursor:pointer;min-height:72px;}
   .cobro-keypad button:hover{background:var(--outline-variant);}
   .cobro-btn-agregar{width:100%;height:60px;font-size:16px;margin-top:16px;flex-shrink:0;}
 
@@ -270,6 +270,27 @@
   .cobro-linea-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--low);border-radius:10px;margin-bottom:8px;font-size:13px;}
   .cobro-lineas-vacio{color:var(--on-var);font-size:13px;text-align:center;padding:24px 10px;}
   .cobro-btn-confirmar{width:100%;height:64px;font-size:17px;margin-top:16px;}
+
+  /* propina */
+  .propina-pantalla{max-width:520px;margin:0 auto;padding:36px 24px;width:100%;}
+  .propina-subtotal-box{background:var(--low);border-radius:14px;padding:18px 22px;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:26px;}
+  .propina-subtotal-box span:last-child{font-family:var(--serif);font-weight:800;font-size:26px;}
+  .propina-label{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--on-var);margin-bottom:12px;}
+  .propina-pct-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+  .propina-pct-btn{background:var(--paper);border:2px solid var(--outline);border-radius:14px;padding:16px 6px;text-align:center;cursor:pointer;transition:all .12s;}
+  .propina-pct-btn:hover{border-color:var(--sage);}
+  .propina-pct-btn.active{border-color:var(--sage);background:var(--ok-soft);}
+  .propina-pct-btn .pct{font-family:var(--serif);font-weight:800;font-size:22px;color:var(--sage-dark);display:block;}
+  .propina-pct-btn .monto{font-size:11.5px;color:var(--on-var);margin-top:2px;display:block;}
+  .propina-custom-toggle{display:flex;gap:8px;margin-bottom:12px;}
+  .propina-custom-toggle button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--outline);background:var(--paper);font-weight:600;font-size:13px;cursor:pointer;}
+  .propina-custom-toggle button.active{background:var(--sage);border-color:var(--sage);color:#fff;}
+  .propina-custom-input-row{display:flex;gap:10px;margin-bottom:22px;}
+  .propina-custom-input-row input{flex:1;font-size:20px;font-weight:700;font-family:var(--serif);padding:14px 16px;text-align:center;}
+  .propina-total-box{background:var(--sidebar-bg);color:#fff;border-radius:14px;padding:20px 22px;margin-bottom:22px;}
+  .propina-total-box .fila{display:flex;justify-content:space-between;font-size:13.5px;opacity:.8;margin-bottom:6px;}
+  .propina-total-box .fila.final{opacity:1;font-family:var(--serif);font-weight:800;font-size:24px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.18);}
+  .propina-btn-continuar{width:100%;height:60px;font-size:16px;}
 
   @media(max-width:900px){
     .cobro-3col{grid-template-columns:1fr;overflow-y:auto;}
@@ -1124,11 +1145,42 @@
 <div class="modal-overlay" id="modalCobro">
   <div class="cobro-pantalla">
     <div class="cobro-header">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modalCobro').classList.remove('show')">← <span id="cobroMesaTexto"></span></button>
-      <h2>Cobrar orden</h2>
+      <button class="btn btn-ghost btn-sm" id="cobroBtnAtras" onclick="cobroBotonAtras()">← <span id="cobroMesaTexto"></span></button>
+      <h2 id="cobroTituloHeader">Propina</h2>
     </div>
 
-    <div class="cobro-3col">
+    <!-- VISTA 1: propina -->
+    <div id="cobroVistaPropina">
+      <div class="propina-pantalla">
+        <div class="propina-subtotal-box">
+          <span class="muted">Subtotal del pedido</span>
+          <span id="propinaSubtotalTexto">$0.00</span>
+        </div>
+
+        <label class="propina-label">¿Agregar propina?</label>
+        <div class="propina-pct-grid" id="propinaPctGrid"></div>
+
+        <div class="propina-custom-toggle">
+          <button type="button" class="active" id="propinaModoPctBtn" onclick="propinaCambiarModo('pct')">Otro %</button>
+          <button type="button" id="propinaModoMontoBtn" onclick="propinaCambiarModo('monto')">Cantidad libre</button>
+        </div>
+        <div class="propina-custom-input-row">
+          <input type="number" id="propinaCustomInput" min="0" step="0.01" placeholder="0" oninput="propinaCustomInputCambio()">
+          <button class="btn btn-ghost" style="flex-shrink:0;" onclick="propinaLimpiarCustom()">Limpiar</button>
+        </div>
+
+        <div class="propina-total-box">
+          <div class="fila"><span>Subtotal</span><span id="propinaResSubtotal">$0.00</span></div>
+          <div class="fila"><span>Propina</span><span id="propinaResPropina">$0.00</span></div>
+          <div class="fila final"><span>Total a cobrar</span><span id="propinaResTotal">$0.00</span></div>
+        </div>
+
+        <button class="btn btn-primary propina-btn-continuar" onclick="continuarAPantallaPago()">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- VISTA 2: métodos de pago -->
+    <div id="cobroVistaPago" class="cobro-3col" style="display:none;">
       <!-- Columna 1: métodos de pago -->
       <div class="cobro-col cobro-col-metodos">
         <label class="cobro-col-titulo">Método de pago</label>
@@ -1157,9 +1209,10 @@
       <!-- Columna 3: resumen y pagos realizados -->
       <div class="cobro-col cobro-col-resumen">
         <div class="cobro-total-box">
-          <span class="muted">Total a pagar</span>
+          <span class="muted" id="cobroTotalLabel">Total a pagar</span>
           <span id="cobroTotalTexto"></span>
         </div>
+        <div class="muted" id="cobroPropinaSubtexto" style="font-size:12px;margin:-10px 0 14px;"></div>
         <div class="cobro-mini-stats">
           <div><span class="muted">Pagado</span><b id="cobroPagadoTexto">$0.00</b></div>
           <div id="cobroRestanteBox"><span class="muted" id="cobroRestanteLabel">Restante</span><b id="cobroRestanteTexto">$0.00</b></div>
@@ -2261,10 +2314,16 @@ let cobroMontoStr = '0';
    ============================================================ */
 let cobroModoExistente = false;
 let cobroPedidoExistenteId = null;
-let cobroTotalActual = 0; // siempre en pesos (moneda base del sistema)
+let cobroTotalActual = 0; // subtotal del pedido en pesos, SIN propina
 let cobroMonedaActual = 'MXN';
 let cobroLineas = []; // { metodo, moneda, monto, tipoCambio, montoPesos }
 let TIPO_CAMBIO_USD = 18.50;
+
+// ---------- Propina ----------
+const PROPINA_PORCENTAJES = [10, 15, 20];
+let cobroPropinaMonto = 0;     // siempre en pesos
+let propinaPctSeleccionado = null; // 0, 10, 15, 20 o null si es cantidad libre
+let propinaModoCustom = 'pct'; // 'pct' | 'monto'
 
 async function cargarTipoCambio(){
   const { data } = await sb.rpc('admin_tipo_cambio_get');
@@ -2292,7 +2351,7 @@ function abrirModalCobro(){
   document.getElementById('cobroMesaTexto').textContent = posTipoServicioActual === 'mesa'
     ? '🍽️ Mesa ' + posMesasElegidas.sort().join(' + ')
     : '🥡 ' + posMesasElegidas[0];
-  resetCajaCobro();
+  mostrarPantallaPropina();
   document.getElementById('modalCobro').classList.add('show');
 }
 
@@ -2304,8 +2363,116 @@ function abrirModalCobroExistente(){
   document.getElementById('cobroMesaTexto').textContent = comandaMesaPedidoActual.tipo_servicio === 'llevar'
     ? '🥡 ' + comandaMesaPedidoActual.mesa
     : '🍽️ Mesa ' + comandaMesaPedidoActual.mesa + ` · Pedido #${comandaMesaPedidoActual.id}`;
-  resetCajaCobro();
+  mostrarPantallaPropina();
   document.getElementById('modalCobro').classList.add('show');
+}
+
+/* ============================================================
+   PANTALLA DE PROPINA — primer paso al cobrar, separado del pago.
+   Se puede elegir 10/15/20%, "Sin propina", un % libre, o una
+   cantidad libre en pesos. El monto se guarda aparte del total
+   del pedido para no ensuciar reportes de ventas de comida.
+   ============================================================ */
+function mostrarPantallaPropina(){
+  cobroPropinaMonto = 0;
+  propinaPctSeleccionado = 0;
+  propinaModoCustom = 'pct';
+  document.getElementById('propinaCustomInput').value = '';
+  document.getElementById('propinaCustomInput').placeholder = '0';
+  document.getElementById('propinaModoPctBtn').classList.add('active');
+  document.getElementById('propinaModoMontoBtn').classList.remove('active');
+
+  document.getElementById('cobroTituloHeader').textContent = 'Propina';
+  document.getElementById('cobroVistaPropina').style.display = 'block';
+  document.getElementById('cobroVistaPago').style.display = 'none';
+
+  document.getElementById('propinaSubtotalTexto').textContent = '$' + cobroTotalActual.toFixed(2);
+  renderPropinaPctGrid();
+  actualizarResumenPropina();
+}
+
+function renderPropinaPctGrid(){
+  const opciones = [
+    ...PROPINA_PORCENTAJES.map(p => ({ pct: p, label: p + '%' })),
+    { pct: 0, label: 'Sin propina' },
+  ];
+  document.getElementById('propinaPctGrid').innerHTML = opciones.map(o => {
+    const monto = cobroTotalActual * (o.pct / 100);
+    const activo = propinaPctSeleccionado === o.pct ? ' active' : '';
+    return `<div class="propina-pct-btn${activo}" data-pct="${o.pct}" onclick="seleccionarPropinaPct(${o.pct}, this)">
+      <span class="pct">${o.label}</span>
+      <span class="monto">${o.pct === 0 ? '—' : '$' + monto.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+}
+
+function seleccionarPropinaPct(pct, el){
+  propinaPctSeleccionado = pct;
+  cobroPropinaMonto = cobroTotalActual * (pct / 100);
+  document.getElementById('propinaCustomInput').value = '';
+  document.querySelectorAll('.propina-pct-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  actualizarResumenPropina();
+}
+
+function propinaCambiarModo(modo){
+  propinaModoCustom = modo;
+  document.getElementById('propinaModoPctBtn').classList.toggle('active', modo === 'pct');
+  document.getElementById('propinaModoMontoBtn').classList.toggle('active', modo === 'monto');
+  document.getElementById('propinaCustomInput').placeholder = modo === 'pct' ? 'Ej. 12' : 'Ej. 50.00';
+  document.getElementById('propinaCustomInput').value = '';
+  propinaCustomInputCambio();
+}
+
+function propinaCustomInputCambio(){
+  const val = parseFloat(document.getElementById('propinaCustomInput').value);
+  if (!val || val < 0){
+    // sin valor tecleado: no toca la selección de % rápido actual
+    if (propinaPctSeleccionado === null){
+      cobroPropinaMonto = 0;
+      actualizarResumenPropina();
+    }
+    return;
+  }
+  propinaPctSeleccionado = null;
+  document.querySelectorAll('.propina-pct-btn').forEach(b => b.classList.remove('active'));
+  cobroPropinaMonto = propinaModoCustom === 'pct' ? cobroTotalActual * (val / 100) : val;
+  actualizarResumenPropina();
+}
+
+function propinaLimpiarCustom(){
+  document.getElementById('propinaCustomInput').value = '';
+  propinaPctSeleccionado = 0;
+  cobroPropinaMonto = 0;
+  document.querySelectorAll('.propina-pct-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.propina-pct-btn[data-pct="0"]').classList.add('active');
+  actualizarResumenPropina();
+}
+
+function actualizarResumenPropina(){
+  document.getElementById('propinaResSubtotal').textContent = '$' + cobroTotalActual.toFixed(2);
+  document.getElementById('propinaResPropina').textContent = '$' + cobroPropinaMonto.toFixed(2);
+  document.getElementById('propinaResTotal').textContent = '$' + (cobroTotalActual + cobroPropinaMonto).toFixed(2);
+}
+
+function continuarAPantallaPago(){
+  document.getElementById('cobroTituloHeader').textContent = 'Cobrar orden';
+  document.getElementById('cobroVistaPropina').style.display = 'none';
+  document.getElementById('cobroVistaPago').style.display = 'grid';
+  resetCajaCobro();
+}
+
+// El botón "←" del encabezado regresa a la pantalla de propina si ya
+// estamos en la de métodos de pago; si estamos en propina, cierra todo.
+function cobroBotonAtras(){
+  const enPago = document.getElementById('cobroVistaPago').style.display !== 'none';
+  if (enPago){
+    document.getElementById('cobroTituloHeader').textContent = 'Propina';
+    document.getElementById('cobroVistaPago').style.display = 'none';
+    document.getElementById('cobroVistaPropina').style.display = 'block';
+  } else {
+    document.getElementById('modalCobro').classList.remove('show');
+  }
 }
 
 function elegirMetodoCobro(metodo, moneda, btn){
@@ -2350,9 +2517,13 @@ function posTeclaKeypad(t){
   posActualizarMontoInput();
 }
 
+function cobroTotalConPropina(){
+  return cobroTotalActual + cobroPropinaMonto;
+}
+
 function cobroRestantePesos(){
   const pagado = cobroLineas.reduce((s, l) => s + l.montoPesos, 0);
-  return cobroTotalActual - pagado;
+  return cobroTotalConPropina() - pagado;
 }
 
 // Llena el input del teclado con el restante convertido a la moneda que
@@ -2420,11 +2591,14 @@ function quitarLineaPago(idx){
 const METODO_LABEL_COBRO = { efectivo: '💵 Efectivo', tarjeta_debito: '💳 Débito', tarjeta_credito: '💳 Crédito', cortesia: '🎁 Cortesía' };
 
 function renderLineasPago(){
-  const total = cobroTotalActual;
+  const total = cobroTotalConPropina();
   const pagado = cobroLineas.reduce((s, l) => s + l.montoPesos, 0);
   const restante = total - pagado;
 
   document.getElementById('cobroTotalTexto').textContent = '$' + total.toFixed(2);
+  document.getElementById('cobroPropinaSubtexto').textContent = cobroPropinaMonto > 0.005
+    ? `Incluye $${cobroTotalActual.toFixed(2)} de subtotal + $${cobroPropinaMonto.toFixed(2)} de propina`
+    : '';
   document.getElementById('cobroPagadoTexto').textContent = '$' + pagado.toFixed(2);
 
   const cajaRestante = document.getElementById('cobroRestanteBox');
@@ -2587,6 +2761,7 @@ async function confirmarCobro(){
       p_mesa: mesaTexto,
       p_nota: nota || null,
       p_tipo_servicio: cobroModoExistente ? null : posTipoServicioActual,
+      p_propina: cobroPropinaMonto,
     });
     if (finErr) throw new Error('El pago se registró pero no se pudo cerrar el pedido: ' + finErr.message);
 
