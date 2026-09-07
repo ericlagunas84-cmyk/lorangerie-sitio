@@ -235,6 +235,46 @@
   .pos-keypad button{height:56px;background:var(--low);border:1px solid var(--outline);border-radius:8px;font-weight:700;font-size:20px;cursor:pointer;}
   .pos-keypad button:hover{background:var(--outline-variant);}
   .pos-cambio-box{display:flex;justify-content:space-between;align-items:center;background:var(--ok-soft);color:var(--ok);padding:14px 16px;border-radius:10px;font-weight:700;font-size:16px;}
+
+  /* Pantalla grande de cobro (estilo Parrot Connect) */
+  #modalCobro{padding:0;align-items:stretch;justify-content:stretch;}
+  .cobro-pantalla{width:100%;height:100%;background:var(--surface,#f8f9ff);display:flex;flex-direction:column;}
+  .cobro-header{display:flex;align-items:center;gap:20px;padding:18px 28px;border-bottom:1px solid var(--outline);background:var(--paper);flex-shrink:0;}
+  .cobro-header h2{font-family:var(--serif);font-size:22px;margin:0;}
+  .cobro-3col{flex:1;display:grid;grid-template-columns:1.1fr 1.3fr 1fr;gap:0;overflow:hidden;}
+  .cobro-col{padding:24px;overflow-y:auto;}
+  .cobro-col-metodos{border-right:1px solid var(--outline);}
+  .cobro-col-monto{border-right:1px solid var(--outline);display:flex;flex-direction:column;}
+  .cobro-col-titulo{display:block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--on-var);margin-bottom:12px;}
+
+  .cobro-metodo-btn{display:block;width:100%;text-align:left;padding:20px 18px;margin-bottom:10px;border:2px solid var(--outline);background:var(--paper);border-radius:12px;font-size:16px;font-weight:600;color:var(--on);cursor:pointer;}
+  .cobro-metodo-btn.active{border-color:var(--sage);background:var(--ok-soft);color:var(--ok);}
+
+  .cobro-monto-display{font-family:var(--serif);font-weight:800;font-size:44px;text-align:center;padding:20px;border:2px solid var(--sage);border-radius:14px;width:100%;background:#fff;margin-bottom:18px;}
+  .cobro-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1;}
+  .cobro-keypad button{font-size:26px;font-weight:700;background:var(--low);border:1px solid var(--outline);border-radius:12px;cursor:pointer;min-height:64px;}
+  .cobro-keypad button:hover{background:var(--outline-variant);}
+  .cobro-btn-agregar{width:100%;height:60px;font-size:16px;margin-top:16px;flex-shrink:0;}
+
+  .cobro-total-box{display:flex;justify-content:space-between;align-items:baseline;background:var(--low);border-radius:14px;padding:18px 20px;margin-bottom:14px;}
+  .cobro-total-box span:last-child{font-family:var(--serif);font-weight:800;font-size:30px;}
+  .cobro-mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .cobro-mini-stats > div{background:var(--low);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;}
+  .cobro-mini-stats b{font-family:var(--serif);font-size:18px;}
+  #cobroRestanteBox.completo{background:var(--ok-soft);}
+  #cobroRestanteBox.completo b, #cobroRestanteBox.completo span{color:var(--ok);}
+  #cobroRestanteBox.pendiente{background:var(--danger-soft);}
+  #cobroRestanteBox.pendiente b, #cobroRestanteBox.pendiente span{color:var(--danger);}
+
+  .cobro-lineas-lista{min-height:60px;max-height:220px;overflow-y:auto;}
+  .cobro-linea-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--low);border-radius:10px;margin-bottom:8px;font-size:13px;}
+  .cobro-lineas-vacio{color:var(--on-var);font-size:13px;text-align:center;padding:24px 10px;}
+  .cobro-btn-confirmar{width:100%;height:64px;font-size:17px;margin-top:16px;}
+
+  @media(max-width:900px){
+    .cobro-3col{grid-template-columns:1fr;overflow-y:auto;}
+    .cobro-col{border-right:none!important;border-bottom:1px solid var(--outline);}
+  }
   .stat-card{background:var(--paper);border:1px solid var(--outline);border-radius:12px;padding:18px;}
   .grupo-chip{display:flex;align-items:center;gap:6px;background:var(--low);border:1px solid var(--outline);border-radius:16px;padding:4px 6px 4px 12px;font-size:12.5px;}
   .grupo-chip button{background:none;border:none;cursor:pointer;color:var(--on-var);font-size:14px;line-height:1;padding:2px 4px;}
@@ -1082,60 +1122,55 @@
 <!-- MODAL: insumo de inventario -->
 <!-- MODAL: cobrar orden (POS) -->
 <div class="modal-overlay" id="modalCobro">
-  <div class="modal-card" style="width:760px;max-width:95vw;">
-    <h3 style="font-size:22px;margin-bottom:4px;">Cobrar orden</h3>
-    <p class="muted" style="font-size:14px;margin:0 0 16px;" id="cobroMesaTexto"></p>
-
-    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;">
-      <div style="flex:1;min-width:140px;background:var(--low);border-radius:12px;padding:14px;text-align:center;">
-        <div class="muted" style="font-size:11.5px;text-transform:uppercase;">Total</div>
-        <div style="font-family:var(--serif);font-weight:800;font-size:22px;" id="cobroTotalTexto"></div>
-      </div>
-      <div style="flex:1;min-width:140px;background:var(--low);border-radius:12px;padding:14px;text-align:center;">
-        <div class="muted" style="font-size:11.5px;text-transform:uppercase;">Pagado</div>
-        <div style="font-family:var(--serif);font-weight:800;font-size:22px;color:var(--sage-dark);" id="cobroPagadoTexto">$0.00</div>
-      </div>
-      <div style="flex:1;min-width:140px;border-radius:12px;padding:14px;text-align:center;" id="cobroRestanteBox">
-        <div class="muted" style="font-size:11.5px;text-transform:uppercase;" id="cobroRestanteLabel">Restante</div>
-        <div style="font-family:var(--serif);font-weight:800;font-size:22px;" id="cobroRestanteTexto">$0.00</div>
-      </div>
+  <div class="cobro-pantalla">
+    <div class="cobro-header">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modalCobro').classList.remove('show')">← <span id="cobroMesaTexto"></span></button>
+      <h2>Cobrar orden</h2>
     </div>
 
-    <div style="display:flex;gap:28px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:220px;">
-        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Moneda de esta parte del pago</label>
-        <div class="pos-pago-methods" id="cobroMonedas" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px;">
-          <button type="button" class="active" onclick="elegirMonedaCobro('MXN', this)">🇲🇽<span>Pesos</span></button>
-          <button type="button" onclick="elegirMonedaCobro('USD', this)">🇺🇸<span>Dólares</span></button>
-        </div>
-
-        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Método de esta parte</label>
-        <div class="pos-pago-methods" id="cobroMetodos">
-          <button type="button" class="active" onclick="elegirMetodoPago('efectivo', this)">💵<span>Efectivo</span></button>
-          <button type="button" onclick="elegirMetodoPago('tarjeta_debito', this)">💳<span>Débito</span></button>
-          <button type="button" onclick="elegirMetodoPago('tarjeta_credito', this)">💳<span>Crédito</span></button>
-          <button type="button" onclick="elegirMetodoPago('cortesia', this)">🎁<span>Cortesía</span></button>
+    <div class="cobro-3col">
+      <!-- Columna 1: métodos de pago -->
+      <div class="cobro-col cobro-col-metodos">
+        <label class="cobro-col-titulo">Método de pago</label>
+        <div id="cobroMetodos">
+          <button type="button" class="cobro-metodo-btn active" data-metodo="efectivo" data-moneda="MXN" onclick="elegirMetodoCobro('efectivo','MXN',this)">💵 Efectivo (Pesos)</button>
+          <button type="button" class="cobro-metodo-btn" data-metodo="efectivo" data-moneda="USD" onclick="elegirMetodoCobro('efectivo','USD',this)">💵 Efectivo (Dólares)</button>
+          <button type="button" class="cobro-metodo-btn" data-metodo="tarjeta_debito" data-moneda="MXN" onclick="elegirMetodoCobro('tarjeta_debito','MXN',this)">💳 Tarjeta de Débito</button>
+          <button type="button" class="cobro-metodo-btn" data-metodo="tarjeta_credito" data-moneda="MXN" onclick="elegirMetodoCobro('tarjeta_credito','MXN',this)">💳 Tarjeta de Crédito</button>
+          <button type="button" class="cobro-metodo-btn" data-metodo="cortesia" data-moneda="MXN" onclick="elegirMetodoCobro('cortesia','MXN',this)">🎁 Cortesía / Interno</button>
         </div>
       </div>
 
-      <div id="cobroEfectivoBox" style="flex:1;min-width:240px;">
-        <label class="field-label" style="font-size:12px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Monto de esta parte</label>
-        <input type="text" id="cobroMontoInput" class="pos-monto-input" readonly value="0.00">
-        <div class="pos-keypad" id="cobroKeypad"></div>
-        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="agregarLineaPago()">+ Agregar este pago</button>
+      <!-- Columna 2: monto + teclado -->
+      <div class="cobro-col cobro-col-monto">
+        <label class="cobro-col-titulo">Monto de esta parte</label>
+        <input type="text" id="cobroMontoInput" class="cobro-monto-display" readonly value="0.00">
+        <div id="cobroEfectivoBox">
+          <div class="cobro-keypad" id="cobroKeypad"></div>
+        </div>
+        <div id="cobroInfoBox" style="display:none;">
+          <p class="muted" style="font-size:14px;text-align:center;padding:30px 10px;" id="cobroInfoTexto"></p>
+        </div>
+        <button class="btn btn-primary cobro-btn-agregar" onclick="agregarLineaPago()">+ Agregar este pago</button>
       </div>
-      <div id="cobroInfoBox" style="display:none;flex:1;min-width:240px;">
-        <p class="muted" style="font-size:13px;" id="cobroInfoTexto"></p>
-        <button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="agregarLineaPago()">+ Agregar este pago</button>
+
+      <!-- Columna 3: resumen y pagos realizados -->
+      <div class="cobro-col cobro-col-resumen">
+        <div class="cobro-total-box">
+          <span class="muted">Total a pagar</span>
+          <span id="cobroTotalTexto"></span>
+        </div>
+        <div class="cobro-mini-stats">
+          <div><span class="muted">Pagado</span><b id="cobroPagadoTexto">$0.00</b></div>
+          <div id="cobroRestanteBox"><span class="muted" id="cobroRestanteLabel">Restante</span><b id="cobroRestanteTexto">$0.00</b></div>
+        </div>
+
+        <label class="cobro-col-titulo" style="margin-top:18px;">Pagos realizados</label>
+        <div id="cobroLineasLista" class="cobro-lineas-lista"></div>
+
+        <div id="cobroMsg"></div>
+        <button class="btn btn-primary cobro-btn-confirmar" id="cobroBtnConfirmar" onclick="confirmarCobro()" disabled>Confirmar pago</button>
       </div>
-    </div>
-
-    <div id="cobroLineasLista" style="margin-top:18px;"></div>
-
-    <div id="cobroMsg"></div>
-    <div style="display:flex;gap:10px;margin-top:20px;">
-      <button class="btn btn-ghost" style="flex:1;height:52px;" onclick="document.getElementById('modalCobro').classList.remove('show')">Cancelar</button>
-      <button class="btn btn-primary" style="flex:2;height:52px;font-size:15px;" id="cobroBtnConfirmar" onclick="confirmarCobro()" disabled>Confirmar pago</button>
     </div>
   </div>
 </div>
@@ -2242,10 +2277,8 @@ function resetCajaCobro(){
   cobroMonedaActual = 'MXN';
   cobroMontoStr = '0';
   document.getElementById('cobroMsg').innerHTML = '';
-  document.querySelectorAll('#cobroMetodos button').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#cobroMetodos button')[0].classList.add('active');
-  document.querySelectorAll('#cobroMonedas button').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('#cobroMonedas button')[0].classList.add('active');
+  document.querySelectorAll('.cobro-metodo-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.cobro-metodo-btn[data-metodo="efectivo"][data-moneda="MXN"]').classList.add('active');
   document.getElementById('cobroEfectivoBox').style.display = 'block';
   document.getElementById('cobroInfoBox').style.display = 'none';
   posActualizarKeypad();
@@ -2275,30 +2308,28 @@ function abrirModalCobroExistente(){
   document.getElementById('modalCobro').classList.add('show');
 }
 
-function elegirMonedaCobro(moneda, btn){
-  cobroMonedaActual = moneda;
-  document.querySelectorAll('#cobroMonedas button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  cobroMontoStr = '0';
-  posActualizarMontoInput();
-}
-
-function elegirMetodoPago(metodo, btn){
+function elegirMetodoCobro(metodo, moneda, btn){
   cobroMetodoActual = metodo;
-  document.querySelectorAll('#cobroMetodos button').forEach(b => b.classList.remove('active'));
+  cobroMonedaActual = moneda;
+  document.querySelectorAll('.cobro-metodo-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
+
   const cajaEfectivo = document.getElementById('cobroEfectivoBox');
   const cajaInfo = document.getElementById('cobroInfoBox');
   if (metodo === 'cortesia'){
     cajaEfectivo.style.display = 'none';
     cajaInfo.style.display = 'block';
     document.getElementById('cobroInfoTexto').textContent = 'Perdona el restante como cortesía — no se cobra nada por esta parte.';
+  } else if (metodo !== 'efectivo'){
+    cajaEfectivo.style.display = 'none';
+    cajaInfo.style.display = 'block';
+    document.getElementById('cobroInfoTexto').textContent = 'Cobra el total completo en la terminal física. Aquí solo se registra que el pago fue con ' + (metodo === 'tarjeta_debito' ? 'tarjeta de débito.' : 'tarjeta de crédito.');
   } else {
     cajaEfectivo.style.display = 'block';
     cajaInfo.style.display = 'none';
-    cobroMontoStr = '0';
-    posActualizarMontoInput();
   }
+  cobroMontoStr = '0';
+  posActualizarMontoInput();
 }
 
 function posActualizarKeypad(){
@@ -2416,14 +2447,14 @@ function renderLineasPago(){
   const cont = document.getElementById('cobroLineasLista');
   cont.innerHTML = cobroLineas.length
     ? cobroLineas.map((l, i) => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--low);border-radius:8px;margin-bottom:6px;font-size:13.5px;">
-          <span>${METODO_LABEL_COBRO[l.metodo]} — ${l.moneda === 'USD' ? 'US$' : '$'}${l.monto.toFixed(2)} ${l.moneda}</span>
+        <div class="cobro-linea-item">
+          <span>${METODO_LABEL_COBRO[l.metodo]}<br><b>${l.moneda === 'USD' ? 'US$' : '$'}${l.monto.toFixed(2)} ${l.moneda}</b></span>
           <div style="display:flex;align-items:center;gap:10px;">
             <span class="muted">≈ $${l.montoPesos.toFixed(2)} MXN</span>
             <button class="btn btn-ghost btn-sm" onclick="quitarLineaPago(${i})">✕</button>
           </div>
         </div>`).join('')
-    : '<p class="muted" style="font-size:12.5px;">Todavía no has agregado ninguna forma de pago.</p>';
+    : '<p class="cobro-lineas-vacio">Aún no has agregado ningún pago.</p>';
 
   document.getElementById('cobroBtnConfirmar').disabled = restante > 0.005;
   posActualizarMontoInput();
