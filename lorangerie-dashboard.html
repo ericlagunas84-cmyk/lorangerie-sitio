@@ -1146,41 +1146,11 @@
   <div class="cobro-pantalla">
     <div class="cobro-header">
       <button class="btn btn-ghost btn-sm" id="cobroBtnAtras" onclick="cobroBotonAtras()">← <span id="cobroMesaTexto"></span></button>
-      <h2 id="cobroTituloHeader">Propina</h2>
+      <h2 id="cobroTituloHeader">Cobrar orden</h2>
     </div>
 
-    <!-- VISTA 1: propina -->
-    <div id="cobroVistaPropina">
-      <div class="propina-pantalla">
-        <div class="propina-subtotal-box">
-          <span class="muted">Subtotal del pedido</span>
-          <span id="propinaSubtotalTexto">$0.00</span>
-        </div>
-
-        <label class="propina-label">¿Agregar propina?</label>
-        <div class="propina-pct-grid" id="propinaPctGrid"></div>
-
-        <div class="propina-custom-toggle">
-          <button type="button" class="active" id="propinaModoPctBtn" onclick="propinaCambiarModo('pct')">Otro %</button>
-          <button type="button" id="propinaModoMontoBtn" onclick="propinaCambiarModo('monto')">Cantidad libre</button>
-        </div>
-        <div class="propina-custom-input-row">
-          <input type="number" id="propinaCustomInput" min="0" step="0.01" placeholder="0" oninput="propinaCustomInputCambio()">
-          <button class="btn btn-ghost" style="flex-shrink:0;" onclick="propinaLimpiarCustom()">Limpiar</button>
-        </div>
-
-        <div class="propina-total-box">
-          <div class="fila"><span>Subtotal</span><span id="propinaResSubtotal">$0.00</span></div>
-          <div class="fila"><span>Propina</span><span id="propinaResPropina">$0.00</span></div>
-          <div class="fila final"><span>Total a cobrar</span><span id="propinaResTotal">$0.00</span></div>
-        </div>
-
-        <button class="btn btn-primary propina-btn-continuar" onclick="continuarAPantallaPago()">Continuar →</button>
-      </div>
-    </div>
-
-    <!-- VISTA 2: métodos de pago -->
-    <div id="cobroVistaPago" class="cobro-3col" style="display:none;">
+    <!-- VISTA 1: métodos de pago -->
+    <div id="cobroVistaPago" class="cobro-3col">
       <!-- Columna 1: métodos de pago -->
       <div class="cobro-col cobro-col-metodos">
         <label class="cobro-col-titulo">Método de pago</label>
@@ -1212,7 +1182,6 @@
           <span class="muted" id="cobroTotalLabel">Total a pagar</span>
           <span id="cobroTotalTexto"></span>
         </div>
-        <div class="muted" id="cobroPropinaSubtexto" style="font-size:12px;margin:-10px 0 14px;"></div>
         <div class="cobro-mini-stats">
           <div><span class="muted">Pagado</span><b id="cobroPagadoTexto">$0.00</b></div>
           <div id="cobroRestanteBox"><span class="muted" id="cobroRestanteLabel">Restante</span><b id="cobroRestanteTexto">$0.00</b></div>
@@ -1222,7 +1191,39 @@
         <div id="cobroLineasLista" class="cobro-lineas-lista"></div>
 
         <div id="cobroMsg"></div>
-        <button class="btn btn-primary cobro-btn-confirmar" id="cobroBtnConfirmar" onclick="confirmarCobro()" disabled>Confirmar pago</button>
+        <button class="btn btn-primary cobro-btn-confirmar" id="cobroBtnConfirmar" onclick="avanzarAPropinaDespuesDePago()" disabled>Continuar →</button>
+      </div>
+    </div>
+
+    <!-- VISTA 2: propina (después de cubrir el pago) -->
+    <div id="cobroVistaPropina" style="display:none;">
+      <div class="propina-pantalla">
+        <div class="propina-subtotal-box">
+          <span class="muted">Total ya cubierto</span>
+          <span id="propinaSubtotalTexto">$0.00</span>
+        </div>
+
+        <label class="propina-label">¿Agregar propina?</label>
+        <div class="propina-pct-grid" id="propinaPctGrid"></div>
+
+        <div class="propina-custom-toggle">
+          <button type="button" class="active" id="propinaModoPctBtn" onclick="propinaCambiarModo('pct')">Otro %</button>
+          <button type="button" id="propinaModoMontoBtn" onclick="propinaCambiarModo('monto')">Cantidad libre</button>
+        </div>
+        <div class="propina-custom-input-row">
+          <input type="number" id="propinaCustomInput" min="0" step="0.01" placeholder="0" oninput="propinaCustomInputCambio()">
+          <button class="btn btn-ghost" style="flex-shrink:0;" onclick="propinaLimpiarCustom()">Limpiar</button>
+        </div>
+
+        <div class="propina-total-box">
+          <div class="fila"><span>Subtotal (ya cubierto)</span><span id="propinaResSubtotal">$0.00</span></div>
+          <div class="fila"><span>Propina</span><span id="propinaResPropina">$0.00</span></div>
+          <div class="fila final"><span>Total con propina</span><span id="propinaResTotal">$0.00</span></div>
+        </div>
+
+        <div id="propinaMetodoNota" class="muted" style="font-size:12px;text-align:center;margin-bottom:14px;"></div>
+        <div id="propinaMsg"></div>
+        <button class="btn btn-primary propina-btn-continuar" id="propinaBtnConfirmar" onclick="confirmarCobro()">Confirmar pago</button>
       </div>
     </div>
   </div>
@@ -2344,6 +2345,14 @@ function resetCajaCobro(){
   renderLineasPago();
 }
 
+function iniciarPantallaCobro(){
+  cobroPropinaMonto = 0;
+  document.getElementById('cobroTituloHeader').textContent = 'Cobrar orden';
+  document.getElementById('cobroVistaPago').style.display = 'grid';
+  document.getElementById('cobroVistaPropina').style.display = 'none';
+  resetCajaCobro();
+}
+
 function abrirModalCobro(){
   cobroModoExistente = false;
   cobroPedidoExistenteId = null;
@@ -2351,7 +2360,7 @@ function abrirModalCobro(){
   document.getElementById('cobroMesaTexto').textContent = posTipoServicioActual === 'mesa'
     ? '🍽️ Mesa ' + posMesasElegidas.sort().join(' + ')
     : '🥡 ' + posMesasElegidas[0];
-  mostrarPantallaPropina();
+  iniciarPantallaCobro();
   document.getElementById('modalCobro').classList.add('show');
 }
 
@@ -2363,17 +2372,20 @@ function abrirModalCobroExistente(){
   document.getElementById('cobroMesaTexto').textContent = comandaMesaPedidoActual.tipo_servicio === 'llevar'
     ? '🥡 ' + comandaMesaPedidoActual.mesa
     : '🍽️ Mesa ' + comandaMesaPedidoActual.mesa + ` · Pedido #${comandaMesaPedidoActual.id}`;
-  mostrarPantallaPropina();
+  iniciarPantallaCobro();
   document.getElementById('modalCobro').classList.add('show');
 }
 
 /* ============================================================
-   PANTALLA DE PROPINA — primer paso al cobrar, separado del pago.
+   PANTALLA DE PROPINA — último paso, DESPUÉS de cubrir el pago.
    Se puede elegir 10/15/20%, "Sin propina", un % libre, o una
    cantidad libre en pesos. El monto se guarda aparte del total
-   del pedido para no ensuciar reportes de ventas de comida.
+   del pedido para no ensuciar reportes de ventas de comida, y se
+   agrega como un pago adicional con el mismo método que ya se usó.
    ============================================================ */
-function mostrarPantallaPropina(){
+function avanzarAPropinaDespuesDePago(){
+  if (cobroRestantePesos() > 0.005) return; // el botón ya viene disabled en este caso
+
   cobroPropinaMonto = 0;
   propinaPctSeleccionado = 0;
   propinaModoCustom = 'pct';
@@ -2381,12 +2393,21 @@ function mostrarPantallaPropina(){
   document.getElementById('propinaCustomInput').placeholder = '0';
   document.getElementById('propinaModoPctBtn').classList.add('active');
   document.getElementById('propinaModoMontoBtn').classList.remove('active');
+  document.getElementById('propinaMsg').innerHTML = '';
+  document.getElementById('propinaBtnConfirmar').disabled = false;
+  document.getElementById('propinaBtnConfirmar').textContent = 'Confirmar pago';
 
   document.getElementById('cobroTituloHeader').textContent = 'Propina';
-  document.getElementById('cobroVistaPropina').style.display = 'block';
   document.getElementById('cobroVistaPago').style.display = 'none';
+  document.getElementById('cobroVistaPropina').style.display = 'block';
 
   document.getElementById('propinaSubtotalTexto').textContent = '$' + cobroTotalActual.toFixed(2);
+
+  const primerLinea = cobroLineas[0];
+  document.getElementById('propinaMetodoNota').textContent = primerLinea
+    ? `La propina se agregará al pago con ${(METODO_LABEL_COBRO[primerLinea.metodo] || primerLinea.metodo).replace(/^\S+\s/, '')}.`
+    : '';
+
   renderPropinaPctGrid();
   actualizarResumenPropina();
 }
@@ -2455,21 +2476,15 @@ function actualizarResumenPropina(){
   document.getElementById('propinaResTotal').textContent = '$' + (cobroTotalActual + cobroPropinaMonto).toFixed(2);
 }
 
-function continuarAPantallaPago(){
-  document.getElementById('cobroTituloHeader').textContent = 'Cobrar orden';
-  document.getElementById('cobroVistaPropina').style.display = 'none';
-  document.getElementById('cobroVistaPago').style.display = 'grid';
-  resetCajaCobro();
-}
-
-// El botón "←" del encabezado regresa a la pantalla de propina si ya
-// estamos en la de métodos de pago; si estamos en propina, cierra todo.
+// El botón "←" del encabezado regresa a la pantalla de pago si ya
+// estamos en la de propina (sin perder los pagos ya agregados);
+// si estamos en pago, cierra todo el modal.
 function cobroBotonAtras(){
-  const enPago = document.getElementById('cobroVistaPago').style.display !== 'none';
-  if (enPago){
-    document.getElementById('cobroTituloHeader').textContent = 'Propina';
-    document.getElementById('cobroVistaPago').style.display = 'none';
-    document.getElementById('cobroVistaPropina').style.display = 'block';
+  const enPropina = document.getElementById('cobroVistaPropina').style.display !== 'none';
+  if (enPropina){
+    document.getElementById('cobroTituloHeader').textContent = 'Cobrar orden';
+    document.getElementById('cobroVistaPropina').style.display = 'none';
+    document.getElementById('cobroVistaPago').style.display = 'grid';
   } else {
     document.getElementById('modalCobro').classList.remove('show');
   }
@@ -2517,13 +2532,9 @@ function posTeclaKeypad(t){
   posActualizarMontoInput();
 }
 
-function cobroTotalConPropina(){
-  return cobroTotalActual + cobroPropinaMonto;
-}
-
 function cobroRestantePesos(){
   const pagado = cobroLineas.reduce((s, l) => s + l.montoPesos, 0);
-  return cobroTotalConPropina() - pagado;
+  return cobroTotalActual - pagado;
 }
 
 // Llena el input del teclado con el restante convertido a la moneda que
@@ -2591,14 +2602,11 @@ function quitarLineaPago(idx){
 const METODO_LABEL_COBRO = { efectivo: '💵 Efectivo', tarjeta_debito: '💳 Débito', tarjeta_credito: '💳 Crédito', cortesia: '🎁 Cortesía' };
 
 function renderLineasPago(){
-  const total = cobroTotalConPropina();
+  const total = cobroTotalActual;
   const pagado = cobroLineas.reduce((s, l) => s + l.montoPesos, 0);
   const restante = total - pagado;
 
   document.getElementById('cobroTotalTexto').textContent = '$' + total.toFixed(2);
-  document.getElementById('cobroPropinaSubtexto').textContent = cobroPropinaMonto > 0.005
-    ? `Incluye $${cobroTotalActual.toFixed(2)} de subtotal + $${cobroPropinaMonto.toFixed(2)} de propina`
-    : '';
   document.getElementById('cobroPagadoTexto').textContent = '$' + pagado.toFixed(2);
 
   const cajaRestante = document.getElementById('cobroRestanteBox');
@@ -2698,9 +2706,9 @@ async function enviarOrdenCompleta(){
 }
 
 async function confirmarCobro(){
-  const msg = document.getElementById('cobroMsg');
+  const msg = document.getElementById('propinaMsg');
   if (cobroRestantePesos() > 0.005){
-    msg.innerHTML = '<div class="msg-box msg-err">Todavía falta cubrir el total.</div>';
+    msg.innerHTML = '<div class="msg-box msg-err">Todavía falta cubrir el total. Regresa al pago.</div>';
     return;
   }
   if (!cobroLineas.length){
@@ -2708,7 +2716,7 @@ async function confirmarCobro(){
     return;
   }
 
-  const btn = document.getElementById('cobroBtnConfirmar');
+  const btn = document.getElementById('propinaBtnConfirmar');
   btn.disabled = true; btn.textContent = 'Procesando…';
 
   try {
@@ -2753,6 +2761,20 @@ async function confirmarCobro(){
         p_monto: linea.monto, p_tipo_cambio: linea.tipoCambio,
       });
       if (lineaErr) throw new Error('No se pudo registrar un pago: ' + lineaErr.message);
+    }
+
+    // ---------- Registra la propina como un pago adicional, con el mismo
+    //            método/moneda que el primer pago (la cortesía no aplica
+    //            para propina: se cae a efectivo). ----------
+    if (cobroPropinaMonto > 0.005){
+      const base = cobroLineas[0] || { metodo: 'efectivo', moneda: 'MXN', tipoCambio: null };
+      const metodoPropina = base.metodo === 'cortesia' ? 'efectivo' : base.metodo;
+      const montoPropinaEnMoneda = base.moneda === 'USD' ? cobroPropinaMonto / TIPO_CAMBIO_USD : cobroPropinaMonto;
+      const { error: propinaErr } = await sb.rpc('admin_pedido_agregar_pago', {
+        p_pedido_id: pedidoId, p_metodo_pago: metodoPropina, p_moneda: base.moneda,
+        p_monto: montoPropinaEnMoneda, p_tipo_cambio: base.tipoCambio,
+      });
+      if (propinaErr) throw new Error('No se pudo registrar la propina: ' + propinaErr.message);
     }
 
     // ---------- Cierra el pedido ----------
