@@ -1461,6 +1461,32 @@
   </div>
 </div>
 
+<!-- MODAL: ajustar puntos de un cliente -->
+<div class="modal-overlay" id="modalAjustePuntos">
+  <div class="modal-card" style="width:420px;">
+    <h3 style="font-size:18px;margin-bottom:4px;">Ajustar puntos</h3>
+    <p class="muted" style="font-size:13px;margin:0 0 18px;" id="ajustePuntosClienteTexto"></p>
+
+    <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Tipo de ajuste</label>
+    <div style="display:flex;gap:8px;margin:8px 0 14px;">
+      <button type="button" class="btn btn-ghost" id="ajusteBtnSuma" style="flex:1;" onclick="elegirTipoAjuste('suma')">➕ Sumar</button>
+      <button type="button" class="btn btn-ghost" id="ajusteBtnResta" style="flex:1;" onclick="elegirTipoAjuste('resta')">➖ Restar</button>
+    </div>
+
+    <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Cantidad de puntos</label>
+    <input type="number" id="ajustePuntosCantidad" min="1" step="1" placeholder="Ej. 50" style="margin:8px 0 14px;">
+
+    <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Motivo (obligatorio)</label>
+    <input type="text" id="ajustePuntosMotivo" placeholder="Ej. Compensación por error en pedido" style="margin:8px 0 14px;">
+
+    <div id="ajustePuntosMsg"></div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalAjustePuntos').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" id="ajustePuntosBtnConfirmar" onclick="confirmarAjustePuntos()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ALERTA DE PEDIDO NUEVO — pantalla completa -->
 <div class="pedido-alert-overlay" id="pedidoAlertOverlay">
   <div class="pedido-alert-card">
@@ -3452,25 +3478,66 @@ function filtrarClientesTabla(){
   renderClientesTabla(filtrado);
 }
 
-async function ajustarPuntosCliente(userId, email){
-  const cantidad = prompt(`Ajuste de puntos para ${email}\n\n¿Cuántos puntos? (usa negativo para restar, ej. -50)`);
-  if (cantidad === null || cantidad.trim() === '') return;
-  const num = parseInt(cantidad, 10);
-  if (isNaN(num) || num === 0){ alert('Cantidad inválida.'); return; }
-  const motivo = prompt('Motivo del ajuste (obligatorio):');
-  if (!motivo || !motivo.trim()){ alert('El motivo es obligatorio.'); return; }
+let ajusteClienteActual = null; // { id, email }
+let ajusteTipoActual = 'suma';
+
+function ajustarPuntosCliente(userId, email){
+  ajusteClienteActual = { id: userId, email };
+  ajusteTipoActual = 'suma';
+  document.getElementById('ajustePuntosClienteTexto').textContent = email;
+  document.getElementById('ajustePuntosCantidad').value = '';
+  document.getElementById('ajustePuntosMotivo').value = '';
+  document.getElementById('ajustePuntosMsg').innerHTML = '';
+  elegirTipoAjuste('suma');
+  document.getElementById('modalAjustePuntos').classList.add('show');
+}
+
+function elegirTipoAjuste(tipo){
+  ajusteTipoActual = tipo;
+  const btnSuma = document.getElementById('ajusteBtnSuma');
+  const btnResta = document.getElementById('ajusteBtnResta');
+  btnSuma.classList.toggle('btn-primary', tipo === 'suma');
+  btnSuma.classList.toggle('btn-ghost', tipo !== 'suma');
+  btnResta.classList.toggle('btn-primary', tipo === 'resta');
+  btnResta.classList.toggle('btn-ghost', tipo !== 'resta');
+}
+
+async function confirmarAjustePuntos(){
+  const msg = document.getElementById('ajustePuntosMsg');
+  const cantidad = parseInt(document.getElementById('ajustePuntosCantidad').value, 10);
+  const motivo = document.getElementById('ajustePuntosMotivo').value.trim();
+
+  if (isNaN(cantidad) || cantidad <= 0){
+    msg.innerHTML = '<div class="msg-box msg-err">Escribe una cantidad válida, mayor a 0.</div>';
+    return;
+  }
+  if (!motivo){
+    msg.innerHTML = '<div class="msg-box msg-err">El motivo es obligatorio.</div>';
+    return;
+  }
+
+  const btn = document.getElementById('ajustePuntosBtnConfirmar');
+  btn.disabled = true; btn.textContent = 'Aplicando…';
 
   const { data: sess } = await sb.auth.getSession();
   const { error } = await sb.rpc('ajuste_manual', {
-    p_usuario: userId,
-    p_tipo: num > 0 ? 'suma' : 'resta',
-    p_puntos: Math.abs(num),
+    p_usuario: ajusteClienteActual.id,
+    p_tipo: ajusteTipoActual,
+    p_puntos: cantidad,
     p_motivo: motivo,
     p_admin: sess.session.user.email,
   });
-  if (error){ alert('Error: ' + error.message); return; }
-  alert('Ajuste aplicado correctamente.');
+
+  btn.disabled = false; btn.textContent = 'Aplicar';
+
+  if (error){
+    msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`;
+    return;
+  }
+
+  msg.innerHTML = '<div class="msg-box msg-ok">Ajuste aplicado correctamente.</div>';
   cargarClientes();
+  setTimeout(() => { document.getElementById('modalAjustePuntos').classList.remove('show'); }, 900);
 }
 
 /* ============================================================
