@@ -360,10 +360,6 @@
   .auth-tabs{display:flex;gap:6px;background:var(--surface-container-low);border-radius:var(--radius);padding:4px;margin-bottom:24px;}
   .auth-tabs button{flex:1;border:none;background:none;padding:10px;border-radius:var(--radius);font-family:var(--sans);font-size:13.5px;font-weight:600;cursor:pointer;color:var(--on-surface-variant);}
   .auth-tabs button.active{background:var(--paper-white);color:var(--primary-dark);box-shadow:0 1px 3px rgba(0,0,0,.08);}
-  .social-btn{width:100%;padding:12px;border-radius:var(--radius);border:1px solid var(--outline-variant);background:#fff;font-family:var(--sans);font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;margin-bottom:10px;}
-
-  .auth-divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--on-surface-variant);font-size:12px;}
-  .auth-divider::before, .auth-divider::after{content:"";flex:1;height:1px;background:var(--outline-variant);}
   .uline-field{margin-bottom:18px;}
   .uline-field label{display:block;font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--on-surface-variant);margin-bottom:6px;}
   .uline-field input, .uline-field select, .uline-field textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--outline-variant);padding:10px 2px;font-family:var(--sans);font-size:14.5px;color:var(--on-surface);transition:border-color .25s;}
@@ -567,11 +563,6 @@
     <div id="loginPanel">
       <h3 style="font-size:20px;margin-bottom:6px;">Bienvenido de vuelta</h3>
       <p style="font-size:13.5px;color:var(--on-surface-variant);margin:0 0 20px;">Entra para ver tus puntos y tu historial de pedidos.</p>
-      <button class="social-btn" onclick="socialAuth('Google')">
-        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.3 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.8l6-6C33.6 6.5 29 4.5 24 4.5 12.9 4.5 4 13.4 4 24.5s8.9 20 20 20c11 0 19.5-8 19.5-20 0-1.4-.1-2.4-.3-3.5z"/></svg>
-        Continuar con Google
-      </button>
-      <div class="auth-divider">o</div>
       <div class="uline-field">
         <label for="loginEmail">Correo Electrónico</label>
         <input type="email" id="loginEmail" placeholder="sophie@orangerie.com">
@@ -586,11 +577,6 @@
     <div id="registerPanel" style="display:none;">
       <h3 style="font-size:20px;margin-bottom:6px;">Únete a L'Orangerie</h3>
       <p style="font-size:13.5px;color:var(--on-surface-variant);margin:0 0 20px;">Crea tu cuenta y empieza a acumular puntos de fidelidad.</p>
-      <button class="social-btn" onclick="socialAuth('Google')">
-        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.3 29.3 35 24 35c-6.1 0-11-4.9-11-11s4.9-11 11-11c2.8 0 5.3 1 7.3 2.8l6-6C33.6 6.5 29 4.5 24 4.5 12.9 4.5 4 13.4 4 24.5s8.9 20 20 20c11 0 19.5-8 19.5-20 0-1.4-.1-2.4-.3-3.5z"/></svg>
-        Continuar con Google
-      </button>
-      <div class="auth-divider">o</div>
       <div class="uline-field">
         <label for="regName">Nombre Completo</label>
         <input type="text" id="regName" placeholder="Sophie Beaumont">
@@ -1438,19 +1424,6 @@ async function emailRegister(){
   // El trigger de bienvenida ya insertó 200 pts. Cargamos datos frescos.
   if (data.user){ await cargarDatosUsuario(data.user); }
   onAuthSuccess();
-}
-
-async function socialAuth(provider){
-  if (!SUPABASE_LISTO){
-    user = makeUser('Sophie Beaumont', provider === 'Google' ? 'sophie@gmail.com' : 'sophie@facebook.com');
-    user.points = 240; onAuthSuccess(); return;
-  }
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: provider.toLowerCase(),
-    options: { redirectTo: window.location.href }
-  });
-  if (error){ alert('Error con ' + provider + ': ' + error.message); }
-  // el redirect de OAuth recarga la página; restaurarSesion() retoma al volver.
 }
 
 function onAuthSuccess(){
