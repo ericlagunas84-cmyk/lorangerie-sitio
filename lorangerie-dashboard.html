@@ -2097,8 +2097,10 @@ async function posElegirTipoServicio(tipo){
   document.getElementById('posPantallaTipo').style.display = 'none';
   if (tipo === 'mesa'){
     document.getElementById('posPantallaMesa').style.display = 'block';
-    const { data } = await sb.rpc('admin_pedidos_mesa_activos');
-    posMesasOcupadas = [...new Set((data || []).flatMap(o => (o.mesa || '').split('+').map(m => m.trim())))];
+    // Ocupada = falta cobrar O falta que la cocina entregue la comida —
+    // no basta con que ya se haya pagado.
+    const { data } = await sb.rpc('admin_mesas_ocupadas');
+    posMesasOcupadas = [...new Set((data || []).flatMap(r => (r.mesa || '').split('+').map(m => m.trim())))];
     posRenderMesas();
   } else {
     document.getElementById('posPantallaLlevar').style.display = 'block';
