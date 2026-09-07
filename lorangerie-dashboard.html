@@ -1467,18 +1467,21 @@ async function guardarNuevaContrasena(){
   }
 })();
 
+let ROL_ACTUAL = null;
+
 async function adminLogin(){
   const email = document.getElementById('admEmail').value.trim();
   const password = document.getElementById('admPass').value;
   const msg = document.getElementById('loginMsg');
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
-  const rol = data.user.user_metadata?.rol;
-  if (rol !== 'admin'){
+  const rol = data.user.app_metadata?.rol; // campo seguro — el usuario no lo puede editar él mismo
+  if (!['admin', 'gerente', 'encargado'].includes(rol)){
     msg.innerHTML = `<div class="msg-box msg-err">Esta cuenta no tiene permisos de administrador.</div>`;
     await sb.auth.signOut();
     return;
   }
+  ROL_ACTUAL = rol;
   document.getElementById('loginGate').style.display = 'none';
   document.getElementById('shell').style.display = 'flex';
   document.getElementById('adminEmailFoot').textContent = data.user.email;
@@ -1490,6 +1493,40 @@ async function adminLogin(){
   cargarTipoCambio(); // precarga silenciosa, para que el cobro en USD use el tipo de cambio real
   iniciarAlertasPedidos();
   inicializarIndicadoresGrupo();
+  aplicarPermisosPorRol();
+}
+
+// Esconde pestañas/acciones que el rol de quien inició sesión no debe
+// usar. Esto es la capa VISUAL — el candado real (que nadie se lo
+// salte abriendo la consola del navegador) vive en cada función de
+// Supabase, no aquí.
+function ocultarNavGrupo(grupo){
+  const el = document.querySelector(`.nav-group[data-group="${grupo}"]`);
+  if (el) el.style.display = 'none';
+}
+function ocultarNavItem(tab){
+  const el = document.querySelector(`.nav-item[data-tab="${tab}"]`);
+  if (el) el.style.display = 'none';
+}
+
+function aplicarPermisosPorRol(){
+  if (ROL_ACTUAL === 'admin') return; // el dueño ve todo
+
+  if (ROL_ACTUAL === 'encargado'){
+    ocultarNavGrupo('catalogo');       // Menú, Inventarios, Costeo, Proveedores, Grupos Adicionales
+    ocultarNavGrupo('comunicacion');   // Mensajes, Tickets de Sucursal
+    ocultarNavGrupo('admin');          // Usuarios, Configuración, Auditoría
+    ocultarNavItem('reportes');        // Reportes de Ventas (dentro de Operación)
+
+    const descuento = document.getElementById('posDescuentoPct');
+    if (descuento) descuento.closest('.field-group').style.display = 'none';
+  }
+
+  if (ROL_ACTUAL === 'gerente'){
+    ocultarNavItem('usuarios');
+    ocultarNavItem('auditoria');
+    // Configuración se queda visible para Gerente, como acordamos.
+  }
 }
 
 async function cerrarSesion(){
@@ -2667,7 +2704,7 @@ async function comandaCargarItemsActuales(){
           <span>${it.cantidad}× ${escHtml(it.nombre)}${it.es_cortesia ? ' <span class="badge b-entregado" style="font-size:10px;">🎁 cortesía</span>' : ''}</span>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="${it.es_cortesia ? 'text-decoration:line-through;color:var(--on-var);' : ''}">$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
-            <button class="btn btn-ghost btn-sm" onclick="comandaToggleCortesia(${it.id}, ${it.es_cortesia})">${it.es_cortesia ? 'Quitar cortesía' : '🎁 Cortesía'}</button>
+            ${ROL_ACTUAL !== 'encargado' ? `<button class="btn btn-ghost btn-sm" onclick="comandaToggleCortesia(${it.id}, ${it.es_cortesia})">${it.es_cortesia ? 'Quitar cortesía' : '🎁 Cortesía'}</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="comandaQuitarItem(${it.id})">✕ Quitar</button>
           </div>
         </div>`).join('')
