@@ -567,11 +567,26 @@
         <label for="loginEmail">Correo Electrónico</label>
         <input type="email" id="loginEmail" placeholder="sophie@orangerie.com">
       </div>
-      <div class="uline-field">
+      <div class="uline-field" style="margin-bottom:8px;">
         <label for="loginPassword">Contraseña</label>
         <input type="password" id="loginPassword" placeholder="••••••••">
       </div>
+      <div style="text-align:right;margin-bottom:16px;">
+        <button type="button" onclick="mostrarRecuperar()" style="background:none;border:none;padding:0;font-family:var(--sans);font-size:12.5px;color:var(--primary-dark);text-decoration:underline;cursor:pointer;">¿Olvidaste tu contraseña?</button>
+      </div>
       <button class="btn btn-primary" style="width:100%;" onclick="emailLogin()">Entrar en L'Orangerie</button>
+    </div>
+
+    <div id="recoverPanel" style="display:none;">
+      <h3 style="font-size:20px;margin-bottom:6px;">Recuperar acceso</h3>
+      <p style="font-size:13.5px;color:var(--on-surface-variant);margin:0 0 20px;">Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.</p>
+      <div class="uline-field">
+        <label for="recoverEmail">Correo Electrónico</label>
+        <input type="email" id="recoverEmail" placeholder="sophie@orangerie.com">
+      </div>
+      <div id="recoverMsg"></div>
+      <button class="btn btn-primary" style="width:100%;" id="recoverBtn" onclick="enviarRecuperacion()">Enviar enlace</button>
+      <button type="button" onclick="ocultarRecuperar()" style="background:none;border:none;padding:0;margin-top:14px;font-family:var(--sans);font-size:12.5px;color:var(--on-surface-variant);text-decoration:underline;cursor:pointer;">← Volver a iniciar sesión</button>
     </div>
 
     <div id="registerPanel" style="display:none;">
@@ -589,6 +604,7 @@
         <label for="regPassword">Contraseña</label>
         <input type="password" id="regPassword" placeholder="••••••••">
       </div>
+      <div id="registerMsg"></div>
       <div class="id-callout">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--gold-dark)" stroke-width="1.8" style="margin-top:2px;flex-shrink:0;"><path d="M20.6 12.3l-8.3 8.3a2 2 0 0 1-2.8 0l-6.1-6.1a2 2 0 0 1 0-2.8l8.3-8.3a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v5.7a2 2 0 0 1-.4 1.4z"/><circle cx="15" cy="9" r="1.2"/></svg>
         <div>
@@ -597,6 +613,20 @@
       </div>
       <button class="btn btn-primary" style="width:100%;" onclick="emailRegister()">Crear Cuenta</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: definir nueva contraseña (llegando desde el enlace de recuperación) -->
+<div class="modal-overlay" id="nuevaPasswordOverlay">
+  <div class="modal-card">
+    <h3 style="font-size:20px;margin-bottom:6px;">Crea tu nueva contraseña</h3>
+    <p style="font-size:13.5px;color:var(--on-surface-variant);margin:0 0 20px;">Ya validamos tu enlace de recuperación. Escribe la contraseña que quieres usar de ahora en adelante.</p>
+    <div class="uline-field" style="margin-bottom:16px;">
+      <label for="nuevaPasswordInput">Nueva contraseña</label>
+      <input type="password" id="nuevaPasswordInput" placeholder="••••••••">
+    </div>
+    <div id="nuevaPasswordMsg"></div>
+    <button class="btn btn-primary" style="width:100%;" id="nuevaPasswordBtn" onclick="guardarNuevaPassword()">Guardar contraseña</button>
   </div>
 </div>
 
@@ -1083,6 +1113,11 @@ const SUPABASE_LISTO = !SUPABASE_URL.includes("TU-PROYECTO");
 let sb = null;
 if (SUPABASE_LISTO && window.supabase){
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  // Cuando alguien llega desde el enlace de "recuperar contraseña",
+  // Supabase dispara este evento automáticamente al leer el link.
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') abrirModalNuevaPassword();
+  });
 }
 </script>
 
@@ -1365,10 +1400,81 @@ function closeAuth(){
 }
 function switchAuthTab(tab){
   const isLogin = tab === 'login';
+  document.querySelector('.auth-tabs').style.display = 'flex';
   document.getElementById('tabLogin').classList.toggle('active', isLogin);
   document.getElementById('tabRegister').classList.toggle('active', !isLogin);
   document.getElementById('loginPanel').style.display = isLogin ? 'block' : 'none';
   document.getElementById('registerPanel').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('recoverPanel').style.display = 'none';
+}
+
+function mostrarRecuperar(){
+  document.getElementById('recoverMsg').innerHTML = '';
+  document.getElementById('recoverEmail').value = document.getElementById('loginEmail').value.trim();
+  document.querySelector('.auth-tabs').style.display = 'none';
+  document.getElementById('loginPanel').style.display = 'none';
+  document.getElementById('registerPanel').style.display = 'none';
+  document.getElementById('recoverPanel').style.display = 'block';
+}
+
+function ocultarRecuperar(){
+  switchAuthTab('login');
+}
+
+async function enviarRecuperacion(){
+  const email = document.getElementById('recoverEmail').value.trim();
+  const msg = document.getElementById('recoverMsg');
+  const btn = document.getElementById('recoverBtn');
+  if (!email){ msg.innerHTML = '<div class="tk-alert tk-err">Escribe tu correo.</div>'; return; }
+
+  if (!SUPABASE_LISTO || !sb){
+    msg.innerHTML = '<div class="tk-alert tk-ok">Modo demo: aquí se enviaría el enlace de recuperación.</div>';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname,
+  });
+  btn.disabled = false; btn.textContent = 'Enviar enlace';
+
+  if (error){
+    msg.innerHTML = `<div class="tk-alert tk-err">${error.message}</div>`;
+    return;
+  }
+  msg.innerHTML = '<div class="tk-alert tk-ok">Si ese correo tiene una cuenta, te llegará un enlace para crear tu nueva contraseña.</div>';
+}
+
+function abrirModalNuevaPassword(){
+  document.getElementById('authOverlay').classList.remove('show');
+  document.getElementById('nuevaPasswordMsg').innerHTML = '';
+  document.getElementById('nuevaPasswordInput').value = '';
+  document.getElementById('nuevaPasswordOverlay').classList.add('show');
+}
+
+async function guardarNuevaPassword(){
+  const pass = document.getElementById('nuevaPasswordInput').value;
+  const msg = document.getElementById('nuevaPasswordMsg');
+  const btn = document.getElementById('nuevaPasswordBtn');
+
+  if (!pass || pass.length < 6){
+    msg.innerHTML = '<div class="tk-alert tk-err">La contraseña debe tener al menos 6 caracteres.</div>';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  const { error } = await sb.auth.updateUser({ password: pass });
+  btn.disabled = false; btn.textContent = 'Guardar contraseña';
+
+  if (error){
+    msg.innerHTML = `<div class="tk-alert tk-err">${error.message}</div>`;
+    return;
+  }
+
+  msg.innerHTML = '<div class="tk-alert tk-ok">Contraseña actualizada. Ya puedes entrar con ella.</div>';
+  const { data } = await sb.auth.getSession();
+  if (data.session?.user){ await cargarDatosUsuario(data.session.user); updateAuthUI(); }
+  setTimeout(() => { document.getElementById('nuevaPasswordOverlay').classList.remove('show'); }, 1600);
 }
 
 function makeUser(name, email){
@@ -1412,6 +1518,8 @@ async function emailRegister(){
   const name = document.getElementById('regName').value.trim();
   const email = document.getElementById('regEmail').value.trim();
   const password = document.getElementById('regPassword').value;
+  const msg = document.getElementById('registerMsg');
+  msg.innerHTML = '';
   if (!name){ document.getElementById('regName').focus(); return; }
   if (!SUPABASE_LISTO){
     user = makeUser(name, email || '—'); user.points = 200; onAuthSuccess(); return;
@@ -1420,7 +1528,23 @@ async function emailRegister(){
     email, password,
     options: { data: { nombre: name } }
   });
-  if (error){ alert('No pudimos crear la cuenta: ' + error.message); return; }
+  if (error){ msg.innerHTML = `<div class="tk-alert tk-err">No pudimos crear la cuenta: ${error.message}</div>`; return; }
+
+  // Supabase no regresa un error explícito cuando el correo ya tiene cuenta
+  // (para no revelar qué correos existen) — se detecta porque "identities"
+  // viene vacío. Sin este chequeo, el botón parecía "loguear" a alguien
+  // que en realidad no tiene sesión real.
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0){
+    msg.innerHTML = '<div class="tk-alert tk-err">Ese correo ya tiene una cuenta. Usa "¿Olvidaste tu contraseña?" en Iniciar sesión para crear una contraseña nueva.</div>';
+    return;
+  }
+
+  // Si el proyecto exige confirmar correo, aquí no hay sesión real todavía.
+  if (!data.session){
+    msg.innerHTML = '<div class="tk-alert tk-ok">¡Cuenta creada! Revisa tu correo y confirma tu cuenta antes de entrar.</div>';
+    return;
+  }
+
   // El trigger de bienvenida ya insertó 200 pts. Cargamos datos frescos.
   if (data.user){ await cargarDatosUsuario(data.user); }
   onAuthSuccess();
