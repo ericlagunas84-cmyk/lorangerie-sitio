@@ -1596,11 +1596,18 @@ async function adminLogin(){
     await sb.auth.signOut();
     return;
   }
+  sb.rpc('registrar_login', { p_user_agent: navigator.userAgent }); // no bloquea el login si falla
+  entrarAlShell(data.user, rol);
+}
+
+// Todo lo que pasa al "entrar" al panel, ya sea porque alguien acaba de
+// escribir su correo/contraseña, o porque ya tenía una sesión guardada
+// en el navegador y solo estamos restaurándola tras un refresh.
+function entrarAlShell(user, rol){
   ROL_ACTUAL = rol;
   document.getElementById('loginGate').style.display = 'none';
   document.getElementById('shell').style.display = 'flex';
-  document.getElementById('adminEmailFoot').textContent = data.user.email;
-  sb.rpc('registrar_login', { p_user_agent: navigator.userAgent }); // no bloquea el login si falla
+  document.getElementById('adminEmailFoot').textContent = user.email;
   cargarResumen();
   cargarPedidos();   // precarga silenciosa, solo para el contador del menú
   cargarMensajes();  // precarga silenciosa, solo para el contador del menú
@@ -1610,6 +1617,23 @@ async function adminLogin(){
   inicializarIndicadoresGrupo();
   aplicarPermisosPorRol();
 }
+
+// Al cargar la página, si el navegador todavía tiene una sesión válida
+// guardada (Supabase la persiste solo), entramos directo sin pedir
+// correo/contraseña otra vez. Antes esto no existía, así que cada
+// refresh mandaba de regreso al login aunque la sesión siguiera viva.
+async function intentarRestaurarSesion(){
+  if (window.location.hash.includes('type=recovery')) return; // ese caso lo maneja detectarRecuperacion()
+  const { data, error } = await sb.auth.getSession();
+  if (error || !data.session) return; // sin sesión guardada: se queda en el login, normal
+  const rol = data.session.user.app_metadata?.rol;
+  if (!['admin', 'gerente', 'encargado'].includes(rol)){
+    await sb.auth.signOut();
+    return;
+  }
+  entrarAlShell(data.session.user, rol);
+}
+document.addEventListener('DOMContentLoaded', intentarRestaurarSesion);
 
 // Esconde pestañas/acciones que el rol de quien inició sesión no debe
 // usar. Esto es la capa VISUAL — el candado real (que nadie se lo
