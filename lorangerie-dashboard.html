@@ -3274,7 +3274,6 @@ function renderKdsEnfocada(lista){
         <div style="display:flex;gap:8px;margin-top:8px;">
           <button class="btn btn-ghost btn-sm" onclick="imprimirComanda(${o.id})">🖨️ Imprimir</button>
           <button class="btn btn-ghost btn-sm" data-mesa="${escHtml(o.mesa)}" onclick="editarComandaDesdeTablero(this.dataset.mesa)">✏️ Editar orden</button>
-          <button class="btn btn-primary btn-sm" data-mesa="${escHtml(o.mesa)}" onclick="cobrarComandaDesdeTablero(this.dataset.mesa)">💰 Cobrar</button>
         </div>
         <div class="kds-nav">
           <button onclick="kdsNavegar(-1)">‹ Anterior <span class="muted">(${escHtml(anterior && anterior.mesa || '')})</span></button>
@@ -3298,11 +3297,6 @@ async function kdsToggleEnProceso(id, actual){
 async function editarComandaDesdeTablero(mesa){
   await abrirComandaMesa(mesa);
   mostrarAgregarProductos();
-}
-
-async function cobrarComandaDesdeTablero(mesa){
-  await abrirComandaMesa(mesa);
-  abrirModalCobroExistente();
 }
 
 async function marcarEntregadoDesdeComanda(id){
