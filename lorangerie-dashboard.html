@@ -932,34 +932,74 @@
     <div id="tab-usuarios" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Usuarios</h2>
-        <button class="btn btn-primary btn-sm" onclick="abrirModalInvitar()">+ Invitar usuario</button>
+        <button class="btn btn-primary btn-sm" id="usrBtnInvitar" onclick="abrirModalInvitar()">+ Invitar usuario</button>
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Los usuarios nuevos reciben un correo con un enlace para crear su propia contraseña — nunca se genera ni se comparte una contraseña temporal. Suspender bloquea el acceso sin borrar su historial.</p>
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;">
-        <input type="text" id="usrBuscar" placeholder="Buscar por nombre o correo…" style="max-width:260px;" oninput="renderUsuariosTabla()">
-        <select id="usrFiltroRol" style="max-width:170px;" onchange="renderUsuariosTabla()">
-          <option value="">Todos los roles</option>
-          <option value="admin">Admin</option>
-          <option value="gerente">Gerente</option>
-          <option value="encargado">Encargado de turno</option>
-        </select>
-        <select id="usrFiltroEstado" style="max-width:170px;" onchange="renderUsuariosTabla()">
-          <option value="">Todos los estados</option>
-          <option value="activo">Activo</option>
-          <option value="inactivo">Inactivo</option>
-          <option value="invitado">Invitado</option>
-        </select>
-        <button class="btn btn-ghost btn-sm" onclick="cargarUsuarios()">↻ Actualizar</button>
+      <div class="tabs-row" style="margin:14px 0;">
+        <button class="active" onclick="usrSubTab('cuentas', this)">Cuentas</button>
+        <button onclick="usrSubTab('puestos', this)">Puestos y permisos</button>
       </div>
 
-      <div class="card" style="padding:0;overflow-x:auto;">
-        <table>
-          <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
-          <tbody id="usuariosTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
-        </table>
+      <div id="usrSubCuentas">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;">
+          <input type="text" id="usrBuscar" placeholder="Buscar por nombre o correo…" style="max-width:260px;" oninput="renderUsuariosTabla()">
+          <select id="usrFiltroRol" style="max-width:170px;" onchange="renderUsuariosTabla()">
+            <option value="">Todos los puestos</option>
+          </select>
+          <select id="usrFiltroEstado" style="max-width:170px;" onchange="renderUsuariosTabla()">
+            <option value="">Todos los estados</option>
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+            <option value="invitado">Invitado</option>
+          </select>
+          <button class="btn btn-ghost btn-sm" onclick="cargarUsuarios()">↻ Actualizar</button>
+        </div>
+
+        <div class="card" style="padding:0;overflow-x:auto;">
+          <table>
+            <thead><tr><th>Nombre</th><th>Correo</th><th>Puesto</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
+            <tbody id="usuariosTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:center;gap:10px;margin-top:14px;" id="usrPaginacion"></div>
       </div>
-      <div style="display:flex;justify-content:center;gap:10px;margin-top:14px;" id="usrPaginacion"></div>
+
+      <div id="usrSubPuestos" style="display:none;">
+        <div class="section-head" style="margin-top:0;">
+          <p class="muted" style="font-size:12.5px;margin:0;max-width:560px;">Los puestos <b>Admin</b> y <b>Gerente</b> son la base del sistema — se pueden renombrar pero no perder sus permisos. Crea puestos nuevos para roles a la medida (ej. "Barista Senior", "Supervisor de cocina").</p>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalPuesto(null)">+ Nuevo puesto</button>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
+          <table>
+            <thead><tr><th>Puesto</th><th>Permisos</th><th></th></tr></thead>
+            <tbody id="puestosTable"><tr><td colspan="3" class="loading">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: crear/editar puesto personalizado -->
+    <div class="modal-overlay" id="modalPuesto">
+      <div class="modal-card">
+        <h3 style="font-size:18px;margin-bottom:6px;" id="modalPuestoTitulo">Nuevo puesto</h3>
+        <input type="hidden" id="puestoId">
+        <div class="field-group"><label>Nombre del puesto</label><input type="text" id="puestoNombre" placeholder="Ej. Supervisor de turno"></div>
+        <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Permisos</label>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permPosCobro" style="width:auto;"> Operación diaria (POS, Mesas, Comandas, Pedidos)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permCortesia" style="width:auto;"> Cortesía y descuentos</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permMenu" style="width:auto;"> Menú, Inventarios, Costeo, Proveedores, Grupos Adicionales</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permConfig" style="width:auto;"> Configuración (PIN, tipo de cambio, mesas)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permReportes" style="width:auto;"> Reportes de Ventas, Mensajes, Tickets de Sucursal</label>
+        </div>
+        <p class="muted" style="font-size:11.5px;margin-top:12px;">Usuarios y Auditoría se quedan exclusivos de Admin y Gerente — no se pueden otorgar desde aquí.</p>
+        <div id="modalPuestoMsg"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalPuesto').classList.remove('show')">Cancelar</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="guardarPuesto()">Guardar</button>
+        </div>
+      </div>
     </div>
 
     <!-- CONFIGURACIÓN -->
@@ -1158,12 +1198,8 @@
     <div class="field-group"><label>Nombre</label><input type="text" id="invNombre"></div>
     <div class="field-group"><label>Correo</label><input type="text" id="invEmail" placeholder="correo@ejemplo.com"></div>
     <div class="field-group">
-      <label>Rol</label>
-      <select id="invRol">
-        <option value="admin">Admin — acceso total</option>
-        <option value="gerente" selected>Gerente</option>
-        <option value="encargado">Encargado de turno</option>
-      </select>
+      <label>Puesto</label>
+      <select id="invRol"></select>
     </div>
     <div id="modalInvitarMsg"></div>
     <div style="display:flex;gap:10px;margin-top:16px;">
@@ -1642,7 +1678,9 @@ async function adminLogin(){
 // Todo lo que pasa al "entrar" al panel, ya sea porque alguien acaba de
 // escribir su correo/contraseña, o porque ya tenía una sesión guardada
 // en el navegador y solo estamos restaurándola tras un refresh.
-function entrarAlShell(user, rol){
+let MIS_PERMISOS = {};
+
+async function entrarAlShell(user, rol){
   ROL_ACTUAL = rol;
   document.getElementById('loginGate').style.display = 'none';
   document.getElementById('shell').style.display = 'flex';
@@ -1654,6 +1692,9 @@ function entrarAlShell(user, rol){
   cargarTipoCambio(); // precarga silenciosa, para que el cobro en USD use el tipo de cambio real
   iniciarAlertasPedidos();
   inicializarIndicadoresGrupo();
+
+  const { data: miPuesto } = await sb.rpc('mi_puesto');
+  MIS_PERMISOS = miPuesto?.permisos || {};
   aplicarPermisosPorRol();
 }
 
@@ -1691,18 +1732,23 @@ function aplicarPermisosPorRol(){
   if (ROL_ACTUAL === 'admin') return; // el dueño ve todo
 
   if (ROL_ACTUAL === 'encargado'){
-    ocultarNavGrupo('catalogo');       // Menú, Inventarios, Costeo, Proveedores, Grupos Adicionales
-    ocultarNavGrupo('comunicacion');   // Mensajes, Tickets de Sucursal
-    ocultarNavGrupo('admin');          // Usuarios, Configuración, Auditoría
-    ocultarNavItem('reportes');        // Reportes de Ventas (dentro de Operación)
+    ocultarNavGrupo('admin'); // Usuarios, Configuración, Auditoría — siempre fuera de este nivel
 
-    const descuento = document.getElementById('posDescuentoPct');
-    if (descuento) descuento.closest('.field-group').style.display = 'none';
+    if (!MIS_PERMISOS.menu_inventario) ocultarNavGrupo('catalogo');       // Menú, Inventarios, Costeo, Proveedores, Grupos Adicionales
+    if (!MIS_PERMISOS.reportes){
+      ocultarNavGrupo('comunicacion');  // Mensajes, Tickets de Sucursal
+      ocultarNavItem('reportes');       // Reportes de Ventas (dentro de Operación)
+    }
+    if (!MIS_PERMISOS.cortesia_descuentos){
+      const descuento = document.getElementById('posDescuentoPct');
+      if (descuento) descuento.closest('.field-group').style.display = 'none';
+    }
   }
 
   if (ROL_ACTUAL === 'gerente'){
-    ocultarNavItem('usuarios');
     ocultarNavItem('auditoria');
+    // Usuarios ahora SÍ es visible para Gerente — puede crear puestos y
+    // asignar permisos, aunque no ver la Auditoría ni tocar el puesto Admin.
     // Configuración se queda visible para Gerente, como acordamos.
   }
 }
@@ -4674,8 +4720,97 @@ async function guardarLoteTickets(){
      supabase functions deploy admin-manage-users
    ============================================================ */
 let usuariosCache = [];
+let puestosCache = [];
 let usrPaginaActual = 1;
 const USR_POR_PAGINA = 10;
+
+function usrSubTab(sub, btn){
+  document.querySelectorAll('#tab-usuarios .tabs-row button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('usrSubCuentas').style.display = sub === 'cuentas' ? 'block' : 'none';
+  document.getElementById('usrSubPuestos').style.display = sub === 'puestos' ? 'block' : 'none';
+  document.getElementById('usrBtnInvitar').style.display = sub === 'cuentas' ? 'inline-flex' : 'none';
+  if (sub === 'puestos') cargarPuestos();
+}
+
+async function cargarPuestos(){
+  const tbody = document.getElementById('puestosTable');
+  tbody.innerHTML = '<tr><td colspan="3" class="loading">Cargando…</td></tr>';
+  const { data, error } = await sb.rpc('admin_puestos_list');
+  if (error){ tbody.innerHTML = `<tr><td colspan="3" class="muted">Error: ${error.message}</td></tr>`; return; }
+  puestosCache = data || [];
+
+  // refresca también el filtro de puestos en Cuentas y el select del modal de invitar
+  const filtro = document.getElementById('usrFiltroRol');
+  filtro.innerHTML = '<option value="">Todos los puestos</option>' + puestosCache.map(p => `<option value="${p.id}">${escHtml(p.nombre)}</option>`).join('');
+
+  const PERM_LABEL = { pos_cobro: 'POS', cortesia_descuentos: 'Cortesía/Desc.', menu_inventario: 'Menú', configuracion: 'Config.', reportes: 'Reportes' };
+  tbody.innerHTML = puestosCache.map(p => {
+    const chips = p.es_dueno
+      ? '<span class="badge b-entregado">Acceso total</span>'
+      : Object.entries(PERM_LABEL).filter(([k]) => p.permisos?.[k]).map(([,l]) => `<span class="badge b-entregado" style="margin-right:4px;">${l}</span>`).join('') || '<span class="muted">Sin permisos</span>';
+    const base = p.es_dueno || p.es_gerencia;
+    return `
+    <tr>
+      <td>${escHtml(p.nombre)}${base ? ' <span class="muted" style="font-size:11px;">(base)</span>' : ''}</td>
+      <td>${chips}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalPuesto(${p.id})">Editar</button>
+        ${!base ? `<button class="btn btn-danger btn-sm" onclick="eliminarPuesto(${p.id}, '${escHtml(p.nombre).replace(/'/g,"\\'")}')">Eliminar</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function abrirModalPuesto(id){
+  document.getElementById('modalPuestoMsg').innerHTML = '';
+  document.getElementById('puestoId').value = id || '';
+  const p = id ? puestosCache.find(x => x.id === id) : null;
+  document.getElementById('modalPuestoTitulo').textContent = id ? 'Editar puesto' : 'Nuevo puesto';
+  document.getElementById('puestoNombre').value = p?.nombre || '';
+  document.getElementById('permPosCobro').checked = p?.permisos?.pos_cobro ?? true;
+  document.getElementById('permCortesia').checked = p?.permisos?.cortesia_descuentos ?? false;
+  document.getElementById('permMenu').checked = p?.permisos?.menu_inventario ?? false;
+  document.getElementById('permConfig').checked = p?.permisos?.configuracion ?? false;
+  document.getElementById('permReportes').checked = p?.permisos?.reportes ?? false;
+
+  // Admin/Gerente son base: nombre editable, permisos bloqueados (ya vienen completos)
+  const esBase = p && (p.es_dueno || p.es_gerencia);
+  ['permPosCobro','permCortesia','permMenu','permConfig','permReportes'].forEach(id2 => {
+    document.getElementById(id2).disabled = !!esBase;
+  });
+
+  document.getElementById('modalPuesto').classList.add('show');
+}
+
+async function guardarPuesto(){
+  const idRaw = document.getElementById('puestoId').value;
+  const nombre = document.getElementById('puestoNombre').value.trim();
+  const msg = document.getElementById('modalPuestoMsg');
+  if (!nombre){ msg.innerHTML = '<div class="msg-box msg-err">El nombre del puesto es obligatorio.</div>'; return; }
+
+  const permisos = {
+    pos_cobro: document.getElementById('permPosCobro').checked,
+    cortesia_descuentos: document.getElementById('permCortesia').checked,
+    menu_inventario: document.getElementById('permMenu').checked,
+    configuracion: document.getElementById('permConfig').checked,
+    reportes: document.getElementById('permReportes').checked,
+  };
+
+  const { error } = await sb.rpc('admin_puesto_guardar', {
+    p_id: idRaw ? Number(idRaw) : null, p_nombre: nombre, p_permisos: permisos,
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  document.getElementById('modalPuesto').classList.remove('show');
+  cargarPuestos();
+}
+
+async function eliminarPuesto(id, nombre){
+  if (!confirm(`¿Eliminar el puesto "${nombre}"? Solo se puede si nadie lo tiene asignado.`)) return;
+  const { error } = await sb.rpc('admin_puesto_eliminar', { p_id: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarPuestos();
+}
 
 async function llamarAdminUsuarios(body){
   const { data: sess } = await sb.auth.getSession();
@@ -4693,6 +4828,7 @@ async function llamarAdminUsuarios(body){
 async function cargarUsuarios(){
   const tbody = document.getElementById('usuariosTable');
   tbody.innerHTML = '<tr><td colspan="6" class="loading">Cargando…</td></tr>';
+  if (!puestosCache.length) await cargarPuestos();
   const data = await llamarAdminUsuarios({ action: 'list' });
   if (!data.ok){
     tbody.innerHTML = `<tr><td colspan="6" class="muted">Este módulo todavía no está conectado (falta desplegar la Edge Function "admin-manage-users"). Detalle: ${data.error}</td></tr>`;
@@ -4703,9 +4839,18 @@ async function cargarUsuarios(){
   renderUsuariosTabla();
 }
 
-const ROL_LABEL = { admin: 'Admin', gerente: 'Gerente', encargado: 'Encargado de turno', 'sin-rol': 'Sin rol' };
 const ESTADO_BADGE = { activo: 'b-entregado', inactivo: 'b-cancelado', invitado: 'b-pendiente' };
 const ESTADO_LABEL = { activo: 'Activo', inactivo: 'Inactivo', invitado: 'Invitado' };
+
+function nombrePuestoDe(u){
+  const p = puestosCache.find(x => x.id === u.puesto_id);
+  if (p) return p.nombre;
+  // cuentas viejas sin puesto_id todavía: cae al rol de texto legado
+  if (u.rol === 'admin') return 'Admin';
+  if (u.rol === 'gerente') return 'Gerente';
+  if (u.rol === 'encargado') return 'Encargado de turno';
+  return 'Sin puesto';
+}
 
 function renderUsuariosTabla(){
   const q = document.getElementById('usrBuscar').value.trim().toLowerCase();
@@ -4714,7 +4859,7 @@ function renderUsuariosTabla(){
 
   let lista = usuariosCache.filter(u =>
     (u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
-    (!rolF || u.rol === rolF) &&
+    (!rolF || String(u.puesto_id) === rolF) &&
     (!estadoF || u.estado === estadoF)
   );
 
@@ -4730,14 +4875,18 @@ function renderUsuariosTabla(){
       <tr>
         <td>${u.nombre}</td>
         <td class="muted">${u.email}</td>
-        <td>${ROL_LABEL[u.rol] || u.rol}</td>
+        <td>${escHtml(nombrePuestoDe(u))}</td>
         <td><span class="badge ${ESTADO_BADGE[u.estado]}">${ESTADO_LABEL[u.estado]}</span></td>
         <td class="muted">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : 'Nunca'}</td>
         <td style="white-space:nowrap;">
+          <select style="display:inline-block;width:auto;padding:4px 6px;font-size:12px;margin-right:4px;" onchange="cambiarPuestoUsuario('${u.id}', this.value)">
+            <option value="">Cambiar puesto…</option>
+            ${puestosCache.filter(p => !p.es_dueno).map(p => `<option value="${p.id}" ${p.id===u.puesto_id?'selected':''}>${escHtml(p.nombre)}</option>`).join('')}
+          </select>
           ${u.estado === 'inactivo'
             ? `<button class="btn btn-primary btn-sm" onclick="reactivarUsuario('${u.id}')">Reactivar</button>`
             : `<button class="btn btn-danger btn-sm" onclick="suspenderUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">Suspender</button>`}
-          ${u.estado === 'invitado' ? `<button class="btn btn-ghost btn-sm" onclick="reenviarInvitacion('${u.email}','${u.nombre.replace(/'/g,"\\'")}','${u.rol}')">Reenviar</button>` : ''}
+          ${u.estado === 'invitado' ? `<button class="btn btn-ghost btn-sm" onclick="reenviarInvitacion('${u.email}','${u.nombre.replace(/'/g,"\\'")}',${u.puesto_id})">Reenviar</button>` : ''}
         </td>
       </tr>`).join('');
   }
@@ -4754,31 +4903,41 @@ function renderUsuariosTabla(){
 }
 function irAPaginaUsuarios(n){ usrPaginaActual = n; renderUsuariosTabla(); }
 
-function abrirModalInvitar(){
+async function cambiarPuestoUsuario(id, puestoId){
+  if (!puestoId) return;
+  const data = await llamarAdminUsuarios({ action: 'update_role', id, puesto_id: Number(puestoId) });
+  if (!data.ok){ alert('Error: ' + data.error); cargarUsuarios(); return; }
+  mostrarToast('Puesto actualizado. El cambio se aplica al refrescar la sesión de ese usuario.');
+  cargarUsuarios();
+}
+
+async function abrirModalInvitar(){
   document.getElementById('modalInvitarMsg').innerHTML = '';
   document.getElementById('invNombre').value = '';
   document.getElementById('invEmail').value = '';
-  document.getElementById('invRol').value = 'gerente';
+  if (!puestosCache.length) await cargarPuestos();
+  const sel = document.getElementById('invRol');
+  sel.innerHTML = puestosCache.filter(p => !p.es_dueno).map(p => `<option value="${p.id}">${escHtml(p.nombre)}</option>`).join('');
   document.getElementById('modalInvitar').classList.add('show');
 }
 
 async function enviarInvitacion(){
   const nombre = document.getElementById('invNombre').value.trim();
   const email = document.getElementById('invEmail').value.trim();
-  const rol = document.getElementById('invRol').value;
+  const puestoId = Number(document.getElementById('invRol').value);
   const msg = document.getElementById('modalInvitarMsg');
   if (!nombre || !email){ msg.innerHTML = '<div class="msg-box msg-err">Llena nombre y correo.</div>'; return; }
 
-  const data = await llamarAdminUsuarios({ action: 'invite', email, nombre, rol });
+  const data = await llamarAdminUsuarios({ action: 'invite', email, nombre, puesto_id: puestoId });
   if (!data.ok){ msg.innerHTML = `<div class="msg-box msg-err">${data.error}</div>`; return; }
 
   msg.innerHTML = `<div class="msg-box msg-ok">Invitación enviada a ${email}.</div>`;
   setTimeout(() => { document.getElementById('modalInvitar').classList.remove('show'); cargarUsuarios(); }, 1200);
 }
 
-async function reenviarInvitacion(email, nombre, rol){
+async function reenviarInvitacion(email, nombre, puestoId){
   if (!confirm(`¿Reenviar invitación a ${email}?`)) return;
-  const data = await llamarAdminUsuarios({ action: 'resend_invite', email, nombre, rol });
+  const data = await llamarAdminUsuarios({ action: 'resend_invite', email, nombre, puesto_id: puestoId });
   if (!data.ok){ alert('Error: ' + data.error); return; }
   alert('Invitación reenviada.');
 }
