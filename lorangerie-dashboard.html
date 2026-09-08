@@ -938,7 +938,8 @@
 
       <div class="tabs-row" style="margin:14px 0;">
         <button class="active" onclick="usrSubTab('cuentas', this)">Cuentas</button>
-        <button onclick="usrSubTab('puestos', this)">Puestos y permisos</button>
+        <button onclick="usrSubTab('puestos', this)">Puestos</button>
+        <button onclick="usrSubTab('permisos', this)">Permisos</button>
       </div>
 
       <div id="usrSubCuentas">
@@ -977,6 +978,19 @@
           </table>
         </div>
       </div>
+
+      <div id="usrSubPermisos" style="display:none;">
+        <div class="section-head" style="margin-top:0;">
+          <p class="muted" style="font-size:12.5px;margin:0;max-width:560px;">Este es el catálogo completo de permisos disponibles para armar puestos. Crea los que quieras — aparecerán como casilla al crear o editar un puesto.</p>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalPermiso(null)">+ Nuevo permiso</button>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
+          <table>
+            <thead><tr><th>Clave</th><th>Descripción</th><th></th></tr></thead>
+            <tbody id="permisosTable"><tr><td colspan="3" class="loading">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- MODAL: crear/editar puesto personalizado -->
@@ -986,18 +1000,30 @@
         <input type="hidden" id="puestoId">
         <div class="field-group"><label>Nombre del puesto</label><input type="text" id="puestoNombre" placeholder="Ej. Supervisor de turno"></div>
         <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Permisos</label>
-        <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px;">
-          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permPosCobro" style="width:auto;"> Operación diaria (POS, Mesas, Comandas, Pedidos)</label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permCortesia" style="width:auto;"> Cortesía y descuentos</label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permMenu" style="width:auto;"> Menú, Inventarios, Costeo, Proveedores, Grupos Adicionales</label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permConfig" style="width:auto;"> Configuración (PIN, tipo de cambio, mesas)</label>
-          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;"><input type="checkbox" id="permReportes" style="width:auto;"> Reportes de Ventas, Mensajes, Tickets de Sucursal</label>
-        </div>
-        <p class="muted" style="font-size:11.5px;margin-top:12px;">Usuarios y Auditoría se quedan exclusivos de Admin y Gerente — no se pueden otorgar desde aquí.</p>
+        <div id="puestoPermisosLista" style="display:flex;flex-direction:column;gap:10px;margin-top:8px;"></div>
+        <p class="muted" style="font-size:11.5px;margin-top:12px;">Usuarios y Auditoría se quedan exclusivos de Admin y Gerente — no se pueden otorgar desde aquí. ¿Falta un permiso? Créalo en la pestaña "Permisos".</p>
         <div id="modalPuestoMsg"></div>
         <div style="display:flex;gap:10px;margin-top:16px;">
           <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalPuesto').classList.remove('show')">Cancelar</button>
           <button class="btn btn-primary" style="flex:1;" onclick="guardarPuesto()">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: crear/editar un permiso del catálogo -->
+    <div class="modal-overlay" id="modalPermiso">
+      <div class="modal-card">
+        <h3 style="font-size:18px;margin-bottom:6px;" id="modalPermisoTitulo">Nuevo permiso</h3>
+        <div class="field-group">
+          <label>Clave (sin espacios, ej. ver_costeo)</label>
+          <input type="text" id="permisoClave" placeholder="ver_costeo">
+        </div>
+        <div class="field-group"><label>Descripción (lo que verá al crear un puesto)</label><input type="text" id="permisoEtiqueta" placeholder="Ej. Ver el costeo de recetas"></div>
+        <p class="muted" style="font-size:11.5px;">Este permiso solo controla lo que ya está conectado a él. Si es nuevo, dime a qué parte del sistema quieres que aplique y lo conecto.</p>
+        <div id="modalPermisoMsg"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalPermiso').classList.remove('show')">Cancelar</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="guardarPermiso()">Guardar</button>
         </div>
       </div>
     </div>
@@ -4536,11 +4562,21 @@ function quitarOpcionGrupo(idx){
   renderGrupoOpcionesLista();
 }
 
+function cambiarPrecioOpcionGrupo(idx, valor){
+  grupoOpcionesActuales[idx].precio = parseFloat(valor) || 0;
+}
+
 function renderGrupoOpcionesLista(){
   const cont = document.getElementById('grupoOpcionesLista');
   cont.innerHTML = grupoOpcionesActuales.length
     ? grupoOpcionesActuales.map((op, i) => `
-        <span class="grupo-chip">${escHtml(op.nombre)}${op.precio > 0 ? ` <b>+$${Number(op.precio).toFixed(2)}</b>` : ''}<button type="button" onclick="quitarOpcionGrupo(${i})">✕</button></span>`).join('')
+        <span class="grupo-chip" style="display:inline-flex;align-items:center;gap:6px;">
+          ${escHtml(op.nombre)}
+          <input type="number" value="${Number(op.precio) || 0}" min="0" step="0.01"
+                 style="width:64px;padding:2px 4px;font-size:12px;border:1px solid var(--outline);border-radius:6px;"
+                 onchange="cambiarPrecioOpcionGrupo(${i}, this.value)" title="Precio extra de esta opción">
+          <button type="button" onclick="quitarOpcionGrupo(${i})">✕</button>
+        </span>`).join('')
     : '<p class="muted" style="font-size:12px;">Sin opciones todavía — agrega al menos una arriba.</p>';
 }
 
@@ -4729,13 +4765,65 @@ function usrSubTab(sub, btn){
   btn.classList.add('active');
   document.getElementById('usrSubCuentas').style.display = sub === 'cuentas' ? 'block' : 'none';
   document.getElementById('usrSubPuestos').style.display = sub === 'puestos' ? 'block' : 'none';
+  document.getElementById('usrSubPermisos').style.display = sub === 'permisos' ? 'block' : 'none';
   document.getElementById('usrBtnInvitar').style.display = sub === 'cuentas' ? 'inline-flex' : 'none';
   if (sub === 'puestos') cargarPuestos();
+  if (sub === 'permisos') cargarPermisosCatalogo();
+}
+
+let permisosCatalogoCache = [];
+
+async function cargarPermisosCatalogo(){
+  const tbody = document.getElementById('permisosTable');
+  tbody.innerHTML = '<tr><td colspan="3" class="loading">Cargando…</td></tr>';
+  const { data, error } = await sb.rpc('admin_permisos_catalogo_list');
+  if (error){ tbody.innerHTML = `<tr><td colspan="3" class="muted">Error: ${error.message}</td></tr>`; return; }
+  permisosCatalogoCache = data || [];
+  tbody.innerHTML = permisosCatalogoCache.map(p => `
+    <tr>
+      <td><code>${escHtml(p.clave)}</code>${p.es_base ? ' <span class="muted" style="font-size:11px;">(base)</span>' : ''}</td>
+      <td>${escHtml(p.etiqueta)}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="abrirModalPermiso('${p.clave}')">Editar</button>
+        ${!p.es_base ? `<button class="btn btn-danger btn-sm" onclick="eliminarPermiso('${p.clave}')">Eliminar</button>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+function abrirModalPermiso(clave){
+  document.getElementById('modalPermisoMsg').innerHTML = '';
+  const p = clave ? permisosCatalogoCache.find(x => x.clave === clave) : null;
+  document.getElementById('modalPermisoTitulo').textContent = clave ? 'Editar permiso' : 'Nuevo permiso';
+  document.getElementById('permisoClave').value = p?.clave || '';
+  document.getElementById('permisoClave').disabled = !!clave;
+  document.getElementById('permisoEtiqueta').value = p?.etiqueta || '';
+  document.getElementById('modalPermiso').classList.add('show');
+}
+
+async function guardarPermiso(){
+  const clave = document.getElementById('permisoClave').value.trim().toLowerCase();
+  const etiqueta = document.getElementById('permisoEtiqueta').value.trim();
+  const msg = document.getElementById('modalPermisoMsg');
+  if (!/^[a-z0-9_]+$/.test(clave)){ msg.innerHTML = '<div class="msg-box msg-err">La clave solo puede tener minúsculas, números y guion bajo.</div>'; return; }
+  if (!etiqueta){ msg.innerHTML = '<div class="msg-box msg-err">La descripción es obligatoria.</div>'; return; }
+
+  const { error } = await sb.rpc('admin_permiso_catalogo_guardar', { p_clave: clave, p_etiqueta: etiqueta });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  document.getElementById('modalPermiso').classList.remove('show');
+  cargarPermisosCatalogo();
+}
+
+async function eliminarPermiso(clave){
+  if (!confirm(`¿Eliminar el permiso "${clave}"? Se quitará de cualquier puesto que lo tenga.`)) return;
+  const { error } = await sb.rpc('admin_permiso_catalogo_eliminar', { p_clave: clave });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarPermisosCatalogo();
 }
 
 async function cargarPuestos(){
   const tbody = document.getElementById('puestosTable');
   tbody.innerHTML = '<tr><td colspan="3" class="loading">Cargando…</td></tr>';
+  if (!permisosCatalogoCache.length) await cargarPermisosCatalogo();
   const { data, error } = await sb.rpc('admin_puestos_list');
   if (error){ tbody.innerHTML = `<tr><td colspan="3" class="muted">Error: ${error.message}</td></tr>`; return; }
   puestosCache = data || [];
@@ -4744,11 +4832,10 @@ async function cargarPuestos(){
   const filtro = document.getElementById('usrFiltroRol');
   filtro.innerHTML = '<option value="">Todos los puestos</option>' + puestosCache.map(p => `<option value="${p.id}">${escHtml(p.nombre)}</option>`).join('');
 
-  const PERM_LABEL = { pos_cobro: 'POS', cortesia_descuentos: 'Cortesía/Desc.', menu_inventario: 'Menú', configuracion: 'Config.', reportes: 'Reportes' };
   tbody.innerHTML = puestosCache.map(p => {
     const chips = p.es_dueno
       ? '<span class="badge b-entregado">Acceso total</span>'
-      : Object.entries(PERM_LABEL).filter(([k]) => p.permisos?.[k]).map(([,l]) => `<span class="badge b-entregado" style="margin-right:4px;">${l}</span>`).join('') || '<span class="muted">Sin permisos</span>';
+      : permisosCatalogoCache.filter(pc => p.permisos?.[pc.clave]).map(pc => `<span class="badge b-entregado" style="margin-right:4px;">${escHtml(pc.etiqueta.split(',')[0].split('(')[0].trim())}</span>`).join('') || '<span class="muted">Sin permisos</span>';
     const base = p.es_dueno || p.es_gerencia;
     return `
     <tr>
@@ -4762,23 +4849,22 @@ async function cargarPuestos(){
   }).join('');
 }
 
-function abrirModalPuesto(id){
+async function abrirModalPuesto(id){
   document.getElementById('modalPuestoMsg').innerHTML = '';
   document.getElementById('puestoId').value = id || '';
+  if (!permisosCatalogoCache.length) await cargarPermisosCatalogo();
   const p = id ? puestosCache.find(x => x.id === id) : null;
   document.getElementById('modalPuestoTitulo').textContent = id ? 'Editar puesto' : 'Nuevo puesto';
   document.getElementById('puestoNombre').value = p?.nombre || '';
-  document.getElementById('permPosCobro').checked = p?.permisos?.pos_cobro ?? true;
-  document.getElementById('permCortesia').checked = p?.permisos?.cortesia_descuentos ?? false;
-  document.getElementById('permMenu').checked = p?.permisos?.menu_inventario ?? false;
-  document.getElementById('permConfig').checked = p?.permisos?.configuracion ?? false;
-  document.getElementById('permReportes').checked = p?.permisos?.reportes ?? false;
 
-  // Admin/Gerente son base: nombre editable, permisos bloqueados (ya vienen completos)
   const esBase = p && (p.es_dueno || p.es_gerencia);
-  ['permPosCobro','permCortesia','permMenu','permConfig','permReportes'].forEach(id2 => {
-    document.getElementById(id2).disabled = !!esBase;
-  });
+  document.getElementById('puestoPermisosLista').innerHTML = permisosCatalogoCache.map(pc => {
+    const checked = p ? !!p.permisos?.[pc.clave] : pc.clave === 'pos_cobro';
+    return `<label style="display:flex;align-items:center;gap:8px;font-size:13.5px;text-transform:none;">
+      <input type="checkbox" data-clave="${pc.clave}" class="puesto-perm-check" style="width:auto;" ${checked?'checked':''} ${esBase?'disabled':''}>
+      ${escHtml(pc.etiqueta)}
+    </label>`;
+  }).join('');
 
   document.getElementById('modalPuesto').classList.add('show');
 }
@@ -4789,13 +4875,8 @@ async function guardarPuesto(){
   const msg = document.getElementById('modalPuestoMsg');
   if (!nombre){ msg.innerHTML = '<div class="msg-box msg-err">El nombre del puesto es obligatorio.</div>'; return; }
 
-  const permisos = {
-    pos_cobro: document.getElementById('permPosCobro').checked,
-    cortesia_descuentos: document.getElementById('permCortesia').checked,
-    menu_inventario: document.getElementById('permMenu').checked,
-    configuracion: document.getElementById('permConfig').checked,
-    reportes: document.getElementById('permReportes').checked,
-  };
+  const permisos = {};
+  document.querySelectorAll('.puesto-perm-check').forEach(chk => { permisos[chk.dataset.clave] = chk.checked; });
 
   const { error } = await sb.rpc('admin_puesto_guardar', {
     p_id: idRaw ? Number(idRaw) : null, p_nombre: nombre, p_permisos: permisos,

@@ -1955,7 +1955,7 @@ async function openProductModal(id){
     const gruposMap = {};
     filas.forEach(r => {
       if (!gruposMap[r.grupo_id]) gruposMap[r.grupo_id] = { nombre: r.grupo_nombre, opciones: [] };
-      gruposMap[r.grupo_id].opciones.push(r.opcion_nombre);
+      gruposMap[r.grupo_id].opciones.push({ id: r.opcion_id, nombre: r.opcion_nombre, precio: Number(r.opcion_precio) || 0 });
     });
     pmGruposActuales = Object.entries(gruposMap).map(([gid, g]) => ({ id: gid, ...g }));
     renderPmGrupos();
@@ -1968,15 +1968,18 @@ function renderPmGrupos(){
       <div class="pm-grupo-nombre">${escHtmlPublico(g.nombre)}</div>
       <div class="pm-opciones">
         ${g.opciones.map(op => `
-          <button type="button" class="pm-opcion-btn ${pmSeleccion[g.id]===op?'elegida':''}" data-grupo="${g.id}" data-opcion="${escHtmlPublico(op)}" onclick="pmElegirOpcion(this.dataset.grupo, this.dataset.opcion)">${escHtmlPublico(op)}</button>
+          <button type="button" class="pm-opcion-btn ${pmSeleccion[g.id]?.id===op.id?'elegida':''}" data-grupo="${g.id}" data-opcion="${op.id}" onclick="pmElegirOpcion(this.dataset.grupo, this.dataset.opcion)">${escHtmlPublico(op.nombre)}${op.precio > 0 ? ` +$${op.precio.toFixed(2)}` : ''}</button>
         `).join('')}
       </div>
     </div>`).join('');
 }
 
-function pmElegirOpcion(grupoId, opcion){
-  pmSeleccion[grupoId] = pmSeleccion[grupoId] === opcion ? null : opcion;
+function pmElegirOpcion(grupoId, opcionId){
+  const grupo = pmGruposActuales.find(g => String(g.id) === String(grupoId));
+  const opcion = grupo?.opciones.find(o => String(o.id) === String(opcionId));
+  pmSeleccion[grupoId] = pmSeleccion[grupoId]?.id === opcion?.id ? null : opcion;
   renderPmGrupos();
+  pmActualizarPrecio();
 }
 
 function escHtmlPublico(str){
@@ -1994,22 +1997,30 @@ function pmChangeQty(delta){
   pmActualizarPrecio();
 }
 
+function pmExtraSeleccionado(){
+  return Object.values(pmSeleccion).reduce((s, op) => s + (op?.precio || 0), 0);
+}
+
 function pmActualizarPrecio(){
   if (!pmProductoActual) return;
-  document.getElementById('pmPrice').textContent = '$' + pmProductoActual.price.toFixed(2);
+  const precioUnitario = pmProductoActual.price + pmExtraSeleccionado();
+  document.getElementById('pmPrice').textContent = '$' + precioUnitario.toFixed(2);
   document.getElementById('pmQty').textContent = pmCantidad;
-  document.getElementById('pmTotal').textContent = '$' + (pmProductoActual.price * pmCantidad).toFixed(2);
+  document.getElementById('pmTotal').textContent = '$' + (precioUnitario * pmCantidad).toFixed(2);
 }
 
 function pmAddToCart(){
   if (!pmProductoActual) return;
-  const partes = pmGruposActuales
-    .filter(g => pmSeleccion[g.id])
-    .map(g => `${g.nombre}: ${pmSeleccion[g.id]}`);
-  const opts = partes.length ? partes.join(' · ') : null;
+  const seleccionadas = pmGruposActuales
+    .map(g => ({ grupo: g, opcion: pmSeleccion[g.id] }))
+    .filter(x => x.opcion);
+
+  const opts = seleccionadas.length ? seleccionadas.map(x => `${x.grupo.nombre}: ${x.opcion.nombre}`).join(' · ') : null;
+  const optIds = seleccionadas.map(x => x.opcion.id);
+  const extraPrecio = seleccionadas.reduce((s, x) => s + (x.opcion.precio || 0), 0);
 
   if (opts){
-    cart.push({ id: pmProductoActual.id, qty: pmCantidad, opts, lineId: 'L' + Date.now() });
+    cart.push({ id: pmProductoActual.id, qty: pmCantidad, opts, optIds, extraPrecio, lineId: 'L' + Date.now() });
   } else {
     const existing = cart.find(c => c.id === pmProductoActual.id && !c.opts);
     if (existing) existing.qty += pmCantidad;
@@ -2066,11 +2077,13 @@ function updateBadge(){
   badge.style.display = count > 0 ? 'flex' : 'none';
 }
 
+function lineUnitPrice(c){
+  const item = MENU.find(m => m.id === c.id);
+  return item.price + (c.extraPrecio || 0);
+}
+
 function subtotal(){
-  return cart.reduce((s,c) => {
-    const item = MENU.find(m => m.id === c.id);
-    return s + item.price * c.qty;
-  }, 0);
+  return cart.reduce((s,c) => s + lineUnitPrice(c) * c.qty, 0);
 }
 
 function renderDrawer(){
@@ -2097,7 +2110,7 @@ function renderDrawer(){
         <div style="flex:1;">
           <div style="display:flex;justify-content:space-between;gap:8px;">
             <span style="font-family:var(--serif);font-weight:600;font-size:14.5px;">${item.name}</span>
-            <span style="font-size:14px;">$${(item.price*c.qty).toFixed(2)}</span>
+            <span style="font-size:14px;">$${(lineUnitPrice(c)*c.qty).toFixed(2)}</span>
           </div>
           ${c.opts ? `<p style="font-size:11.5px;color:var(--on-surface-variant);margin:3px 0 0;">${c.opts}</p>` : ''}
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
@@ -2262,7 +2275,7 @@ async function confirmOrder(){
         method: 'POST',
         headers,
         body: JSON.stringify({
-          items: cart.map(c => ({ id: c.id, qty: c.qty, opts: c.opts || null })),
+          items: cart.map(c => ({ id: c.id, qty: c.qty, opts: c.opts || null, opt_ids: c.optIds || [] })),
           puntos_a_usar: pointsToApply,
           horario_recogida: pickupTimeVal,
           guest_email: guestEmail,
