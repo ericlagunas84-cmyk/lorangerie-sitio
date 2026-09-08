@@ -344,6 +344,7 @@
     body *{visibility:hidden;}
     #comandaPrint, #comandaPrint *{visibility:visible;}
     #comandaPrint{display:block;position:absolute;top:0;left:0;width:100%;padding:20px;font-family:'Courier New',monospace;color:#000;}
+    body.imprimiendo-ticket #comandaPrint{display:none;}
     .comanda-header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:14px;}
     .comanda-header h1{font-size:22px;margin:0 0 4px;}
     .comanda-header .num{font-size:32px;font-weight:900;}
@@ -352,6 +353,15 @@
     .comanda-item{font-size:16px;font-weight:700;margin-bottom:10px;}
     .comanda-item .opciones{font-size:13px;font-weight:400;margin-left:14px;}
     .comanda-footer{border-top:2px dashed #000;margin-top:14px;padding-top:10px;font-size:13px;text-align:center;}
+
+    #ticketPrint{display:none;}
+    body.imprimiendo-ticket *{visibility:hidden;}
+    body.imprimiendo-ticket #ticketPrint, body.imprimiendo-ticket #ticketPrint *{visibility:visible;}
+    body.imprimiendo-ticket #ticketPrint{display:block;position:absolute;top:0;left:0;width:300px;padding:14px;font-family:'Courier New',monospace;color:#000;font-size:12px;}
+    .ticket-center{text-align:center;}
+    .ticket-hr{border:none;border-top:1px dashed #000;margin:8px 0;}
+    .ticket-fila{display:flex;justify-content:space-between;gap:8px;}
+    .ticket-total{font-size:16px;font-weight:900;}
   }
 
   /* Alerta de pedido nuevo — pantalla completa */
@@ -437,7 +447,8 @@
         <div class="nav-item nav-subitem" data-tab="pedidos" onclick="goTab('pedidos')">Pedidos <span class="badge" id="badgePedidos" style="display:none;"></span></div>
         <div class="nav-item nav-subitem" data-tab="pos" onclick="goTab('pos')">Nueva Orden</div>
         <div class="nav-item nav-subitem" data-tab="mesas" onclick="goTab('mesas')">Mesas <span class="badge" id="badgeMesas" style="display:none;"></span></div>
-        <div class="nav-item nav-subitem" data-tab="comandas" onclick="goTab('comandas')">Comandas <span class="badge" id="badgeComandas" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="cocina" onclick="goTab('cocina')">🍳 Cocina <span class="badge" id="badgeCocina" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="barra" onclick="goTab('barra')">🍹 Barra <span class="badge" id="badgeBarra" style="display:none;"></span></div>
         <div class="nav-item nav-subitem" data-tab="reportes" onclick="goTab('reportes')">Reportes de Ventas</div>
       </div>
     </div>
@@ -725,28 +736,42 @@
     </div>
 
     <!-- COMANDAS (tablero tipo cocina) -->
-    <div id="tab-comandas" class="tab-panel kds-panel" style="display:none;">
-      <!-- Barra de estadísticas + filtros -->
+    <div id="tab-cocina" class="tab-panel kds-panel" style="display:none;">
       <div class="kds-statbar">
         <div class="kds-stat-pills">
-          <span class="kds-pill kds-pill-ok" id="kdsPillActivas">0 Activas</span>
-          <span class="kds-pill kds-pill-warn" id="kdsPillCola">0 en cola de espera</span>
+          <span class="kds-pill kds-pill-ok" id="kdsPillActivas_cocina">0 Activas</span>
+          <span class="kds-pill kds-pill-warn" id="kdsPillCola_cocina">0 en cola de espera</span>
         </div>
-        <div class="tabs-row" id="comandasFiltro">
-          <button class="active" onclick="filtrarComandas(null, this)">Todos</button>
-          <button onclick="filtrarComandas('mesa', this)">🍽️ Comer aquí</button>
-          <button onclick="filtrarComandas('llevar', this)">🥡 Para llevar</button>
-          <button onclick="filtrarComandas('web', this)">🌐 Pedidos web</button>
-          <button onclick="filtrarComandas('demoradas', this)" class="kds-filtro-demorada">⏱ Demoradas (&gt;15m)</button>
+        <div class="tabs-row" id="comandasFiltro_cocina">
+          <button class="active" onclick="filtrarComandas('cocina', null, this)">Todos</button>
+          <button onclick="filtrarComandas('cocina', 'mesa', this)">🍽️ Comer aquí</button>
+          <button onclick="filtrarComandas('cocina', 'llevar', this)">🥡 Para llevar</button>
+          <button onclick="filtrarComandas('cocina', 'web', this)">🌐 Pedidos web</button>
+          <button onclick="filtrarComandas('cocina', 'demoradas', this)" class="kds-filtro-demorada">⏱ Demoradas (&gt;15m)</button>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="cargarComandas()">↻ Actualizar</button>
+        <button class="btn btn-ghost btn-sm" onclick="cargarComandas('cocina')">↻ Actualizar</button>
       </div>
+      <div class="kds-cola" id="kdsCola_cocina"></div>
+      <div id="kdsEnfocada_cocina"></div>
+    </div>
 
-      <!-- Tira horizontal de comandas en cola -->
-      <div class="kds-cola" id="kdsCola"></div>
-
-      <!-- Comanda enfocada, en grande -->
-      <div id="kdsEnfocada"></div>
+    <div id="tab-barra" class="tab-panel kds-panel" style="display:none;">
+      <div class="kds-statbar">
+        <div class="kds-stat-pills">
+          <span class="kds-pill kds-pill-ok" id="kdsPillActivas_barra">0 Activas</span>
+          <span class="kds-pill kds-pill-warn" id="kdsPillCola_barra">0 en cola de espera</span>
+        </div>
+        <div class="tabs-row" id="comandasFiltro_barra">
+          <button class="active" onclick="filtrarComandas('barra', null, this)">Todos</button>
+          <button onclick="filtrarComandas('barra', 'mesa', this)">🍽️ Comer aquí</button>
+          <button onclick="filtrarComandas('barra', 'llevar', this)">🥡 Para llevar</button>
+          <button onclick="filtrarComandas('barra', 'web', this)">🌐 Pedidos web</button>
+          <button onclick="filtrarComandas('barra', 'demoradas', this)" class="kds-filtro-demorada">⏱ Demoradas (&gt;15m)</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="cargarComandas('barra')">↻ Actualizar</button>
+      </div>
+      <div class="kds-cola" id="kdsCola_barra"></div>
+      <div id="kdsEnfocada_barra"></div>
     </div>
 
     <!-- REPORTES DE VENTAS -->
@@ -797,8 +822,8 @@
       </div>
       <div class="card" style="padding:0;overflow-x:auto;margin-top:14px;">
         <table>
-          <thead><tr><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Activo</th><th></th></tr></thead>
-          <tbody id="menuTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
+          <thead><tr><th>Nombre</th><th>Categoría</th><th>Estación</th><th>Precio</th><th>Stock</th><th>Activo</th><th></th></tr></thead>
+          <tbody id="menuTable"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1060,6 +1085,13 @@
         <input type="checkbox" id="prodActivo" checked style="width:auto;"> Visible en el menú
       </label>
     </div>
+    <div class="field-group">
+      <label>Estación (a qué comanda va)</label>
+      <select id="prodEstacion">
+        <option value="cocina">🍳 Cocina</option>
+        <option value="barra">🍹 Barra (bebidas)</option>
+      </select>
+    </div>
     <hr style="border:none;border-top:1px solid var(--outline);margin:14px 0;">
     <div class="field-group">
       <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;">
@@ -1223,6 +1255,10 @@
         </div>
 
         <div id="propinaMetodoNota" class="muted" style="font-size:12px;text-align:center;margin-bottom:14px;"></div>
+
+        <label class="propina-label">Ticket para el cliente</label>
+        <input type="email" id="cobroEmailTicket" placeholder="Correo del cliente (opcional, para mandarle el ticket)" style="margin:8px 0 16px;">
+
         <div id="propinaMsg"></div>
         <button class="btn btn-primary propina-btn-continuar" id="propinaBtnConfirmar" onclick="confirmarCobro()">Confirmar pago</button>
       </div>
@@ -1270,6 +1306,7 @@
       <div id="comandaEditarItemsActuales" style="margin-bottom:14px;"></div>
 
       <label class="field-label" style="font-size:11.5px;font-weight:600;color:var(--on-var);text-transform:uppercase;letter-spacing:.03em;">Agregar del menú</label>
+      <input type="text" id="comandaAgregarNota" placeholder="📝 Nota para el siguiente platillo que agregues (opcional)" style="margin:8px 0;font-size:13px;">
       <div class="pos-cat-tabs" id="comandaAgregarCatTabs" style="margin-top:8px;"></div>
       <div class="pos-items-grid" id="comandaAgregarItemsGrid" style="max-height:220px;overflow-y:auto;"></div>
       <div id="comandaAgregarMsg" style="margin-top:10px;"></div>
@@ -1353,7 +1390,8 @@
     <div class="field-group">
       <label>Opciones que puede elegir el cliente</label>
       <div style="display:flex;gap:8px;">
-        <input type="text" id="grupoNuevaOpcion" placeholder="Ej. Estrellado" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarOpcionGrupo();}">
+        <input type="text" id="grupoNuevaOpcion" placeholder="Ej. Con tocino" style="flex:2;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarOpcionGrupo();}">
+        <input type="number" id="grupoNuevaOpcionPrecio" placeholder="+$0" step="0.01" min="0" style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarOpcionGrupo();}">
         <button type="button" class="btn btn-ghost btn-sm" onclick="agregarOpcionGrupo()">+ Agregar</button>
       </div>
       <div id="grupoOpcionesLista" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
@@ -1745,7 +1783,8 @@ function goTab(tab){
   if (tab === 'fidelidad') cargarFidelidad();
   if (tab === 'pos') cargarPOS();
   if (tab === 'mesas') cargarMesasActivas();
-  if (tab === 'comandas') { cargarComandas(); comandasIntervalo = setInterval(cargarComandas, 20000); }
+  if (tab === 'cocina') { cargarComandas('cocina'); comandasIntervalo = setInterval(() => cargarComandas('cocina'), 20000); }
+  if (tab === 'barra') { cargarComandas('barra'); comandasIntervalo = setInterval(() => cargarComandas('barra'), 20000); }
   if (tab === 'reportes') cargarReportesVentas();
   if (tab === 'menu') cargarMenu();
   if (tab === 'inventarios') cargarInventario();
@@ -2031,7 +2070,8 @@ async function toggleDetallePedido(id, btn){
   const html = (data && data.length)
     ? data.map(it => `
         <div class="fila"><span>${it.cantidad}× ${escHtml(it.nombre)}</span><span class="muted">$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span></div>
-        ${it.opciones ? `<div class="muted" style="font-size:11px;margin-top:-3px;">${escHtml(it.opciones)}</div>` : ''}`).join('')
+        ${it.opciones ? `<div class="muted" style="font-size:11px;margin-top:-3px;">${escHtml(it.opciones)}</div>` : ''}
+        ${it.nota ? `<div style="font-size:11px;margin-top:-3px;color:#a66;">📝 ${escHtml(it.nota)}</div>` : ''}`).join('')
     : '<p class="muted">Sin platillos registrados.</p>';
   detallePedidoCache[id] = html;
   body.innerHTML = html;
@@ -2246,10 +2286,12 @@ async function posAgregarItem(id){
   posAgregarItemDirecto(prod, null);
 }
 
-function posAgregarItemDirecto(prod, opts){
-  const linea = posCart.find(l => l.id === prod.id && (l.opts || null) === (opts || null));
+function posAgregarItemDirecto(prod, opts, optIds, extraPrecio){
+  extraPrecio = extraPrecio || 0;
+  const optIdsClave = (optIds || []).slice().sort().join(',');
+  const linea = posCart.find(l => l.id === prod.id && (l.opts || null) === (opts || null) && (l.optIds || []).slice().sort().join(',') === optIdsClave);
   if (linea) linea.qty++;
-  else posCart.push({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), qty: 1, opts: opts || null });
+  else posCart.push({ id: prod.id, nombre: prod.nombre, precio: Number(prod.precio) + extraPrecio, qty: 1, opts: opts || null, optIds: optIds || [], nota: '' });
   posRenderCarrito();
 }
 
@@ -2265,7 +2307,7 @@ function abrirModalPersonalizarItem(prod, filasGrupos){
   const gruposMap = {};
   filasGrupos.forEach(r => {
     if (!gruposMap[r.grupo_id]) gruposMap[r.grupo_id] = { nombre: r.grupo_nombre, nota: r.grupo_nota, opciones: [] };
-    gruposMap[r.grupo_id].opciones.push(r.opcion_nombre);
+    gruposMap[r.grupo_id].opciones.push({ id: r.opcion_id, nombre: r.opcion_nombre, precio: Number(r.opcion_precio) || 0 });
   });
   personalizarItemGruposActuales = Object.entries(gruposMap).map(([id, g]) => ({ id, ...g }));
 
@@ -2282,25 +2324,30 @@ function renderPersonalizarItemGrupos(){
       <label class="field-label" style="font-size:11.5px;font-weight:700;text-transform:uppercase;color:var(--on-var);letter-spacing:.03em;">${escHtml(g.nombre)}${g.nota ? ' · ' + escHtml(g.nota) : ''}</label>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
         ${g.opciones.map(op => `
-          <button type="button" class="btn btn-ghost btn-sm opcion-btn ${personalizarItemSeleccion[g.id]===op?'elegida':''}" data-grupo="${g.id}" data-opcion="${escHtml(op)}" onclick="elegirOpcionPersonalizar(this.dataset.grupo, this.dataset.opcion)">${escHtml(op)}</button>
+          <button type="button" class="btn btn-ghost btn-sm opcion-btn ${personalizarItemSeleccion[g.id]?.id===op.id?'elegida':''}" data-grupo="${g.id}" data-opcion="${op.id}" onclick="elegirOpcionPersonalizar(this.dataset.grupo, this.dataset.opcion)">${escHtml(op.nombre)}${op.precio > 0 ? ` <b>+$${op.precio.toFixed(2)}</b>` : ''}</button>
         `).join('')}
       </div>
     </div>`).join('');
 }
 
-function elegirOpcionPersonalizar(grupoId, opcion){
+function elegirOpcionPersonalizar(grupoId, opcionId){
+  const grupo = personalizarItemGruposActuales.find(g => String(g.id) === String(grupoId));
+  const opcion = grupo?.opciones.find(o => String(o.id) === String(opcionId));
   // tocar la misma opción otra vez la deselecciona (por si se equivocó)
-  personalizarItemSeleccion[grupoId] = personalizarItemSeleccion[grupoId] === opcion ? null : opcion;
+  personalizarItemSeleccion[grupoId] = personalizarItemSeleccion[grupoId]?.id === opcion?.id ? null : opcion;
   renderPersonalizarItemGrupos();
 }
 
 function confirmarPersonalizarItem(){
-  const partes = personalizarItemGruposActuales
-    .filter(g => personalizarItemSeleccion[g.id])
-    .map(g => `${g.nombre}: ${personalizarItemSeleccion[g.id]}`);
-  const opts = partes.length ? partes.join(' · ') : null;
+  const seleccionadas = personalizarItemGruposActuales
+    .map(g => ({ grupo: g, opcion: personalizarItemSeleccion[g.id] }))
+    .filter(x => x.opcion);
 
-  posAgregarItemDirecto(personalizarItemProducto, opts);
+  const opts = seleccionadas.length ? seleccionadas.map(x => `${x.grupo.nombre}: ${x.opcion.nombre}`).join(' · ') : null;
+  const optIds = seleccionadas.map(x => x.opcion.id);
+  const extraPrecio = seleccionadas.reduce((s, x) => s + (x.opcion.precio || 0), 0);
+
+  posAgregarItemDirecto(personalizarItemProducto, opts, optIds, extraPrecio);
   document.getElementById('modalPersonalizarItem').classList.remove('show');
 }
 
@@ -2335,8 +2382,8 @@ function posRenderCarrito(){
   const cont = document.getElementById('posCartLineas');
   cont.innerHTML = posCart.length
     ? posCart.map((l, idx) => `
-        <div class="pos-cart-line">
-          <div>
+        <div class="pos-cart-line" style="flex-wrap:wrap;">
+          <div style="flex:1;min-width:140px;">
             <span>${escHtml(l.nombre)}</span>
             ${l.opts ? `<div class="muted" style="font-size:11px;">${escHtml(l.opts)}</div>` : ''}
           </div>
@@ -2346,6 +2393,9 @@ function posRenderCarrito(){
             <button onclick="posCambiarCantidad(${idx}, 1)">+</button>
           </div>
           <span>$${(l.precio * l.qty).toFixed(2)}</span>
+          <input type="text" placeholder="📝 Nota para cocina/barra (opcional)" value="${escHtml(l.nota || '')}"
+                 style="width:100%;margin-top:4px;font-size:12px;padding:6px 8px;"
+                 oninput="posCart[${idx}].nota = this.value">
         </div>`).join('')
     : '<div class="pos-cart-empty">Agrega platillos del menú →</div>';
 
@@ -2447,6 +2497,7 @@ function avanzarAPropinaDespuesDePago(){
   document.getElementById('propinaModoPctBtn').classList.add('active');
   document.getElementById('propinaModoMontoBtn').classList.remove('active');
   document.getElementById('propinaMsg').innerHTML = '';
+  document.getElementById('cobroEmailTicket').value = '';
   document.getElementById('propinaBtnConfirmar').disabled = false;
   document.getElementById('propinaBtnConfirmar').textContent = 'Confirmar pago';
 
@@ -2710,7 +2761,7 @@ async function enviarOrdenCompleta(){
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
       body: JSON.stringify({
-        items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: l.opts || null })),
+        items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: l.opts || null, opt_ids: l.optIds || [], nota: l.nota || null })),
         puntos_a_usar: 0,
         horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
         guest_email: guestEmail,
@@ -2758,6 +2809,57 @@ async function enviarOrdenCompleta(){
   }
 }
 
+function imprimirTicketActual(){
+  document.body.classList.add('imprimiendo-ticket');
+  window.print();
+  setTimeout(() => document.body.classList.remove('imprimiendo-ticket'), 600);
+}
+
+async function generarTicketCliente(pedidoId, mesaTexto, tipoServicio, items){
+  const subtotal = cobroTotalActual;
+  const propina = cobroPropinaMonto;
+  const total = subtotal + propina;
+
+  document.getElementById('ticketMeta').innerHTML = `
+    # orden: ${pedidoId}<br>
+    Fecha: ${new Date().toLocaleString('es-MX')}<br>
+    ${mesaTexto ? `Mesa: ${escHtml(mesaTexto)}<br>` : ''}
+    Tipo: ${tipoServicio === 'llevar' ? 'Para llevar' : 'Comer aquí'}
+  `;
+
+  document.getElementById('ticketItems').innerHTML = (items || []).map(it => `
+    <div class="ticket-fila">
+      <span>${it.cantidad} ${escHtml(it.nombre)}${it.opciones ? `<br><span style="font-size:10px;">${escHtml(it.opciones)}</span>` : ''}${it.nota ? `<br><span style="font-size:10px;">Nota: ${escHtml(it.nota)}</span>` : ''}</span>
+      <span>$${(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+    </div>`).join('');
+
+  document.getElementById('ticketTotales').innerHTML = `
+    <div class="ticket-fila"><span>Subtotal</span><span>$${subtotal.toFixed(2)}</span></div>
+    ${propina > 0.005 ? `<div class="ticket-fila"><span>Propina</span><span>$${propina.toFixed(2)}</span></div>` : ''}
+    <div class="ticket-fila ticket-total"><span>Total</span><span>$${total.toFixed(2)}</span></div>
+  `;
+
+  document.getElementById('ticketPagos').innerHTML = cobroLineas.map(l => `
+    <div class="ticket-fila"><span>${METODO_LABEL_COBRO[l.metodo] || l.metodo} (${l.moneda})</span><span>$${Number(l.monto).toFixed(2)}</span></div>
+  `).join('');
+
+  imprimirTicketActual();
+
+  const email = document.getElementById('cobroEmailTicket').value.trim();
+  if (email){
+    try {
+      const { data: sess } = await sb.auth.getSession();
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/enviar-ticket`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sess.session.access_token },
+        body: JSON.stringify({ pedido_id: pedidoId, email }),
+      });
+      const r = await resp.json();
+      if (!r.ok) mostrarToast('No se pudo mandar el ticket por correo: ' + (r.error || 'error desconocido'));
+    } catch(e){ mostrarToast('No se pudo mandar el ticket por correo.'); }
+  }
+}
+
 async function confirmarCobro(){
   const msg = document.getElementById('propinaMsg');
   if (cobroRestantePesos() > 0.005){
@@ -2787,7 +2889,7 @@ async function confirmarCobro(){
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
         body: JSON.stringify({
-          items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: l.opts || null })),
+          items: posCart.map(l => ({ id: l.id, qty: l.qty, opts: l.opts || null, opt_ids: l.optIds || [], nota: l.nota || null })),
           puntos_a_usar: 0,
           horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
           guest_email: guestEmail,
@@ -2842,6 +2944,9 @@ async function confirmarCobro(){
 
     // ---------- Si era un pedido existente (Mesas → Cobrar) ----------
     if (cobroModoExistente){
+      const { data: itemsExistentes } = await sb.rpc('admin_detalle_pedido', { p_pedido: pedidoId });
+      await generarTicketCliente(pedidoId, mesaTexto || comandaMesaPedidoActual?.mesa, comandaMesaPedidoActual?.tipo_servicio, itemsExistentes);
+
       msg.innerHTML = `<div class="msg-box msg-ok">Pedido #${pedidoId} cobrado correctamente.</div>`;
       setTimeout(() => {
         document.getElementById('modalCobro').classList.remove('show');
@@ -2868,12 +2973,19 @@ async function confirmarCobro(){
     );
 
     setTimeout(() => {
+      generarTicketCliente(
+        pedidoId, mesaTexto, posTipoServicioActual,
+        posCart.map(l => ({ cantidad: l.qty, nombre: l.nombre, precio_unitario: l.precio, opciones: l.opts || null, nota: l.nota || null }))
+      );
+    }, 800);
+
+    setTimeout(() => {
       document.getElementById('modalCobro').classList.remove('show');
       vaciarCarritoPOS();
       document.getElementById('posClienteNombre').value = '';
       document.getElementById('posNota').value = '';
       cargarPOS(); // regresa a la pantalla de tipo de servicio para la siguiente orden
-    }, 1400);
+    }, 1800);
   } catch(e){
     msg.innerHTML = `<div class="msg-box msg-err">${e.message}</div>`;
   } finally {
@@ -2949,9 +3061,13 @@ async function abrirComandaMesa(mesa){
   if (error){ cont.innerHTML = `<p class="muted">Error: ${error.message}</p>`; return; }
   cont.innerHTML = (data && data.length)
     ? data.map(it => `
-        <div class="fila" style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--outline);">
-          <span>${it.cantidad}× ${escHtml(it.nombre)}</span>
-          <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+        <div class="fila" style="display:flex;flex-direction:column;font-size:13px;padding:5px 0;border-bottom:1px solid var(--outline);">
+          <div style="display:flex;justify-content:space-between;">
+            <span>${it.cantidad}× ${escHtml(it.nombre)}</span>
+            <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
+          </div>
+          ${it.opciones ? `<span class="muted" style="font-size:11px;">${escHtml(it.opciones)}</span>` : ''}
+          ${it.nota ? `<span style="font-size:11px;color:#a66;">📝 ${escHtml(it.nota)}</span>` : ''}
         </div>`).join('')
     : '<p class="muted">Sin platillos registrados.</p>';
 }
@@ -2992,7 +3108,8 @@ async function comandaCargarItemsActuales(){
             ${ROL_ACTUAL !== 'encargado' ? `<button class="btn btn-ghost btn-sm" onclick="comandaToggleCortesia(${it.id}, ${it.es_cortesia})">${it.es_cortesia ? 'Quitar cortesía' : '🎁 Cortesía'}</button>` : ''}
             <button class="btn btn-danger btn-sm" onclick="comandaQuitarItem(${it.id})">✕ Quitar</button>
           </div>
-        </div>`).join('')
+        </div>
+        ${it.nota ? `<div style="font-size:11px;color:#a66;padding:0 0 4px;">📝 ${escHtml(it.nota)}</div>` : ''}`).join('')
     : '<p class="muted" style="font-size:12.5px;">Sin platillos todavía.</p>';
 }
 
@@ -3077,10 +3194,12 @@ async function comandaAgregarUnItem(productoId, btn){
   const original = btn.innerHTML;
   btn.disabled = true; btn.innerHTML = '<span class="nombre">Agregando…</span>';
 
+  const notaInput = document.getElementById('comandaAgregarNota');
   const { error } = await sb.rpc('admin_pedido_agregar_items', {
     p_pedido_id: comandaMesaPedidoActual.id,
     p_producto_id: productoId,
     p_cantidad: 1,
+    p_nota: notaInput.value.trim() || null,
   });
 
   const msg = document.getElementById('comandaAgregarMsg');
@@ -3088,6 +3207,7 @@ async function comandaAgregarUnItem(productoId, btn){
     msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`;
   } else {
     msg.innerHTML = '<div class="msg-box msg-ok">Agregado ✓</div>';
+    notaInput.value = '';
     comandaCargarItemsActuales();
   }
   btn.disabled = false; btn.innerHTML = original;
@@ -3110,43 +3230,46 @@ function imprimirComandaDesdeMesa(){
    ============================================================ */
 let comandasIntervalo = null;
 
-let comandasCache = [];
-let comandasFiltroActual = null;
-let comandaEnfocadaId = null;
+const KDS = {
+  cocina: { cache: [], filtro: null, enfocadaId: null },
+  barra:  { cache: [], filtro: null, enfocadaId: null },
+};
 
-async function cargarComandas(){
-  const { data, error } = await sb.rpc('admin_comandas_activas');
+async function cargarComandas(est){
+  const rpc = est === 'barra' ? 'admin_comandas_barra_activas' : 'admin_comandas_cocina_activas';
+  const { data, error } = await sb.rpc(rpc);
   if (error){
-    document.getElementById('kdsEnfocada').innerHTML = `<p class="muted">Este módulo todavía no está conectado (falta correr el SQL del tablero de comandas). Detalle: ${error.message}</p>`;
+    document.getElementById('kdsEnfocada_' + est).innerHTML = `<p class="muted">Este módulo todavía no está conectado (falta correr el SQL del tablero de comandas). Detalle: ${error.message}</p>`;
     return;
   }
 
-  const badge = document.getElementById('badgeComandas');
+  const badge = document.getElementById(est === 'barra' ? 'badgeBarra' : 'badgeCocina');
   if (data && data.length){ badge.style.display = 'inline-block'; badge.textContent = data.length; }
   else badge.style.display = 'none';
 
-  comandasActivasCache = data; // caché aparte — Comandas y Mesas ya no comparten la misma lista
+  if (est === 'cocina') comandasActivasCache = data; // sigue usándose para Editar/Cobrar de Mesas
+  else comandasActivasCache = [...comandasActivasCache.filter(o => !data.some(d => d.id === o.id)), ...data];
 
   if (!data || !data.length){
-    comandasCache = [];
-    renderComandas();
+    KDS[est].cache = [];
+    renderComandas(est);
     return;
   }
 
-  // Trae los platillos de cada comanda en paralelo
-  comandasCache = await Promise.all(data.map(async (o) => {
-    const { data: items } = await sb.rpc('admin_detalle_pedido', { p_pedido: o.id });
+  // Trae SOLO los platillos que le corresponden a esta estación
+  KDS[est].cache = await Promise.all(data.map(async (o) => {
+    const { data: items } = await sb.rpc('admin_detalle_pedido_estacion', { p_pedido: o.id, p_estacion: est });
     return { ...o, items: items || [] };
   }));
 
-  renderComandas();
+  renderComandas(est);
 }
 
-function filtrarComandas(tipo, btn){
-  comandasFiltroActual = tipo;
-  document.querySelectorAll('#comandasFiltro button').forEach(b => b.classList.remove('active'));
+function filtrarComandas(est, tipo, btn){
+  KDS[est].filtro = tipo;
+  document.querySelectorAll(`#comandasFiltro_${est} button`).forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  renderComandas();
+  renderComandas(est);
 }
 
 function kdsMinutos(o){
@@ -3154,27 +3277,28 @@ function kdsMinutos(o){
 }
 function kdsEsDemorada(o){ return kdsMinutos(o) >= 15; }
 
-function kdsListaFiltrada(){
-  if (!comandasFiltroActual) return comandasCache;
-  if (comandasFiltroActual === 'demoradas') return comandasCache.filter(kdsEsDemorada);
-  if (comandasFiltroActual === 'web') return comandasCache.filter(o => o.origen !== 'admin');
-  return comandasCache.filter(o => o.origen === 'admin' && o.tipo_servicio === comandasFiltroActual);
+function kdsListaFiltrada(est){
+  const { cache, filtro } = KDS[est];
+  if (!filtro) return cache;
+  if (filtro === 'demoradas') return cache.filter(kdsEsDemorada);
+  if (filtro === 'web') return cache.filter(o => o.origen !== 'admin');
+  return cache.filter(o => o.origen === 'admin' && o.tipo_servicio === filtro);
 }
 
-function renderComandas(){
-  const lista = kdsListaFiltrada();
-  const totalActivas = comandasCache.length;
+function renderComandas(est){
+  const lista = kdsListaFiltrada(est);
+  const totalActivas = KDS[est].cache.length;
 
-  document.getElementById('kdsPillActivas').textContent = `${totalActivas} Activa${totalActivas===1?'':'s'}`;
-  document.getElementById('kdsPillCola').textContent = totalActivas > 1 ? `${totalActivas - 1} en cola de espera` : 'Sin cola de espera';
+  document.getElementById('kdsPillActivas_' + est).textContent = `${totalActivas} Activa${totalActivas===1?'':'s'}`;
+  document.getElementById('kdsPillCola_' + est).textContent = totalActivas > 1 ? `${totalActivas - 1} en cola de espera` : 'Sin cola de espera';
 
   // mantiene el foco si sigue existiendo en la lista filtrada; si no, usa el primero
-  if (!lista.find(o => o.id === comandaEnfocadaId)){
-    comandaEnfocadaId = lista.length ? lista[0].id : null;
+  if (!lista.find(o => o.id === KDS[est].enfocadaId)){
+    KDS[est].enfocadaId = lista.length ? lista[0].id : null;
   }
 
-  renderKdsCola(lista);
-  renderKdsEnfocada(lista);
+  renderKdsCola(est, lista);
+  renderKdsEnfocada(est, lista);
 }
 
 function kdsIcono(o){
@@ -3186,16 +3310,16 @@ function kdsEtiqueta(o){
   return o.tipo_servicio === 'llevar' ? 'Para llevar' : 'Mesa';
 }
 
-function renderKdsCola(lista){
-  const cont = document.getElementById('kdsCola');
+function renderKdsCola(est, lista){
+  const cont = document.getElementById('kdsCola_' + est);
   if (!lista.length){ cont.innerHTML = ''; return; }
   cont.innerHTML = lista.map(o => {
     const min = kdsMinutos(o);
     const demorada = kdsEsDemorada(o);
-    const enfocada = o.id === comandaEnfocadaId;
+    const enfocada = o.id === KDS[est].enfocadaId;
     const itemsTxt = o.items.map(it => it.nombre).join(', ') || 'Sin platillos';
     return `
-      <div class="kds-mini-card ${enfocada?'enfocada':''} ${demorada?'demorada':''}" onclick="seleccionarComandaEnfocada(${o.id})">
+      <div class="kds-mini-card ${enfocada?'enfocada':''} ${demorada?'demorada':''}" onclick="seleccionarComandaEnfocada('${est}', ${o.id})">
         ${enfocada ? '<span class="kds-mini-badge">En pantalla</span>' : (demorada ? '<span class="kds-mini-badge demorada">Demorada</span>' : '')}
         <div class="kds-mini-top">
           <span class="kds-mini-mesa">${kdsIcono(o)} ${escHtml(o.mesa)}</span>
@@ -3207,24 +3331,24 @@ function renderKdsCola(lista){
   }).join('');
 }
 
-function seleccionarComandaEnfocada(id){
-  comandaEnfocadaId = id;
-  const lista = kdsListaFiltrada();
-  renderKdsCola(lista);
-  renderKdsEnfocada(lista);
+function seleccionarComandaEnfocada(est, id){
+  KDS[est].enfocadaId = id;
+  const lista = kdsListaFiltrada(est);
+  renderKdsCola(est, lista);
+  renderKdsEnfocada(est, lista);
 }
 
-function kdsNavegar(delta){
-  const lista = kdsListaFiltrada();
-  const idx = lista.findIndex(o => o.id === comandaEnfocadaId);
+function kdsNavegar(est, delta){
+  const lista = kdsListaFiltrada(est);
+  const idx = lista.findIndex(o => o.id === KDS[est].enfocadaId);
   if (idx === -1 || !lista.length) return;
   const nuevoIdx = (idx + delta + lista.length) % lista.length;
-  seleccionarComandaEnfocada(lista[nuevoIdx].id);
+  seleccionarComandaEnfocada(est, lista[nuevoIdx].id);
 }
 
-function renderKdsEnfocada(lista){
-  const cont = document.getElementById('kdsEnfocada');
-  const o = lista.find(x => x.id === comandaEnfocadaId);
+function renderKdsEnfocada(est, lista){
+  const cont = document.getElementById('kdsEnfocada_' + est);
+  const o = lista.find(x => x.id === KDS[est].enfocadaId);
   if (!o){
     cont.innerHTML = '<div class="kds-ticket" style="align-items:center;justify-content:center;"><p class="muted" style="padding:60px;text-align:center;">Sin comandas activas en este filtro. 🎉</p></div>';
     return;
@@ -3253,7 +3377,7 @@ function renderKdsEnfocada(lista){
         <div class="kds-timer ${demorada?'demorada':''}">
           <span style="font-size:22px;">⏱</span>
           <div>
-            <span class="lbl">Tiempo en cocina</span>
+            <span class="lbl">Tiempo en ${est === 'barra' ? 'barra' : 'cocina'}</span>
             <div class="num">${min} min</div>
           </div>
         </div>
@@ -3266,38 +3390,38 @@ function renderKdsEnfocada(lista){
         </div>
         <div class="kds-items-grid">
           ${o.items.length
-            ? o.items.map(it => `<div class="kds-item"><span class="cant">${it.cantidad}×</span><span class="nombre">${escHtml(it.nombre)}${it.opciones ? `<br><span style="font-size:12px;font-weight:600;color:var(--warn);">${escHtml(it.opciones)}</span>` : ''}</span></div>`).join('')
-            : '<p class="muted">Sin platillos registrados.</p>'}
+            ? o.items.map(it => `<div class="kds-item"><span class="cant">${it.cantidad}×</span><span class="nombre">${escHtml(it.nombre)}${it.opciones ? `<br><span style="font-size:12px;font-weight:600;color:var(--warn);">${escHtml(it.opciones)}</span>` : ''}${it.nota ? `<br><span style="font-size:12px;font-weight:700;color:#a66;">📝 ${escHtml(it.nota)}</span>` : ''}</span></div>`).join('')
+            : '<p class="muted">Sin platillos de esta estación en este pedido.</p>'}
         </div>
         ${o.nota ? `<div class="kds-nota-box"><span style="font-size:18px;">⚠️</span><div><span style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--warn);">Nota del pedido</span><p style="margin:2px 0 0;font-size:13px;">${escHtml(o.nota)}</p></div></div>` : ''}
       </div>
 
       <div class="kds-acciones">
         <div class="kds-acciones-main">
-          <button class="kds-btn-proceso ${o.en_preparacion?'activo':''}" onclick="kdsToggleEnProceso(${o.id}, ${o.en_preparacion})">${o.en_preparacion ? '⏸ Regresar a pendiente' : '🔥 Marcar en proceso'}</button>
-          <button class="kds-btn-fin" onclick="marcarEntregadoDesdeComanda(${o.id})">✅ Finalizado</button>
+          <button class="kds-btn-proceso ${o.en_preparacion?'activo':''}" onclick="kdsToggleEnProceso('${est}', ${o.id}, ${o.en_preparacion})">${o.en_preparacion ? '⏸ Regresar a pendiente' : '🔥 Marcar en proceso'}</button>
+          <button class="kds-btn-fin" onclick="marcarEntregadoDesdeComanda('${est}', ${o.id})">✅ Finalizado</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px;">
           <button class="btn btn-ghost btn-sm" onclick="imprimirComanda(${o.id})">🖨️ Imprimir</button>
           <button class="btn btn-ghost btn-sm" data-mesa="${escHtml(o.mesa)}" onclick="editarComandaDesdeTablero(this.dataset.mesa)">✏️ Editar orden</button>
         </div>
         <div class="kds-nav">
-          <button onclick="kdsNavegar(-1)">‹ Anterior <span class="muted">(${escHtml(anterior && anterior.mesa || '')})</span></button>
+          <button onclick="kdsNavegar('${est}', -1)">‹ Anterior <span class="muted">(${escHtml(anterior && anterior.mesa || '')})</span></button>
           <span class="muted">Comanda ${idx+1} de ${lista.length} activas</span>
-          <button onclick="kdsNavegar(1)">Siguiente <span style="color:var(--sage);font-weight:800;">(${escHtml(siguiente && siguiente.mesa || '')})</span> ›</button>
+          <button onclick="kdsNavegar('${est}', 1)">Siguiente <span style="color:var(--sage);font-weight:800;">(${escHtml(siguiente && siguiente.mesa || '')})</span> ›</button>
         </div>
       </div>
     </div>`;
 }
 
-async function kdsToggleEnProceso(id, actual){
+async function kdsToggleEnProceso(est, id, actual){
   const { error } = await sb.rpc('admin_pedido_marcar_en_preparacion', { p_pedido_id: id, p_en_preparacion: !actual });
   if (error){ alert('Error: ' + error.message); return; }
-  const item = comandasCache.find(o => o.id === id);
+  const item = KDS[est].cache.find(o => o.id === id);
   if (item) item.en_preparacion = !actual;
-  const lista = kdsListaFiltrada();
-  renderKdsCola(lista);
-  renderKdsEnfocada(lista);
+  const lista = kdsListaFiltrada(est);
+  renderKdsCola(est, lista);
+  renderKdsEnfocada(est, lista);
 }
 
 async function editarComandaDesdeTablero(mesa){
@@ -3305,9 +3429,11 @@ async function editarComandaDesdeTablero(mesa){
   mostrarAgregarProductos();
 }
 
-async function marcarEntregadoDesdeComanda(id){
-  await activarPedido(id);
-  cargarComandas();
+async function marcarEntregadoDesdeComanda(est, id){
+  const rpc = est === 'barra' ? 'admin_finalizar_barra' : 'admin_finalizar_cocina';
+  const { error } = await sb.rpc(rpc, { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarComandas(est);
 }
 
 /* ============================================================
@@ -3419,6 +3545,7 @@ function renderYImprimirComanda(pedido, items){
     ? items.map(it => `
         <div class="comanda-item">${it.cantidad}× ${escHtml(it.nombre)}
           ${it.opciones ? `<div class="opciones">${escHtml(it.opciones)}</div>` : ''}
+          ${it.nota ? `<div class="opciones" style="font-weight:700;">📝 ${escHtml(it.nota)}</div>` : ''}
         </div>`).join('')
     : '<p>Sin platillos registrados.</p>';
 
@@ -3435,7 +3562,7 @@ async function verDetallePedido(id){
   body.innerHTML = (data && data.length)
     ? data.map(it => `
         <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--outline);font-size:13px;">
-          <span>${it.cantidad}× ${escHtml(it.nombre)}${it.opciones ? `<br><span class="muted" style="font-size:11.5px;">${escHtml(it.opciones)}</span>` : ''}</span>
+          <span>${it.cantidad}× ${escHtml(it.nombre)}${it.opciones ? `<br><span class="muted" style="font-size:11.5px;">${escHtml(it.opciones)}</span>` : ''}${it.nota ? `<br><span style="font-size:11.5px;color:#a66;">📝 ${escHtml(it.nota)}</span>` : ''}</span>
           <span>$${Number(it.precio_unitario * it.cantidad).toFixed(2)}</span>
         </div>`).join('')
     : '<p class="muted">Sin platillos registrados.</p>';
@@ -3443,8 +3570,11 @@ async function verDetallePedido(id){
 
 async function activarPedido(id){
   if (!confirm(`¿Confirmar que el pedido #${id} ya fue entregado?`)) return;
-  const { error } = await sb.rpc('admin_activar_pedido', { p_pedido: id });
-  if (error){ alert('Error: ' + error.message); return; }
+  const [{ error: e1 }, { error: e2 }] = await Promise.all([
+    sb.rpc('admin_finalizar_cocina', { p_pedido: id }),
+    sb.rpc('admin_finalizar_barra', { p_pedido: id }),
+  ]);
+  if (e1 || e2){ alert('Error: ' + (e1?.message || e2?.message)); return; }
   cargarPedidos();
 }
 let pedidoIdParaCancelar = null;
@@ -3600,7 +3730,7 @@ async function cargarFidelidad(){
 async function cargarMenu(){
   const { data, error } = await sb.rpc('admin_productos_list');
   const tbody = document.getElementById('menuTable');
-  if (error){ tbody.innerHTML = `<tr><td colspan="6" class="muted">Error: ${error.message}</td></tr>`; return; }
+  if (error){ tbody.innerHTML = `<tr><td colspan="7" class="muted">Error: ${error.message}</td></tr>`; return; }
   menuCache = data || [];
   document.getElementById('menuBuscar').value = '';
   renderMenuTabla(menuCache);
@@ -3616,7 +3746,7 @@ function filtrarMenuTabla(){
 
 function renderMenuTabla(lista){
   const tbody = document.getElementById('menuTable');
-  if (!lista.length){ tbody.innerHTML = '<tr><td colspan="6" class="muted">Sin platillos que coincidan.</td></tr>'; return; }
+  if (!lista.length){ tbody.innerHTML = '<tr><td colspan="7" class="muted">Sin platillos que coincidan.</td></tr>'; return; }
   tbody.innerHTML = lista.map(p => {
     let stockHtml = '<span class="muted">Sin límite</span>';
     if (p.controla_inventario){
@@ -3629,6 +3759,7 @@ function renderMenuTabla(lista){
     <tr>
       <td>${p.nombre}</td>
       <td class="muted">${p.categoria}</td>
+      <td>${p.estacion === 'barra' ? '🍹 Barra' : '🍳 Cocina'}</td>
       <td>$${Number(p.precio).toFixed(2)}</td>
       <td>${stockHtml}</td>
       <td>${p.activo ? '<span class="badge b-entregado">Sí</span>' : '<span class="badge b-cancelado">No</span>'}</td>
@@ -3651,6 +3782,7 @@ function abrirModalProducto(producto){
   document.getElementById('prodPrecio').value = producto?.precio || '';
   document.getElementById('prodCategoria').value = producto?.categoria || 'cafe';
   document.getElementById('prodActivo').checked = producto ? producto.activo : true;
+  document.getElementById('prodEstacion').value = producto?.estacion || (document.getElementById('prodCategoria').value === 'bebidas' || document.getElementById('prodCategoria').value === 'cafe' ? 'barra' : 'cocina');
   document.getElementById('prodControlaInv').checked = producto?.controla_inventario || false;
   document.getElementById('prodStock').value = producto?.stock_actual ?? '';
   document.getElementById('prodStockMin').value = producto?.stock_minimo ?? 5;
@@ -3667,6 +3799,7 @@ async function guardarProducto(){
   const precio = parseFloat(document.getElementById('prodPrecio').value);
   const categoria = document.getElementById('prodCategoria').value;
   const activo = document.getElementById('prodActivo').checked;
+  const estacion = document.getElementById('prodEstacion').value;
   const controlaInv = document.getElementById('prodControlaInv').checked;
   const stock = parseInt(document.getElementById('prodStock').value, 10);
   const stockMin = parseInt(document.getElementById('prodStockMin').value, 10) || 5;
@@ -3683,7 +3816,7 @@ async function guardarProducto(){
   }
 
   const { error } = await sb.rpc('admin_producto_guardar', {
-    p_id: id, p_nombre: nombre, p_precio: precio, p_categoria: categoria, p_activo: activo,
+    p_id: id, p_nombre: nombre, p_precio: precio, p_categoria: categoria, p_activo: activo, p_estacion: estacion,
   });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
 
@@ -4133,13 +4266,15 @@ async function importarFilaMenu(f){
   const precio = parseFloat(f.precio);
   const categoria = String(f.categoria || '').trim();
   const activo = !/^(no|false|0)$/i.test(String(f.activo ?? 'si').trim());
+  const estacionCol = String(f.estacion || '').trim().toLowerCase();
+  const estacion = ['cocina', 'barra'].includes(estacionCol) ? estacionCol : (['bebidas', 'cafe'].includes(categoria) ? 'barra' : 'cocina');
 
   if (!id || !/^[a-z0-9\-]+$/.test(id)) throw new Error('id inválido o vacío (solo minúsculas, números y guiones)');
   if (!nombre) throw new Error('falta el nombre');
   if (isNaN(precio) || precio < 0) throw new Error('precio inválido');
 
   const { error } = await sb.rpc('admin_producto_guardar', {
-    p_id: id, p_nombre: nombre, p_precio: precio, p_categoria: categoria, p_activo: activo,
+    p_id: id, p_nombre: nombre, p_precio: precio, p_categoria: categoria, p_activo: activo, p_estacion: estacion,
   });
   if (error) throw new Error(error.message);
 }
@@ -4340,10 +4475,13 @@ async function abrirModalGrupo(id){
 
 function agregarOpcionGrupo(){
   const input = document.getElementById('grupoNuevaOpcion');
+  const inputPrecio = document.getElementById('grupoNuevaOpcionPrecio');
   const valor = input.value.trim();
   if (!valor) return;
-  grupoOpcionesActuales.push(valor);
+  const precio = parseFloat(inputPrecio.value) || 0;
+  grupoOpcionesActuales.push({ nombre: valor, precio });
   input.value = '';
+  inputPrecio.value = '';
   renderGrupoOpcionesLista();
 }
 
@@ -4356,7 +4494,7 @@ function renderGrupoOpcionesLista(){
   const cont = document.getElementById('grupoOpcionesLista');
   cont.innerHTML = grupoOpcionesActuales.length
     ? grupoOpcionesActuales.map((op, i) => `
-        <span class="grupo-chip">${escHtml(op)}<button type="button" onclick="quitarOpcionGrupo(${i})">✕</button></span>`).join('')
+        <span class="grupo-chip">${escHtml(op.nombre)}${op.precio > 0 ? ` <b>+$${Number(op.precio).toFixed(2)}</b>` : ''}<button type="button" onclick="quitarOpcionGrupo(${i})">✕</button></span>`).join('')
     : '<p class="muted" style="font-size:12px;">Sin opciones todavía — agrega al menos una arriba.</p>';
 }
 
@@ -4858,6 +4996,20 @@ function mostrarToast(texto){
   </div>
   <div class="comanda-items" id="comItems"></div>
   <div class="comanda-footer">Impreso: <span id="comImpreso"></span></div>
+</div>
+
+<!-- Ticket de cliente para imprimir/mandar por correo: se llena por JS -->
+<div id="ticketPrint">
+  <div class="ticket-center"><b style="font-size:16px;">L'Orangerie</b><br><span style="font-size:10px;">Cafetería, Restaurante y Panadería</span></div>
+  <hr class="ticket-hr">
+  <div id="ticketMeta" style="font-size:11px;"></div>
+  <hr class="ticket-hr">
+  <div id="ticketItems"></div>
+  <hr class="ticket-hr">
+  <div id="ticketTotales"></div>
+  <hr class="ticket-hr">
+  <div id="ticketPagos"></div>
+  <div class="ticket-center" style="margin-top:10px;font-size:10px;">Gracias por tu compra<br>Plaza Comercial Tres Torres, Cd. Juárez, Chih.</div>
 </div>
 
 </body>
