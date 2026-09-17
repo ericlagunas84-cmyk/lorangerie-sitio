@@ -1503,14 +1503,25 @@
   </div>
 </div>
 
-<!-- MODAL: cerrar caja (corte ciego) -->
+<!-- MODAL: cerrar caja (arqueo por denominaciones) -->
 <div class="modal-overlay" id="modalCerrarCaja">
-  <div class="modal-card" style="width:360px;text-align:center;">
-    <h3 style="font-size:17px;margin-bottom:6px;">Cerrar caja (corte)</h3>
-    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Cuenta el efectivo físico antes de escribirlo aquí — el sistema calcula la diferencia después.</p>
-    <input type="text" id="cerrarCajaUsuario" placeholder="Usuario" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
-    <input type="password" id="cerrarCajaPin" inputmode="numeric" placeholder="PIN" style="width:100%;text-align:center;font-size:20px;letter-spacing:.2em;padding:12px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
-    <input type="number" id="cerrarCajaContado" min="0" step="0.01" placeholder="Efectivo contado ($)" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+  <div class="modal-card" style="width:420px;">
+    <h3 style="font-size:17px;margin-bottom:6px;text-align:center;">Cerrar caja — Arqueo</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 14px;text-align:center;">Cuenta el efectivo físico por denominación antes de confirmar — el sistema calcula el total y la diferencia después.</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input type="text" id="cerrarCajaUsuario" placeholder="Usuario" style="flex:1;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+      <input type="password" id="cerrarCajaPin" inputmode="numeric" placeholder="PIN" style="flex:1;text-align:center;font-size:18px;letter-spacing:.2em;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+    </div>
+    <div style="max-height:280px;overflow-y:auto;border:1px solid var(--outline);border-radius:10px;padding:10px 14px;">
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--on-var);margin-bottom:4px;">Billetes</div>
+      <div id="arqueoBilletes"></div>
+      <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--on-var);margin:10px 0 4px;">Monedas</div>
+      <div id="arqueoMonedas"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 14px;background:var(--low);border-radius:10px;">
+      <span style="font-weight:700;font-size:13px;">Total contado</span>
+      <span style="font-weight:800;font-size:20px;" id="arqueoTotalContado">$0.00</span>
+    </div>
     <div id="cerrarCajaMsg"></div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCerrarCaja').classList.remove('show')">Cancelar</button>
@@ -5381,31 +5392,68 @@ async function confirmarMovimientoCaja(){
   cargarCajas();
 }
 
+const DENOMINACIONES_BILLETES = [1000, 500, 200, 100, 50, 20];
+const DENOMINACIONES_MONEDAS = [10, 5, 2, 1, 0.5];
+
+function filaDenominacion(valor){
+  const etiqueta = valor >= 1 ? `$${valor}` : `$${valor.toFixed(2)}`;
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;">
+      <span style="font-size:13px;width:60px;">${etiqueta}</span>
+      <input type="number" min="0" step="1" placeholder="0" data-denom="${valor}" class="arqueo-input" oninput="recalcularArqueo()" style="width:70px;text-align:center;padding:6px;">
+      <span class="muted" style="font-size:12px;width:80px;text-align:right;" id="arqueoSub_${valor}">$0.00</span>
+    </div>`;
+}
+
+function recalcularArqueo(){
+  let total = 0;
+  document.querySelectorAll('.arqueo-input').forEach(inp => {
+    const valor = parseFloat(inp.dataset.denom);
+    const cant = parseInt(inp.value, 10) || 0;
+    const sub = valor * cant;
+    total += sub;
+    const subEl = document.getElementById('arqueoSub_' + valor);
+    if (subEl) subEl.textContent = '$' + sub.toFixed(2);
+  });
+  document.getElementById('arqueoTotalContado').textContent = '$' + total.toFixed(2);
+}
+
 function abrirModalCerrarCaja(){
   document.getElementById('cerrarCajaUsuario').value = '';
   document.getElementById('cerrarCajaPin').value = '';
-  document.getElementById('cerrarCajaContado').value = '';
   document.getElementById('cerrarCajaMsg').innerHTML = '';
+  document.getElementById('arqueoBilletes').innerHTML = DENOMINACIONES_BILLETES.map(filaDenominacion).join('');
+  document.getElementById('arqueoMonedas').innerHTML = DENOMINACIONES_MONEDAS.map(filaDenominacion).join('');
+  document.getElementById('arqueoTotalContado').textContent = '$0.00';
   document.getElementById('modalCerrarCaja').classList.add('show');
 }
 async function confirmarCerrarCaja(){
   const usuario = document.getElementById('cerrarCajaUsuario').value.trim();
   const pin = document.getElementById('cerrarCajaPin').value.trim();
-  const contado = parseFloat(document.getElementById('cerrarCajaContado').value);
   const msg = document.getElementById('cerrarCajaMsg');
-  if (!usuario || !pin || isNaN(contado) || contado < 0){
-    msg.innerHTML = '<div class="msg-box msg-err">Completa usuario, PIN y el efectivo contado.</div>';
+  if (!usuario || !pin){
+    msg.innerHTML = '<div class="msg-box msg-err">Completa usuario y PIN.</div>';
     return;
   }
-  const { data, error } = await sb.rpc('admin_cerrar_turno', { p_usuario: usuario, p_pin: pin, p_efectivo_contado: contado });
+  const denominaciones = {};
+  document.querySelectorAll('.arqueo-input').forEach(inp => {
+    const cant = parseInt(inp.value, 10) || 0;
+    if (cant > 0) denominaciones[inp.dataset.denom] = cant;
+  });
+  const { data, error } = await sb.rpc('admin_cerrar_turno', { p_usuario: usuario, p_pin: pin, p_denominaciones: denominaciones });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; return; }
   const dif = Number(data.diferencia);
-  const claseDif = dif === 0 ? 'msg-ok' : 'msg-err';
-  msg.innerHTML = `<div class="msg-box ${claseDif}">Esperado: $${Number(data.efectivo_esperado).toFixed(2)} — Contado: $${Number(data.efectivo_contado).toFixed(2)} — Diferencia: $${dif.toFixed(2)}</div>`;
+  const estatus = Math.abs(dif) < 0.01 ? '✅ Cuadrado' : (dif < 0 ? `⚠️ Faltante $${Math.abs(dif).toFixed(2)}` : `⚠️ Sobrante $${dif.toFixed(2)}`);
+  const claseDif = Math.abs(dif) < 0.01 ? 'msg-ok' : 'msg-err';
+  msg.innerHTML = `<div class="msg-box ${claseDif}">
+    <b>${estatus}</b><br>
+    Efectivo esperado: $${Number(data.efectivo_esperado).toFixed(2)} — Contado: $${Number(data.efectivo_contado).toFixed(2)}<br>
+    Tarjeta Débito (terminal): $${Number(data.total_tarjeta_debito).toFixed(2)} — Tarjeta Crédito (terminal): $${Number(data.total_tarjeta_credito).toFixed(2)}
+  </div>`;
   setTimeout(() => {
     document.getElementById('modalCerrarCaja').classList.remove('show');
     cargarCajas();
-  }, 2500);
+  }, 3500);
 }
 
 /* ---- Empleados con PIN (solo Gerente/Admin) ---- */
@@ -5472,8 +5520,23 @@ async function verCierreDia(){
       <h4 style="font-size:14px;margin-bottom:8px;">Resumen — Venta por caja</h4>
 
       <div style="font-size:13px;font-weight:700;margin-top:10px;">${escHtml(data.caja_nombre)}</div>
+      ${data.cortes.map(c => {
+        const estatus = c.estatus === 'cuadrado' ? '✅ Cuadrado' : (c.estatus === 'faltante' ? `⚠️ Faltante $${f2(Math.abs(c.diferencia))}` : `⚠️ Sobrante $${f2(c.diferencia)}`);
+        return `
+        <div style="border:1px solid var(--outline);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;">
+            <span>#Corte ${c.turno_id} <span class="muted" style="font-weight:400;">(${escHtml(c.empleado_apertura)} → ${escHtml(c.empleado_cierre || '—')})</span></span>
+            <span>$${f2(c.venta_total)}</span>
+          </div>
+          <div class="muted" style="font-size:11.5px;margin-top:4px;">
+            Fondo inicial $${f2(c.fondo_inicial)} · Efvo. esperado $${f2(c.efectivo_esperado)} · Efvo. contado $${f2(c.efectivo_contado)} — <b>${estatus}</b>
+          </div>
+          <div class="muted" style="font-size:11.5px;">
+            Terminal — Débito $${f2(c.total_tarjeta_debito)} · Crédito $${f2(c.total_tarjeta_credito)}
+          </div>
+        </div>`;
+      }).join('')}
       <table style="width:100%;font-size:12.5px;margin-bottom:6px;">
-        ${data.cortes.map(c => `<tr><td>#Corte ${c.turno_id} <span class="muted">(${escHtml(c.empleado_apertura)} → ${escHtml(c.empleado_cierre || '—')})</span></td><td style="text-align:right;">$${f2(c.venta_total)}</td></tr>`).join('')}
         <tr style="font-weight:700;border-top:1px solid var(--outline);"><td>Venta total</td><td style="text-align:right;">$${f2(data.venta_total_dia)}</td></tr>
       </table>
 
@@ -5536,7 +5599,13 @@ function imprimirCierreDia(){
   document.getElementById('cdFecha').textContent = new Date(data.fecha + 'T00:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
   document.getElementById('cdCaja').innerHTML = `
     <div>${escHtml(data.caja_nombre)}</div>
-    ${data.cortes.map(c => `<div class="ticket-fila"><span># Corte ${c.turno_id}</span><span>$${f2(c.venta_total)}</span></div>`).join('')}
+    ${data.cortes.map(c => {
+      const estatus = c.estatus === 'cuadrado' ? 'Cuadrado' : (c.estatus === 'faltante' ? `Faltante $${f2(Math.abs(c.diferencia))}` : `Sobrante $${f2(c.diferencia)}`);
+      return `
+      <div class="ticket-fila"><span># Corte ${c.turno_id}</span><span>$${f2(c.venta_total)}</span></div>
+      <div style="font-size:9px;">Efvo esp/cont: $${f2(c.efectivo_esperado)} / $${f2(c.efectivo_contado)} — ${estatus}</div>
+      <div style="font-size:9px;">Terminal: Débito $${f2(c.total_tarjeta_debito)} · Crédito $${f2(c.total_tarjeta_credito)}</div>`;
+    }).join('')}
     <div class="ticket-fila ticket-total"><span>Venta total</span><span>$${f2(data.venta_total_dia)}</span></div>
   `;
   document.getElementById('cdTiposPago').innerHTML = `
