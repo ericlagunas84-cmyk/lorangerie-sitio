@@ -5251,8 +5251,9 @@ async function cargarCajas(){
   }
 
   await cargarDirectorioEmpleados();
-  const { data: turno, error } = await sb.rpc('admin_turno_actual');
+  const { data: turnos, error } = await sb.rpc('admin_turno_actual');
   if (error){ cont.innerHTML = `<p class="muted">No se pudo cargar el estado de caja: ${escHtml(error.message)}</p>`; return; }
+  const turno = turnos && turnos.length ? turnos[0] : null;
 
   if (!turno){
     cont.innerHTML = `
