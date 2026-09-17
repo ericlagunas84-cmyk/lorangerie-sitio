@@ -740,6 +740,7 @@
     </div>
     <div class="cat-tabs" id="catTabs"></div>
     <p class="menu-note">Menú completo de L'Orangerie — elige una categoría para ver los platillos y bebidas disponibles.</p>
+    <div id="menuAvisoDesayunos" style="display:none;background:var(--warn-soft,#fdf1d6);color:var(--warn,#7a5c00);border-radius:10px;padding:12px 16px;font-size:13.5px;margin-bottom:14px;"></div>
     <div class="menu-grid" id="menuGrid"></div>
 
     <div class="pickup-banner">
@@ -1372,20 +1373,43 @@ function abrirDetalleOPersonalizar(id){
   else openProductModal(id);
 }
 
+function desayunosDisponiblesAhora(){
+  if (!DESAYUNOS_HORARIO_ACTIVO) return true;
+  const ahora = new Date();
+  const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+  const [hIni, mIni] = DESAYUNOS_HORA_INICIO.split(':').map(Number);
+  const [hFin, mFin] = DESAYUNOS_HORA_FIN.split(':').map(Number);
+  const inicio = hIni * 60 + mIni, fin = hFin * 60 + mFin;
+  return minutosAhora >= inicio && minutosAhora < fin;
+}
+
 function renderMenu(){
   const grid = document.getElementById('menuGrid');
   const items = MENU.filter(m => m.category === activeCategory);
+  const aviso = document.getElementById('menuAvisoDesayunos');
+
+  const esDesayunos = activeCategory === 'desayunos';
+  const disponible = !esDesayunos || desayunosDisponiblesAhora();
+  if (esDesayunos && !disponible){
+    aviso.style.display = 'block';
+    aviso.textContent = `🍳 Los desayunos se sirven de ${DESAYUNOS_HORA_INICIO} a ${DESAYUNOS_HORA_FIN}. Vuelve dentro de ese horario para pedirlos.`;
+  } else {
+    aviso.style.display = 'none';
+  }
+
   grid.innerHTML = items.map(item => `
-    <div class="menu-row" onclick="abrirDetalleOPersonalizar('${item.id}')" style="cursor:pointer;">
+    <div class="menu-row" onclick="${disponible ? `abrirDetalleOPersonalizar('${item.id}')` : ''}" style="${disponible ? 'cursor:pointer;' : 'opacity:.55;'}">
       <div class="menu-row-main">
         <span class="menu-row-name">${item.name}${item.badge ? `<span class="menu-row-badge">${item.badge}</span>` : ''}</span>
         <span class="menu-row-price">$${item.price.toFixed(2)}</span>
       </div>
       ${item.desc ? `<p class="menu-row-desc">${item.desc}</p>` : ''}
-      <button class="menu-row-add" onclick="event.stopPropagation(); addToCart('${item.id}')" aria-label="Agregar ${item.name}">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Agregar
-      </button>
+      ${disponible
+        ? `<button class="menu-row-add" onclick="event.stopPropagation(); addToCart('${item.id}')" aria-label="Agregar ${item.name}">
+             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+             Agregar
+           </button>`
+        : `<button class="menu-row-add" disabled style="opacity:.6;cursor:default;">No disponible ahora</button>`}
     </div>
   `).join('');
 }
@@ -2034,6 +2058,10 @@ function pmAddToCart(){
 
 async function addToCart(id){
   const item = MENU.find(m => m.id === id);
+  if (item && item.category === 'desayunos' && !desayunosDisponiblesAhora()){
+    alert(`Los desayunos se sirven de ${DESAYUNOS_HORA_INICIO} a ${DESAYUNOS_HORA_FIN}.`);
+    return;
+  }
   if (item && item.customizable){
     openCoffeeModal(id);
     return;
@@ -2712,6 +2740,7 @@ async function cargarMenuDesdeSheet(){
 })();
 
 let TIEMPO_ESPERA_MIN = 15, TIEMPO_ESPERA_MAX = 20;
+let DESAYUNOS_HORARIO_ACTIVO = false, DESAYUNOS_HORA_INICIO = '07:30', DESAYUNOS_HORA_FIN = '12:00';
 async function cargarTiempoEsperaConfigurado(){
   try {
     const { data, error } = await sb.rpc('config_publica_get');
@@ -2719,6 +2748,10 @@ async function cargarTiempoEsperaConfigurado(){
     if (error || !cfg) return; // si falla, se quedan los valores por default (15-20)
     TIEMPO_ESPERA_MIN = cfg.tiempo_espera_min ?? 15;
     TIEMPO_ESPERA_MAX = cfg.tiempo_espera_max ?? 20;
+    DESAYUNOS_HORARIO_ACTIVO = !!cfg.desayunos_horario_activo;
+    DESAYUNOS_HORA_INICIO = cfg.desayunos_hora_inicio || '07:30';
+    DESAYUNOS_HORA_FIN = cfg.desayunos_hora_fin || '12:00';
+    renderMenu();
 
     const banner = document.getElementById('pickupBannerTexto');
     if (banner){

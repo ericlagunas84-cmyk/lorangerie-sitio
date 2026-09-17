@@ -1122,6 +1122,19 @@
         <button class="btn btn-primary" style="margin-top:10px;" onclick="guardarConfiguracion()">Guardar cambios</button>
       </div>
 
+      <div class="card" style="max-width:560px;">
+        <h3 style="font-size:15px;margin-bottom:2px;">🍳 Horario de Desayunos</h3>
+        <p class="muted" style="font-size:12px;margin:0 0 14px;">Si lo activas, los platillos de la categoría "Desayunos" solo se podrán pedir en el sitio público dentro de este horario. Fuera de él, aparecen como no disponibles.</p>
+        <div class="field-group" style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <input type="checkbox" id="cfgDesayunosActivo" style="width:auto;">
+          <label style="margin:0;text-transform:none;font-size:13.5px;">Activar horario para Desayunos</label>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="field-group" style="margin:0;"><label>Desde</label><input type="time" id="cfgDesayunosInicio" style="max-width:140px;"></div>
+          <div class="field-group" style="margin:0;"><label>Hasta</label><input type="time" id="cfgDesayunosFin" style="max-width:140px;"></div>
+        </div>
+      </div>
+
       <div class="card" style="margin-top:20px;">
         <h3 style="font-size:15px;margin-bottom:2px;">PIN de gerente</h3>
         <p class="muted" style="font-size:12px;margin:0 0 14px;">Se pide para autorizar la cancelación de un pedido. Se guarda de forma segura — nunca se puede volver a ver, solo cambiar. Mínimo 4 dígitos.</p>
@@ -5146,6 +5159,9 @@ async function cargarConfiguracion(){
   document.getElementById('cfgZonaHoraria').value = cfg.zona_horaria || 'America/Ciudad_Juarez';
   document.getElementById('cfgTiempoMin').value = cfg.tiempo_espera_min ?? 15;
   document.getElementById('cfgTiempoMax').value = cfg.tiempo_espera_max ?? 20;
+  document.getElementById('cfgDesayunosActivo').checked = !!cfg.desayunos_horario_activo;
+  document.getElementById('cfgDesayunosInicio').value = cfg.desayunos_hora_inicio || '07:30';
+  document.getElementById('cfgDesayunosFin').value = cfg.desayunos_hora_fin || '12:00';
 
   const { data: tc } = await sb.rpc('admin_tipo_cambio_get');
   document.getElementById('cfgTipoCambio').value = tc ?? 18.50;
@@ -5202,6 +5218,9 @@ async function guardarConfiguracion(){
     p_tiempo_espera_max: tMax,
     p_logo_url: window._cfgLogoUrl || null,
     p_favicon_url: window._cfgFaviconUrl || null,
+    p_desayunos_horario_activo: document.getElementById('cfgDesayunosActivo').checked,
+    p_desayunos_hora_inicio: document.getElementById('cfgDesayunosInicio').value || null,
+    p_desayunos_hora_fin: document.getElementById('cfgDesayunosFin').value || null,
   });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
 
