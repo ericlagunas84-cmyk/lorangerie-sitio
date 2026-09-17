@@ -2192,6 +2192,7 @@ function renderPedidosFiltrados(){
       <div>
         <div class="pedido-card-cliente">${esAdmin ? `Pedido #${p.id}` : escHtml(p.cliente_email)}</div>
         ${esInvitado && !esAdmin ? '<div class="muted" style="font-size:12px;">(invitado)</div>' : ''}
+        ${p.telefono ? `<div class="muted" style="font-size:12px;">📞 ${escHtml(p.telefono)}</div>` : ''}
       </div>
       <div class="pedido-card-meta">
         <span>🕐 ${p.horario_recogida || 'Lo antes posible (15–20 min)'}</span>
@@ -3530,7 +3531,7 @@ function renderKdsEnfocada(est, lista){
               <h2>${escHtml(o.mesa)}</h2>
               <span class="badge ${esWeb?'b-cancelado':(o.tipo_servicio==='llevar'?'b-pendiente':'b-entregado')}">${kdsEtiqueta(o)}</span>
             </div>
-            <div class="kds-ticket-sub">Pedido #${o.id} · Registrado a las ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}${esWeb && o.horario_recogida ? ' · Recoge: ' + escHtml(o.horario_recogida) : ''}</div>
+            <div class="kds-ticket-sub">Pedido #${o.id} · Registrado a las ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}${esWeb && o.horario_recogida ? ' · Recoge: ' + escHtml(o.horario_recogida) : ''}${o.telefono ? ' · 📞 ' + escHtml(o.telefono) : ''}</div>
           </div>
         </div>
         <div class="kds-timer ${demorada?'demorada':''}">
@@ -3697,6 +3698,7 @@ function renderYImprimirComanda(pedido, items){
   document.getElementById('comHorario').textContent = pedido.horario_recogida || 'Lo antes posible (15–20 min)';
   document.getElementById('comFecha').textContent = new Date(pedido.fecha_creacion || Date.now()).toLocaleDateString('es-MX', {day:'2-digit',month:'short',year:'numeric'});
   document.getElementById('comCliente').textContent = pedido.cliente_email || pedido.guest_email || '—';
+  document.getElementById('comTelefono').textContent = pedido.telefono || '—';
   document.getElementById('comImpreso').textContent = new Date().toLocaleString('es-MX', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 
   const cont = document.getElementById('comItems');
@@ -5543,6 +5545,7 @@ function mostrarToast(texto){
     <div>🕐 Horario: <b id="comHorario"></b></div>
     <div>📅 Fecha: <b id="comFecha"></b></div>
     <div>👤 Cliente: <b id="comCliente"></b></div>
+    <div>📞 Teléfono: <b id="comTelefono"></b></div>
   </div>
   <div class="comanda-items" id="comItems"></div>
   <div class="comanda-footer">Impreso: <span id="comImpreso"></span></div>

@@ -2183,6 +2183,10 @@ function renderDrawer(){
   foot.innerHTML = `
     <div class="points-note">${user ? `🏷️ Ganarás <b>${earn} puntos</b> con este pedido.` : '🏷️ Crea una cuenta o inicia sesión para ganar puntos con este pedido.'}</div>
     ${guestBlock}
+    <div class="pts-panel" style="border-color:var(--outline-variant);">
+      <label class="pts-input-label">Teléfono (para avisarte de tu pedido)</label>
+      <input type="tel" id="checkoutTelefono" placeholder="656 123 4567" inputmode="tel" required>
+    </div>
     ${pointsBlock}
     <label class="field-label" style="font-size:12px;color:var(--on-surface-variant);">Horario para recoger (Lun–Sáb 7:30am–10pm · Dom 7:30am–1pm)</label>
     <select id="pickupTime">${pickupSlotsHTML()}</select>
@@ -2240,22 +2244,34 @@ async function confirmOrder(){
 
   // Si no hay sesión, el correo es obligatorio para poder mandar la confirmación
   let guestEmail = '', guestNombre = '';
+  const mostrarErrorOrden = (texto, focoId) => {
+    document.getElementById(focoId)?.focus();
+    let errBox = document.getElementById('orderErrorBox');
+    if (!errBox){
+      errBox = document.createElement('div');
+      errBox.id = 'orderErrorBox';
+      errBox.style.cssText = 'background:#f6e5e5;color:#8c3c3c;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;';
+      document.getElementById('drawerFoot').appendChild(errBox);
+    }
+    errBox.textContent = texto;
+  };
+
   if (!user){
     guestEmail = document.getElementById('guestEmail')?.value.trim() || '';
     guestNombre = document.getElementById('guestNombre')?.value.trim() || '';
     const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail);
     if (!emailValido){
-      document.getElementById('guestEmail')?.focus();
-      let errBox = document.getElementById('orderErrorBox');
-      if (!errBox){
-        errBox = document.createElement('div');
-        errBox.id = 'orderErrorBox';
-        errBox.style.cssText = 'background:#f6e5e5;color:#8c3c3c;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;';
-        document.getElementById('drawerFoot').appendChild(errBox);
-      }
-      errBox.textContent = 'Escribe un correo válido para poder confirmarte el pedido.';
+      mostrarErrorOrden('Escribe un correo válido para poder confirmarte el pedido.', 'guestEmail');
       return;
     }
+  }
+
+  // El teléfono se pide siempre (con o sin cuenta) — para poder avisar del pedido
+  const telefono = document.getElementById('checkoutTelefono')?.value.trim() || '';
+  const telefonoValido = /^[0-9+\-\s()]{10,20}$/.test(telefono);
+  if (!telefonoValido){
+    mostrarErrorOrden('Escribe un número de teléfono válido (mínimo 10 dígitos).', 'checkoutTelefono');
+    return;
   }
 
   if (btn){ btn.disabled = true; btn.textContent = 'Procesando…'; }
@@ -2280,6 +2296,7 @@ async function confirmOrder(){
           horario_recogida: pickupTimeVal,
           guest_email: guestEmail,
           guest_nombre: guestNombre,
+          telefono: telefono,
         }),
       });
       const data = await res.json();

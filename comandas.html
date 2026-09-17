@@ -241,6 +241,7 @@
   <div class="comanda-meta">
     <div>🍽️ Mesa / Servicio: <b id="comHorario"></b></div>
     <div>👤 Cliente: <b id="comCliente"></b></div>
+    <div>📞 Teléfono: <b id="comTelefono"></b></div>
     <div>📅 Fecha: <b id="comFecha"></b></div>
   </div>
   <div class="comanda-items" id="comItems"></div>
@@ -434,7 +435,7 @@ function renderKdsEnfocada(est, lista){
               <h2>${escHtml(o.mesa)}</h2>
               <span class="badge ${esWeb?'b-cancelado':(o.tipo_servicio==='llevar'?'b-pendiente':'b-entregado')}">${kdsEtiqueta(o)}</span>
             </div>
-            <div class="kds-ticket-sub">Pedido #${o.id} · Registrado a las ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}${esWeb && o.horario_recogida ? ' · Recoge: ' + escHtml(o.horario_recogida) : ''}</div>
+            <div class="kds-ticket-sub">Pedido #${o.id} · Registrado a las ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}${esWeb && o.horario_recogida ? ' · Recoge: ' + escHtml(o.horario_recogida) : ''}${o.telefono ? ' · 📞 ' + escHtml(o.telefono) : ''}</div>
           </div>
         </div>
         <div class="kds-timer ${demorada?'demorada':''}">
@@ -499,6 +500,7 @@ async function imprimirComandaEstacion(est, id){
   if (!pedido) return;
   document.getElementById('comNum').textContent = '#' + pedido.id;
   document.getElementById('comHorario').textContent = `${kdsEtiqueta(pedido)} — ${pedido.mesa || ''}`;
+  document.getElementById('comTelefono').textContent = pedido.telefono || '—';
   document.getElementById('comFecha').textContent = new Date(pedido.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('comImpreso').textContent = new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('comCliente').textContent = '—';
@@ -568,6 +570,7 @@ async function imprimirComandaDesdeAlerta(){
   document.getElementById('comNum').textContent = '#' + orden.id;
   document.getElementById('comHorario').textContent = orden.horario_recogida || 'Lo antes posible';
   document.getElementById('comCliente').textContent = orden.guest_nombre || orden.guest_email || '—';
+  document.getElementById('comTelefono').textContent = orden.telefono || '—';
   document.getElementById('comFecha').textContent = new Date(orden.fecha_creacion || Date.now()).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('comImpreso').textContent = new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('comItems').innerHTML = (data && data.length)
