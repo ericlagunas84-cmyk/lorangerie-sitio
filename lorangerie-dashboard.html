@@ -362,6 +362,12 @@
     .ticket-hr{border:none;border-top:1px dashed #000;margin:8px 0;}
     .ticket-fila{display:flex;justify-content:space-between;gap:8px;}
     .ticket-total{font-size:16px;font-weight:900;}
+
+    #cierreDiaPrint{display:none;}
+    body.imprimiendo-cierre *{visibility:hidden;}
+    body.imprimiendo-cierre #cierreDiaPrint, body.imprimiendo-cierre #cierreDiaPrint *{visibility:visible;}
+    body.imprimiendo-cierre #cierreDiaPrint{display:block;position:absolute;top:0;left:0;width:300px;padding:14px;font-family:'Courier New',monospace;color:#000;font-size:12px;}
+    #cierreDiaPrint h4{font-size:13px;margin:10px 0 4px;text-transform:uppercase;}
   }
 
   /* Alerta de pedido nuevo — pantalla completa */
@@ -3100,7 +3106,7 @@ async function confirmarCobro(){
       const montoPropinaEnMoneda = base.moneda === 'USD' ? cobroPropinaMonto / TIPO_CAMBIO_USD : cobroPropinaMonto;
       const { error: propinaErr } = await sb.rpc('admin_pedido_agregar_pago', {
         p_pedido_id: pedidoId, p_metodo_pago: metodoPropina, p_moneda: base.moneda,
-        p_monto: montoPropinaEnMoneda, p_tipo_cambio: base.tipoCambio,
+        p_monto: montoPropinaEnMoneda, p_tipo_cambio: base.tipoCambio, p_es_propina: true,
       });
       if (propinaErr) throw new Error('No se pudo registrar la propina: ' + propinaErr.message);
     }
@@ -5439,27 +5445,138 @@ async function cargarListaEmpleados(){
 }
 
 /* ---- Cierre del día (solo Gerente/Admin) ---- */
+let CIERRE_DIA_ACTUAL = null;
+
+function metodoLabel(m){
+  return { efectivo: 'Efectivo', tarjeta_debito: 'Tarjeta de Débito', tarjeta_credito: 'Tarjeta de Crédito' }[m] || m;
+}
+
 async function verCierreDia(){
   const fecha = document.getElementById('cierreDiaFecha').value;
   const msg = document.getElementById('cierreDiaMsg');
   const tabla = document.getElementById('cierreDiaTabla');
   msg.innerHTML = ''; tabla.innerHTML = '<div class="loading">Cargando…</div>';
   if (!fecha){ msg.innerHTML = '<div class="msg-box msg-err">Elige una fecha.</div>'; tabla.innerHTML=''; return; }
+
   const { data, error } = await sb.rpc('admin_cierre_dia', { p_fecha: fecha });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; tabla.innerHTML = ''; return; }
-  if (!data || !data.length){ tabla.innerHTML = '<p class="muted" style="font-size:12.5px;">Sin turnos cerrados ese día.</p>'; return; }
-  tabla.innerHTML = `<table style="width:100%;font-size:12.5px;">
-    <tr><th style="text-align:left;">Turno</th><th style="text-align:left;">Abrió</th><th style="text-align:left;">Cerró</th><th style="text-align:right;">Fondo</th><th style="text-align:right;">Esperado</th><th style="text-align:right;">Contado</th><th style="text-align:right;">Diferencia</th></tr>
-    ${data.map(t => `<tr>
-      <td>#${t.turno_id}</td>
-      <td>${escHtml(t.empleado_apertura)}</td>
-      <td>${escHtml(t.empleado_cierre || '—')}</td>
-      <td style="text-align:right;">$${Number(t.fondo_inicial).toFixed(2)}</td>
-      <td style="text-align:right;">$${Number(t.efectivo_esperado).toFixed(2)}</td>
-      <td style="text-align:right;">$${Number(t.efectivo_contado).toFixed(2)}</td>
-      <td style="text-align:right;">$${Number(t.diferencia).toFixed(2)}</td>
-    </tr>`).join('')}
-  </table>`;
+  if (!data || !data.cortes || !data.cortes.length){ tabla.innerHTML = '<p class="muted" style="font-size:12.5px;">Sin turnos cerrados ese día.</p>'; CIERRE_DIA_ACTUAL = null; return; }
+
+  CIERRE_DIA_ACTUAL = data;
+  const f2 = (n) => Number(n || 0).toFixed(2);
+  const dt = (s) => s ? new Date(s).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  tabla.innerHTML = `
+    <div style="max-width:480px;">
+      <h4 style="font-size:14px;margin-bottom:8px;">Resumen — Venta por caja</h4>
+
+      <div style="font-size:13px;font-weight:700;margin-top:10px;">${escHtml(data.caja_nombre)}</div>
+      <table style="width:100%;font-size:12.5px;margin-bottom:6px;">
+        ${data.cortes.map(c => `<tr><td>#Corte ${c.turno_id} <span class="muted">(${escHtml(c.empleado_apertura)} → ${escHtml(c.empleado_cierre || '—')})</span></td><td style="text-align:right;">$${f2(c.venta_total)}</td></tr>`).join('')}
+        <tr style="font-weight:700;border-top:1px solid var(--outline);"><td>Venta total</td><td style="text-align:right;">$${f2(data.venta_total_dia)}</td></tr>
+      </table>
+
+      <div style="font-size:13px;font-weight:700;margin-top:14px;">Tipos de pago</div>
+      <table style="width:100%;font-size:12.5px;">
+        ${['efectivo','tarjeta_debito','tarjeta_credito'].map(m => `
+          <tr><td>${metodoLabel(m)} <span class="muted">(${data.tipos_pago[m]?.pagos || 0} pagos)</span></td><td style="text-align:right;">$${f2(data.tipos_pago[m]?.total)}</td></tr>
+        `).join('')}
+        <tr><td>Dólares <span class="muted">(${data.dolares.pagos} pagos, 1 USD=$${f2(data.dolares.tipo_cambio)} MXN)</span></td><td style="text-align:right;">$${f2(data.dolares.total_mxn)} <span class="muted">(US$${f2(data.dolares.total_usd)})</span></td></tr>
+      </table>
+
+      <div style="font-size:13px;font-weight:700;margin-top:14px;">Órdenes</div>
+      <table style="width:100%;font-size:12.5px;">
+        <tr><td># Abiertas</td><td style="text-align:right;">${data.ordenes.abiertas}</td></tr>
+        <tr><td># Cerradas</td><td style="text-align:right;">${data.ordenes.cerradas}</td></tr>
+        <tr><td># Canceladas</td><td style="text-align:right;">${data.ordenes.canceladas}</td></tr>
+      </table>
+
+      <div style="font-size:13px;font-weight:700;margin-top:14px;">Descuentos</div>
+      <table style="width:100%;font-size:12.5px;">
+        <tr><td># Órdenes con descuento</td><td style="text-align:right;">${data.descuentos.ordenes}</td></tr>
+        <tr><td>Total descuentos</td><td style="text-align:right;">$${f2(data.descuentos.total)}</td></tr>
+      </table>
+
+      <div style="font-size:13px;font-weight:700;margin-top:14px;">Artículos cancelados</div>
+      <table style="width:100%;font-size:12.5px;">
+        <tr><td># Artículos cancelados</td><td style="text-align:right;">${data.articulos_cancelados.cantidad}</td></tr>
+        <tr><td>Total artículos cancelados</td><td style="text-align:right;">$${f2(data.articulos_cancelados.total)}</td></tr>
+      </table>
+
+      <div style="font-size:13px;font-weight:700;margin-top:14px;">Resumen de propinas</div>
+      <table style="width:100%;font-size:12.5px;">
+        <tr><td>Efectivo</td><td style="text-align:right;">$${f2(data.propinas.efectivo)}</td></tr>
+        <tr><td>Tarjeta de Débito</td><td style="text-align:right;">$${f2(data.propinas.tarjeta_debito)}</td></tr>
+        <tr><td>Tarjeta de Crédito</td><td style="text-align:right;">$${f2(data.propinas.tarjeta_credito)}</td></tr>
+        <tr style="font-weight:700;"><td>Total de propinas</td><td style="text-align:right;">$${f2(data.propinas.total)}</td></tr>
+      </table>
+
+      <div style="font-size:13px;font-weight:700;margin-top:14px;">Resumen de ventas</div>
+      <table style="width:100%;font-size:12.5px;">
+        <tr><td>Venta bruta</td><td style="text-align:right;">$${f2(data.resumen_ventas.venta_bruta)}</td></tr>
+        <tr><td>Descuentos</td><td style="text-align:right;">−$${f2(data.resumen_ventas.descuentos)}</td></tr>
+        <tr><td>Cargos por servicio</td><td style="text-align:right;">+$${f2(data.resumen_ventas.cargos_servicio)}</td></tr>
+        <tr style="font-weight:700;"><td>Venta total</td><td style="text-align:right;">$${f2(data.resumen_ventas.venta_total)}</td></tr>
+        <tr><td>Impuestos (IVA 8% frontera)</td><td style="text-align:right;">−$${f2(data.resumen_ventas.impuestos)}</td></tr>
+        <tr style="font-weight:700;"><td>Venta neta</td><td style="text-align:right;">$${f2(data.resumen_ventas.venta_neta)}</td></tr>
+      </table>
+
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="imprimirCierreDia()">🖨️ Imprimir ticket</button>
+    </div>
+  `;
+}
+
+function imprimirCierreDia(){
+  const data = CIERRE_DIA_ACTUAL;
+  if (!data) return;
+  const f2 = (n) => Number(n || 0).toFixed(2);
+  const dt = (s) => s ? new Date(s).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+
+  document.getElementById('cdFecha').textContent = new Date(data.fecha + 'T00:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('cdCaja').innerHTML = `
+    <div>${escHtml(data.caja_nombre)}</div>
+    ${data.cortes.map(c => `<div class="ticket-fila"><span># Corte ${c.turno_id}</span><span>$${f2(c.venta_total)}</span></div>`).join('')}
+    <div class="ticket-fila ticket-total"><span>Venta total</span><span>$${f2(data.venta_total_dia)}</span></div>
+  `;
+  document.getElementById('cdTiposPago').innerHTML = `
+    ${['efectivo','tarjeta_debito','tarjeta_credito'].map(m => `
+      <div class="ticket-fila"><span>${metodoLabel(m)} (${data.tipos_pago[m]?.pagos || 0})</span><span>$${f2(data.tipos_pago[m]?.total)}</span></div>
+    `).join('')}
+    <div class="ticket-fila"><span>Dólares (${data.dolares.pagos})</span><span>$${f2(data.dolares.total_mxn)}</span></div>
+    <div style="font-size:10px;">Tipo de cambio: 1 USD=$${f2(data.dolares.tipo_cambio)} MXN</div>
+  `;
+  document.getElementById('cdOrdenes').innerHTML = `
+    <div class="ticket-fila"><span># Abiertas</span><span>${data.ordenes.abiertas}</span></div>
+    <div class="ticket-fila"><span># Cerradas</span><span>${data.ordenes.cerradas}</span></div>
+    <div class="ticket-fila"><span># Canceladas</span><span>${data.ordenes.canceladas}</span></div>
+  `;
+  document.getElementById('cdDescuentos').innerHTML = `
+    <div class="ticket-fila"><span># Órdenes con descuento</span><span>${data.descuentos.ordenes}</span></div>
+    <div class="ticket-fila"><span>Total descuentos</span><span>$${f2(data.descuentos.total)}</span></div>
+  `;
+  document.getElementById('cdCancelados').innerHTML = `
+    <div class="ticket-fila"><span># Artículos cancelados</span><span>${data.articulos_cancelados.cantidad}</span></div>
+    <div class="ticket-fila"><span>Total cancelado</span><span>$${f2(data.articulos_cancelados.total)}</span></div>
+  `;
+  document.getElementById('cdPropinas').innerHTML = `
+    <div class="ticket-fila"><span>Efectivo</span><span>$${f2(data.propinas.efectivo)}</span></div>
+    <div class="ticket-fila"><span>Tarjeta de Débito</span><span>$${f2(data.propinas.tarjeta_debito)}</span></div>
+    <div class="ticket-fila"><span>Tarjeta de Crédito</span><span>$${f2(data.propinas.tarjeta_credito)}</span></div>
+    <div class="ticket-fila ticket-total"><span>Total propinas</span><span>$${f2(data.propinas.total)}</span></div>
+  `;
+  document.getElementById('cdVentas').innerHTML = `
+    <div class="ticket-fila"><span>Venta bruta</span><span>$${f2(data.resumen_ventas.venta_bruta)}</span></div>
+    <div class="ticket-fila"><span>Descuentos</span><span>−$${f2(data.resumen_ventas.descuentos)}</span></div>
+    <div class="ticket-fila"><span>Cargos por servicio</span><span>+$${f2(data.resumen_ventas.cargos_servicio)}</span></div>
+    <div class="ticket-fila"><span>Venta total</span><span>$${f2(data.resumen_ventas.venta_total)}</span></div>
+    <div class="ticket-fila"><span>Impuestos (8%)</span><span>−$${f2(data.resumen_ventas.impuestos)}</span></div>
+    <div class="ticket-fila ticket-total"><span>Venta neta</span><span>$${f2(data.resumen_ventas.venta_neta)}</span></div>
+  `;
+  document.getElementById('cdImpreso').textContent = new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+
+  document.body.classList.add('imprimiendo-cierre');
+  window.print();
+  setTimeout(() => document.body.classList.remove('imprimiendo-cierre'), 600);
 }
 
 /* ============================================================
@@ -5582,6 +5699,34 @@ function mostrarToast(texto){
   <hr class="ticket-hr">
   <div id="ticketPagos"></div>
   <div class="ticket-center" style="margin-top:10px;font-size:10px;">Gracias por tu compra<br>Plaza Comercial Tres Torres, Cd. Juárez, Chih.</div>
+</div>
+
+<!-- Cierre del día para imprimir: se llena por JS -->
+<div id="cierreDiaPrint">
+  <div class="ticket-center"><b style="font-size:16px;">L'Orangerie</b><br><span style="font-size:11px;">Resumen — Venta por caja</span></div>
+  <div class="ticket-center" style="font-size:11px;margin-top:4px;" id="cdFecha"></div>
+  <hr class="ticket-hr">
+  <div id="cdCaja"></div>
+  <hr class="ticket-hr">
+  <h4>Tipos de pago</h4>
+  <div id="cdTiposPago"></div>
+  <hr class="ticket-hr">
+  <h4>Órdenes</h4>
+  <div id="cdOrdenes"></div>
+  <hr class="ticket-hr">
+  <h4>Descuentos</h4>
+  <div id="cdDescuentos"></div>
+  <hr class="ticket-hr">
+  <h4>Artículos cancelados</h4>
+  <div id="cdCancelados"></div>
+  <hr class="ticket-hr">
+  <h4>Resumen de propinas</h4>
+  <div id="cdPropinas"></div>
+  <hr class="ticket-hr">
+  <h4>Resumen de ventas</h4>
+  <div id="cdVentas"></div>
+  <hr class="ticket-hr">
+  <div class="ticket-center" style="margin-top:10px;font-size:10px;">Impreso: <span id="cdImpreso"></span></div>
 </div>
 
 </body>
