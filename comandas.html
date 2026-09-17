@@ -112,6 +112,21 @@
     .kds-acciones-main{grid-template-columns:1fr;}
   }
 
+  /* Alerta de pedido nuevo — pantalla completa */
+  .pedido-alert-overlay{position:fixed;inset:0;background:linear-gradient(160deg,var(--sidebar-bg) 0%,#0b1120 100%);display:none;align-items:center;justify-content:center;z-index:999;padding:20px;}
+  .pedido-alert-overlay.show{display:flex;animation:fadeInAlert .2s ease;}
+  @keyframes fadeInAlert{from{opacity:0;}to{opacity:1;}}
+  @keyframes pulseRing{0%{transform:scale(.9);opacity:.7;}70%{transform:scale(1.25);opacity:0;}100%{opacity:0;}}
+  .pedido-alert-card{background:#fff;border-radius:20px;padding:44px 40px;max-width:440px;width:100%;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.4);position:relative;}
+  .pedido-alert-icon-wrap{position:relative;width:88px;height:88px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;}
+  .pedido-alert-icon-ring{position:absolute;inset:0;border-radius:50%;background:var(--sage);opacity:.35;animation:pulseRing 1.6s ease-out infinite;}
+  .pedido-alert-icon{position:relative;width:72px;height:72px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-size:34px;}
+  .pedido-alert-eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sage);margin-bottom:6px;}
+  .pedido-alert-title{font-family:var(--serif);font-weight:800;font-size:26px;color:var(--on);margin:0 0 14px;}
+  .pedido-alert-total{font-family:var(--serif);font-weight:800;font-size:40px;color:var(--on);margin:6px 0 2px;}
+  .pedido-alert-meta{font-size:13px;color:var(--on-var);margin-bottom:26px;}
+  .pedido-alert-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
   /* comanda para imprimir */
   #comandaPrint{display:none;}
   @media print{
@@ -198,6 +213,25 @@
   </div>
 </div>
 
+<!-- ALERTA DE PEDIDO NUEVO -->
+<div class="pedido-alert-overlay" id="pedidoAlertOverlay">
+  <div class="pedido-alert-card">
+    <div class="pedido-alert-icon-wrap">
+      <div class="pedido-alert-icon-ring"></div>
+      <div class="pedido-alert-icon">🧾</div>
+    </div>
+    <div class="pedido-alert-eyebrow">Pedido nuevo</div>
+    <h2 class="pedido-alert-title">Pedido <span id="pedidoAlertId"></span></h2>
+    <div class="pedido-alert-total" id="pedidoAlertTotal"></div>
+    <div class="pedido-alert-meta" id="pedidoAlertMeta"></div>
+    <div class="pedido-alert-actions">
+      <button class="btn btn-ghost" style="flex:1;" onclick="cerrarAlertaPedido()">Cerrar</button>
+      <button class="btn btn-ghost" style="flex:1;" onclick="imprimirComandaDesdeAlerta()">🖨️ Imprimir</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="actualizarDesdeAlerta()">🔄 Ver en tablero</button>
+    </div>
+  </div>
+</div>
+
 <!-- Comanda para imprimir -->
 <div id="comandaPrint">
   <div class="comanda-header">
@@ -206,6 +240,7 @@
   </div>
   <div class="comanda-meta">
     <div>🍽️ Mesa / Servicio: <b id="comHorario"></b></div>
+    <div>👤 Cliente: <b id="comCliente"></b></div>
     <div>📅 Fecha: <b id="comFecha"></b></div>
   </div>
   <div class="comanda-items" id="comItems"></div>
@@ -245,6 +280,7 @@ function entrarAlTablero(user){
   document.getElementById('shell').style.display = 'flex';
   document.getElementById('estacionEmailFoot').textContent = user.email;
   cambiarEstacion('cocina');
+  iniciarAlertasPedidos();
 }
 
 async function intentarRestaurarSesion(){
@@ -258,6 +294,7 @@ document.addEventListener('DOMContentLoaded', intentarRestaurarSesion);
 
 async function cerrarSesion(){
   if (comandasIntervalo) clearInterval(comandasIntervalo);
+  if (canalPedidos) sb.removeChannel(canalPedidos);
   await sb.auth.signOut();
   location.reload();
 }
@@ -464,6 +501,7 @@ async function imprimirComandaEstacion(est, id){
   document.getElementById('comHorario').textContent = `${kdsEtiqueta(pedido)} — ${pedido.mesa || ''}`;
   document.getElementById('comFecha').textContent = new Date(pedido.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
   document.getElementById('comImpreso').textContent = new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('comCliente').textContent = '—';
   document.getElementById('comItems').innerHTML = (pedido.items && pedido.items.length)
     ? pedido.items.map(it => `
         <div class="comanda-item">${it.cantidad}× ${escHtml(it.nombre)}
@@ -472,6 +510,91 @@ async function imprimirComandaEstacion(est, id){
         </div>`).join('')
     : '<p>Sin platillos registrados.</p>';
   window.print();
+}
+
+/* ============================================================
+   ALERTA DE PEDIDO NUEVO (en vivo) — igual que en el dashboard admin
+   ============================================================ */
+let canalPedidos = null;
+
+function iniciarAlertasPedidos(){
+  canalPedidos = sb
+    .channel('pedidos-nuevos')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ordenes' }, (payload) => {
+      manejarPedidoNuevo(payload.new);
+    })
+    .subscribe();
+}
+
+let pedidoAlertActual = null;
+
+function manejarPedidoNuevo(orden){
+  sonarAlerta();
+  mostrarAlertaPedido(orden);
+  // Refresca ambos tableros aunque estés viendo solo uno de los dos
+  cargarComandas('cocina');
+  cargarComandas('barra');
+}
+
+let pedidoAlertTimeout = null;
+function mostrarAlertaPedido(orden){
+  pedidoAlertActual = orden;
+  document.getElementById('pedidoAlertId').textContent = '#' + orden.id;
+  document.getElementById('pedidoAlertTotal').textContent = '$' + Number(orden.total_a_pagar).toFixed(2) + ' MXN';
+  const hora = new Date(orden.fecha_creacion || Date.now()).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('pedidoAlertMeta').textContent = orden.horario_recogida
+    ? `Recoge: ${orden.horario_recogida} · recibido ${hora}`
+    : `Recibido a las ${hora}`;
+  document.getElementById('pedidoAlertOverlay').classList.add('show');
+
+  clearTimeout(pedidoAlertTimeout);
+  pedidoAlertTimeout = setTimeout(cerrarAlertaPedido, 15000);
+}
+
+function cerrarAlertaPedido(){
+  document.getElementById('pedidoAlertOverlay').classList.remove('show');
+  clearTimeout(pedidoAlertTimeout);
+}
+
+function actualizarDesdeAlerta(){
+  cerrarAlertaPedido();
+  cargarComandas(ESTACION_ACTUAL);
+}
+
+async function imprimirComandaDesdeAlerta(){
+  const orden = pedidoAlertActual;
+  if (!orden) return;
+  const { data } = await sb.rpc('admin_detalle_pedido', { p_pedido: orden.id });
+  document.getElementById('comNum').textContent = '#' + orden.id;
+  document.getElementById('comHorario').textContent = orden.horario_recogida || 'Lo antes posible';
+  document.getElementById('comCliente').textContent = orden.guest_nombre || orden.guest_email || '—';
+  document.getElementById('comFecha').textContent = new Date(orden.fecha_creacion || Date.now()).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('comImpreso').textContent = new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('comItems').innerHTML = (data && data.length)
+    ? data.map(it => `
+        <div class="comanda-item">${it.cantidad}× ${escHtml(it.nombre)}
+          ${it.opciones ? `<div class="opciones">${escHtml(it.opciones)}</div>` : ''}
+          ${it.nota ? `<div class="opciones" style="font-weight:700;">📝 ${escHtml(it.nota)}</div>` : ''}
+        </div>`).join('')
+    : '<p>Sin platillos registrados.</p>';
+  window.print();
+}
+
+// Sonido corto generado por código — no necesita ningún archivo de audio
+function sonarAlerta(){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1108].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.14);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.14 + 0.25);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.14);
+      osc.stop(ctx.currentTime + i * 0.14 + 0.25);
+    });
+  } catch(e){ /* algunos navegadores bloquean audio sin interacción previa; no pasa nada si falla */ }
 }
 </script>
 </body>
