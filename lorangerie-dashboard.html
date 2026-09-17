@@ -449,6 +449,7 @@
         <div class="nav-item nav-subitem" data-tab="mesas" onclick="goTab('mesas')">Mesas <span class="badge" id="badgeMesas" style="display:none;"></span></div>
         <div class="nav-item nav-subitem" data-tab="cocina" onclick="goTab('cocina')">🍳 Cocina <span class="badge" id="badgeCocina" style="display:none;"></span></div>
         <div class="nav-item nav-subitem" data-tab="barra" onclick="goTab('barra')">🍹 Barra <span class="badge" id="badgeBarra" style="display:none;"></span></div>
+        <div class="nav-item nav-subitem" data-tab="cajas" onclick="goTab('cajas')">💵 Cajas</div>
         <div class="nav-item nav-subitem" data-tab="reportes" onclick="goTab('reportes')">Reportes de Ventas</div>
       </div>
     </div>
@@ -775,6 +776,38 @@
     </div>
 
     <!-- REPORTES DE VENTAS -->
+    <!-- CAJAS -->
+    <div id="tab-cajas" class="tab-panel" style="display:none;">
+      <div class="section-head"><h2>💵 Cajas</h2></div>
+
+      <div class="card" id="cajaEstadoCard" style="max-width:640px;"></div>
+
+      <div class="card" id="empleadosCard" style="max-width:640px;margin-top:20px;">
+        <h3 style="font-size:15px;margin-bottom:2px;">Empleados con PIN</h3>
+        <p class="muted" style="font-size:12px;margin:0 0 14px;">Cada empleado usa su usuario y PIN (no su login de correo) para abrir/cerrar caja y registrar movimientos. Solo Gerente o Admin pueden crear empleados nuevos.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+          <div class="field-group" style="margin:0;"><label>Nombre</label><input type="text" id="empNombre" style="max-width:160px;"></div>
+          <div class="field-group" style="margin:0;"><label>Usuario</label><input type="text" id="empUsuario" style="max-width:120px;" placeholder="ej. jesus"></div>
+          <div class="field-group" style="margin:0;"><label>PIN</label><input type="password" inputmode="numeric" id="empPin" style="max-width:100px;" placeholder="••••"></div>
+          <div class="field-group" style="margin:0;"><label>Puesto</label><select id="empPuestoId" style="max-width:170px;"></select></div>
+          <button class="btn btn-primary" onclick="crearEmpleado()">Crear empleado</button>
+        </div>
+        <div id="empMsg"></div>
+        <div id="empLista" style="margin-top:14px;overflow-x:auto;"></div>
+      </div>
+
+      <div class="card" id="cierreDiaCard" style="max-width:640px;margin-top:20px;">
+        <h3 style="font-size:15px;margin-bottom:2px;">Cierre del día</h3>
+        <p class="muted" style="font-size:12px;margin:0 0 14px;">Junta todos los turnos ya cerrados de un día. No se puede generar si queda alguna caja abierta.</p>
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <div class="field-group" style="margin:0;"><label>Fecha</label><input type="date" id="cierreDiaFecha"></div>
+          <button class="btn btn-ghost" onclick="verCierreDia()">Ver cierre del día</button>
+        </div>
+        <div id="cierreDiaMsg"></div>
+        <div id="cierreDiaTabla" style="margin-top:14px;overflow-x:auto;"></div>
+      </div>
+    </div>
+
     <div id="tab-reportes" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Reportes de Ventas</h2>
@@ -1417,6 +1450,55 @@
   </div>
 </div>
 
+<!-- MODAL: abrir caja -->
+<div class="modal-overlay" id="modalAbrirCaja">
+  <div class="modal-card" style="width:360px;text-align:center;">
+    <h3 style="font-size:17px;margin-bottom:6px;">Abrir caja</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Ingresa tu usuario, tu PIN, y el fondo con el que empiezas.</p>
+    <input type="text" id="abrirCajaUsuario" placeholder="Usuario" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
+    <input type="password" id="abrirCajaPin" inputmode="numeric" placeholder="PIN" style="width:100%;text-align:center;font-size:20px;letter-spacing:.2em;padding:12px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
+    <input type="number" id="abrirCajaFondo" min="0" step="0.01" placeholder="Fondo inicial ($)" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+    <div id="abrirCajaMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalAbrirCaja').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmarAbrirCaja()">Abrir caja</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: retiro / depósito de caja -->
+<div class="modal-overlay" id="modalMovimientoCaja">
+  <div class="modal-card" style="width:360px;text-align:center;">
+    <h3 style="font-size:17px;margin-bottom:6px;" id="movCajaTitulo">Retiro de caja</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Confirma con tu usuario y PIN.</p>
+    <input type="text" id="movCajaUsuario" placeholder="Usuario" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
+    <input type="password" id="movCajaPin" inputmode="numeric" placeholder="PIN" style="width:100%;text-align:center;font-size:20px;letter-spacing:.2em;padding:12px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
+    <input type="number" id="movCajaMonto" min="0.01" step="0.01" placeholder="Monto ($)" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
+    <input type="text" id="movCajaMotivo" placeholder="Motivo (opcional)" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+    <div id="movCajaMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalMovimientoCaja').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmarMovimientoCaja()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: cerrar caja (corte ciego) -->
+<div class="modal-overlay" id="modalCerrarCaja">
+  <div class="modal-card" style="width:360px;text-align:center;">
+    <h3 style="font-size:17px;margin-bottom:6px;">Cerrar caja (corte)</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Cuenta el efectivo físico antes de escribirlo aquí — el sistema calcula la diferencia después.</p>
+    <input type="text" id="cerrarCajaUsuario" placeholder="Usuario" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
+    <input type="password" id="cerrarCajaPin" inputmode="numeric" placeholder="PIN" style="width:100%;text-align:center;font-size:20px;letter-spacing:.2em;padding:12px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
+    <input type="number" id="cerrarCajaContado" min="0" step="0.01" placeholder="Efectivo contado ($)" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+    <div id="cerrarCajaMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCerrarCaja').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-danger" style="flex:1;" onclick="confirmarCerrarCaja()">Cerrar caja</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: nuevo/editar grupo adicional (modificador) -->
 <!-- MODAL: personalizar platillo (grupos adicionales) en Nueva Orden -->
 <div class="modal-overlay" id="modalPersonalizarItem">
@@ -1857,6 +1939,7 @@ function goTab(tab){
   if (tab === 'mesas') cargarMesasActivas();
   if (tab === 'cocina') { cargarComandas('cocina'); comandasIntervalo = setInterval(() => cargarComandas('cocina'), 20000); }
   if (tab === 'barra') { cargarComandas('barra'); comandasIntervalo = setInterval(() => cargarComandas('barra'), 20000); }
+  if (tab === 'cajas') cargarCajas();
   if (tab === 'reportes') cargarReportesVentas();
   if (tab === 'menu') cargarMenu();
   if (tab === 'inventarios') cargarInventario();
@@ -5135,6 +5218,222 @@ async function guardarPinGerente(){
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
   document.getElementById('cfgNuevoPin').value = '';
   msg.innerHTML = '<div class="msg-box msg-ok">PIN de gerente actualizado.</div>';
+}
+
+/* ============================================================
+   CAJAS (turno único, retiros/depósitos, corte, cierre del día)
+   ============================================================ */
+let EMPLEADOS_DIRECTORIO_CACHE = {}; // id -> nombre, para no repetir la consulta
+
+async function cargarDirectorioEmpleados(){
+  const { data, error } = await sb.rpc('empleados_directorio');
+  if (error || !data) return;
+  EMPLEADOS_DIRECTORIO_CACHE = {};
+  data.forEach(e => EMPLEADOS_DIRECTORIO_CACHE[e.id] = e.nombre);
+}
+
+async function cargarCajas(){
+  const cont = document.getElementById('cajaEstadoCard');
+  cont.innerHTML = '<div class="loading">Cargando…</div>';
+
+  // Empleados y cierre del día son acciones de Gerente/Admin — el
+  // "encargado" de turno sí ve y opera la caja, pero no administra
+  // empleados ni genera el cierre del día.
+  const puedeAdministrar = ROL_ACTUAL === 'admin' || ROL_ACTUAL === 'gerente';
+  document.getElementById('empleadosCard').style.display = puedeAdministrar ? 'block' : 'none';
+  document.getElementById('cierreDiaCard').style.display = puedeAdministrar ? 'block' : 'none';
+  if (puedeAdministrar){
+    cargarPuestosParaEmpleado();
+    cargarListaEmpleados();
+    if (!document.getElementById('cierreDiaFecha').value){
+      document.getElementById('cierreDiaFecha').value = new Date().toISOString().slice(0,10);
+    }
+  }
+
+  await cargarDirectorioEmpleados();
+  const { data: turno, error } = await sb.rpc('admin_turno_actual');
+  if (error){ cont.innerHTML = `<p class="muted">No se pudo cargar el estado de caja: ${escHtml(error.message)}</p>`; return; }
+
+  if (!turno){
+    cont.innerHTML = `
+      <h3 style="font-size:15px;margin-bottom:4px;">Caja cerrada</h3>
+      <p class="muted" style="font-size:13px;margin:0 0 14px;">No hay ninguna caja abierta en este momento.</p>
+      <button class="btn btn-primary" onclick="abrirModalAbrirCaja()">Abrir caja</button>`;
+    return;
+  }
+
+  const desde = new Date(turno.fecha_apertura);
+  const empApertura = EMPLEADOS_DIRECTORIO_CACHE[turno.empleado_apertura_id] || '—';
+  cont.innerHTML = `
+    <h3 style="font-size:15px;margin-bottom:4px;">Caja abierta</h3>
+    <p class="muted" style="font-size:13px;margin:0 0 4px;">Abierta por <b>${escHtml(empApertura)}</b> — fondo inicial $${Number(turno.fondo_inicial).toFixed(2)} — desde ${desde.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
+    <div style="display:flex;gap:10px;margin:14px 0;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="abrirModalMovimiento('deposito')">➕ Depósito</button>
+      <button class="btn btn-ghost" onclick="abrirModalMovimiento('retiro')">➖ Retiro</button>
+      <button class="btn btn-danger" onclick="abrirModalCerrarCaja()">Cerrar caja (corte)</button>
+    </div>
+    <div id="movimientosCajaLista"></div>
+  `;
+  cargarMovimientosCajaActual(turno.id);
+}
+
+async function cargarMovimientosCajaActual(turnoId){
+  const cont = document.getElementById('movimientosCajaLista');
+  const { data, error } = await sb
+    .from('movimientos_caja')
+    .select('tipo, monto, motivo, empleado_id, creado_en')
+    .eq('turno_id', turnoId)
+    .order('creado_en', { ascending: false });
+  if (error){ cont.innerHTML = `<p class="muted" style="font-size:12px;">${escHtml(error.message)}</p>`; return; }
+  if (!data || !data.length){ cont.innerHTML = '<p class="muted" style="font-size:12.5px;">Sin retiros ni depósitos en este turno.</p>'; return; }
+  cont.innerHTML = `<table style="width:100%;font-size:12.5px;">
+    <tr><th style="text-align:left;">Tipo</th><th style="text-align:right;">Monto</th><th style="text-align:left;">Motivo</th><th style="text-align:left;">Quién</th></tr>
+    ${data.map(m => `<tr>
+      <td>${m.tipo === 'deposito' ? '➕ Depósito' : '➖ Retiro'}</td>
+      <td style="text-align:right;">$${Number(m.monto).toFixed(2)}</td>
+      <td>${escHtml(m.motivo || '—')}</td>
+      <td>${escHtml(EMPLEADOS_DIRECTORIO_CACHE[m.empleado_id] || '—')}</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+function abrirModalAbrirCaja(){
+  document.getElementById('abrirCajaUsuario').value = '';
+  document.getElementById('abrirCajaPin').value = '';
+  document.getElementById('abrirCajaFondo').value = '';
+  document.getElementById('abrirCajaMsg').innerHTML = '';
+  document.getElementById('modalAbrirCaja').classList.add('show');
+}
+async function confirmarAbrirCaja(){
+  const usuario = document.getElementById('abrirCajaUsuario').value.trim();
+  const pin = document.getElementById('abrirCajaPin').value.trim();
+  const fondo = parseFloat(document.getElementById('abrirCajaFondo').value);
+  const msg = document.getElementById('abrirCajaMsg');
+  if (!usuario || !pin || isNaN(fondo) || fondo < 0){
+    msg.innerHTML = '<div class="msg-box msg-err">Completa usuario, PIN y un fondo inicial válido.</div>';
+    return;
+  }
+  const { error } = await sb.rpc('admin_abrir_turno', { p_usuario: usuario, p_pin: pin, p_fondo_inicial: fondo });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; return; }
+  document.getElementById('modalAbrirCaja').classList.remove('show');
+  cargarCajas();
+}
+
+let MOV_CAJA_TIPO = 'retiro';
+function abrirModalMovimiento(tipo){
+  MOV_CAJA_TIPO = tipo;
+  document.getElementById('movCajaTitulo').textContent = tipo === 'deposito' ? 'Depósito de caja' : 'Retiro de caja';
+  document.getElementById('movCajaUsuario').value = '';
+  document.getElementById('movCajaPin').value = '';
+  document.getElementById('movCajaMonto').value = '';
+  document.getElementById('movCajaMotivo').value = '';
+  document.getElementById('movCajaMsg').innerHTML = '';
+  document.getElementById('modalMovimientoCaja').classList.add('show');
+}
+async function confirmarMovimientoCaja(){
+  const usuario = document.getElementById('movCajaUsuario').value.trim();
+  const pin = document.getElementById('movCajaPin').value.trim();
+  const monto = parseFloat(document.getElementById('movCajaMonto').value);
+  const motivo = document.getElementById('movCajaMotivo').value.trim();
+  const msg = document.getElementById('movCajaMsg');
+  if (!usuario || !pin || isNaN(monto) || monto <= 0){
+    msg.innerHTML = '<div class="msg-box msg-err">Completa usuario, PIN y un monto válido.</div>';
+    return;
+  }
+  const { error } = await sb.rpc('admin_registrar_movimiento_caja', {
+    p_usuario: usuario, p_pin: pin, p_tipo: MOV_CAJA_TIPO, p_monto: monto, p_motivo: motivo || null
+  });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; return; }
+  document.getElementById('modalMovimientoCaja').classList.remove('show');
+  cargarCajas();
+}
+
+function abrirModalCerrarCaja(){
+  document.getElementById('cerrarCajaUsuario').value = '';
+  document.getElementById('cerrarCajaPin').value = '';
+  document.getElementById('cerrarCajaContado').value = '';
+  document.getElementById('cerrarCajaMsg').innerHTML = '';
+  document.getElementById('modalCerrarCaja').classList.add('show');
+}
+async function confirmarCerrarCaja(){
+  const usuario = document.getElementById('cerrarCajaUsuario').value.trim();
+  const pin = document.getElementById('cerrarCajaPin').value.trim();
+  const contado = parseFloat(document.getElementById('cerrarCajaContado').value);
+  const msg = document.getElementById('cerrarCajaMsg');
+  if (!usuario || !pin || isNaN(contado) || contado < 0){
+    msg.innerHTML = '<div class="msg-box msg-err">Completa usuario, PIN y el efectivo contado.</div>';
+    return;
+  }
+  const { data, error } = await sb.rpc('admin_cerrar_turno', { p_usuario: usuario, p_pin: pin, p_efectivo_contado: contado });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; return; }
+  const dif = Number(data.diferencia);
+  const claseDif = dif === 0 ? 'msg-ok' : 'msg-err';
+  msg.innerHTML = `<div class="msg-box ${claseDif}">Esperado: $${Number(data.efectivo_esperado).toFixed(2)} — Contado: $${Number(data.efectivo_contado).toFixed(2)} — Diferencia: $${dif.toFixed(2)}</div>`;
+  setTimeout(() => {
+    document.getElementById('modalCerrarCaja').classList.remove('show');
+    cargarCajas();
+  }, 2500);
+}
+
+/* ---- Empleados con PIN (solo Gerente/Admin) ---- */
+async function cargarPuestosParaEmpleado(){
+  const sel = document.getElementById('empPuestoId');
+  if (!puestosCache.length) { const { data } = await sb.rpc('admin_puestos_list'); puestosCache = data || []; }
+  sel.innerHTML = puestosCache.map(p => `<option value="${p.id}">${escHtml(p.nombre)}</option>`).join('');
+}
+
+async function crearEmpleado(){
+  const nombre = document.getElementById('empNombre').value.trim();
+  const usuario = document.getElementById('empUsuario').value.trim();
+  const pin = document.getElementById('empPin').value.trim();
+  const puestoId = document.getElementById('empPuestoId').value;
+  const msg = document.getElementById('empMsg');
+  if (!nombre || !usuario || pin.length < 4 || !puestoId){
+    msg.innerHTML = '<div class="msg-box msg-err">Completa nombre, usuario, un PIN de al menos 4 dígitos y el puesto.</div>';
+    return;
+  }
+  const { error } = await sb.rpc('admin_crear_empleado', { p_nombre: nombre, p_usuario: usuario, p_pin: pin, p_puesto_id: parseInt(puestoId, 10) });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; return; }
+  document.getElementById('empNombre').value = '';
+  document.getElementById('empUsuario').value = '';
+  document.getElementById('empPin').value = '';
+  msg.innerHTML = '<div class="msg-box msg-ok">Empleado creado.</div>';
+  cargarListaEmpleados();
+}
+
+async function cargarListaEmpleados(){
+  const cont = document.getElementById('empLista');
+  const { data, error } = await sb.rpc('empleados_directorio');
+  if (error){ cont.innerHTML = `<p class="muted">${escHtml(error.message)}</p>`; return; }
+  if (!data || !data.length){ cont.innerHTML = '<p class="muted" style="font-size:12.5px;">Sin empleados registrados todavía.</p>'; return; }
+  cont.innerHTML = `<table style="width:100%;font-size:12.5px;">
+    <tr><th style="text-align:left;">Nombre</th><th style="text-align:left;">Usuario</th><th style="text-align:left;">Estado</th></tr>
+    ${data.map(e => `<tr><td>${escHtml(e.nombre)}</td><td>${escHtml(e.usuario)}</td><td>${e.activo ? 'Activo' : 'Inactivo'}</td></tr>`).join('')}
+  </table>`;
+}
+
+/* ---- Cierre del día (solo Gerente/Admin) ---- */
+async function verCierreDia(){
+  const fecha = document.getElementById('cierreDiaFecha').value;
+  const msg = document.getElementById('cierreDiaMsg');
+  const tabla = document.getElementById('cierreDiaTabla');
+  msg.innerHTML = ''; tabla.innerHTML = '<div class="loading">Cargando…</div>';
+  if (!fecha){ msg.innerHTML = '<div class="msg-box msg-err">Elige una fecha.</div>'; tabla.innerHTML=''; return; }
+  const { data, error } = await sb.rpc('admin_cierre_dia', { p_fecha: fecha });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; tabla.innerHTML = ''; return; }
+  if (!data || !data.length){ tabla.innerHTML = '<p class="muted" style="font-size:12.5px;">Sin turnos cerrados ese día.</p>'; return; }
+  tabla.innerHTML = `<table style="width:100%;font-size:12.5px;">
+    <tr><th style="text-align:left;">Turno</th><th style="text-align:left;">Abrió</th><th style="text-align:left;">Cerró</th><th style="text-align:right;">Fondo</th><th style="text-align:right;">Esperado</th><th style="text-align:right;">Contado</th><th style="text-align:right;">Diferencia</th></tr>
+    ${data.map(t => `<tr>
+      <td>#${t.turno_id}</td>
+      <td>${escHtml(t.empleado_apertura)}</td>
+      <td>${escHtml(t.empleado_cierre || '—')}</td>
+      <td style="text-align:right;">$${Number(t.fondo_inicial).toFixed(2)}</td>
+      <td style="text-align:right;">$${Number(t.efectivo_esperado).toFixed(2)}</td>
+      <td style="text-align:right;">$${Number(t.efectivo_contado).toFixed(2)}</td>
+      <td style="text-align:right;">$${Number(t.diferencia).toFixed(2)}</td>
+    </tr>`).join('')}
+  </table>`;
 }
 
 /* ============================================================
