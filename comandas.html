@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>L'Orangerie — Cocina &amp; Barra</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sage:#006838; --sage-dark:#00542d; --gold:#ba1a1a; --gold-dark:#006838;
+    --cream:#f8f9ff; --paper:#ffffff; --low:#eff4ff; --outline:#c6c6cd;
+    --on:#0b1c30; --on-var:#45464d; --danger:#ba1a1a; --danger-soft:#ffdad6;
+    --ok:#006838; --ok-soft:#d4ede0; --warn:#7a5c00; --warn-soft:#fdf1d6;
+    --sidebar-bg:#131b2e;
+    --radius:8px; --serif:'Hanken Grotesk',sans-serif; --sans:'Inter',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--on);font-family:var(--sans);line-height:1.5;}
+  h1,h2,h3,h4{font-family:var(--serif);margin:0;color:var(--on);font-weight:700;}
+  input[type=text],input[type=email],input[type=password]{padding:9px 12px;border:1px solid var(--outline);border-radius:var(--radius);font-size:13.5px;background:#fff;width:100%;}
+  .btn{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-weight:600;font-size:13px;border:none;border-radius:var(--radius);padding:10px 18px;cursor:pointer;transition:opacity .15s;}
+  .btn:disabled{opacity:.5;cursor:default;}
+  .btn-primary{background:var(--sage);color:#fff;} .btn-primary:hover{background:var(--sage-dark);}
+  .btn-ghost{background:var(--low);color:var(--sage-dark);border:1px solid var(--outline);}
+  .btn-sm{padding:6px 12px;font-size:12px;}
+  .muted{color:var(--on-var);}
+  .badge{display:inline-block;padding:2px 9px;border-radius:10px;font-size:10.5px;font-weight:700;}
+  .b-pendiente{background:var(--warn-soft);color:var(--warn);}
+  .b-entregado{background:var(--ok-soft);color:var(--ok);}
+  .b-cancelado{background:var(--danger-soft);color:var(--danger);}
+  .tabs-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .tabs-row button{background:var(--low);border:1px solid var(--outline);color:var(--on-var);font-size:12.5px;font-weight:600;padding:7px 14px;border-radius:16px;cursor:pointer;}
+  .tabs-row button.active{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .field-group{margin-bottom:12px;}
+  .field-group label{display:block;font-size:11.5px;font-weight:600;color:var(--on-var);margin-bottom:5px;text-transform:uppercase;letter-spacing:.03em;}
+  .loading{padding:30px;text-align:center;color:var(--on-var);font-size:13px;}
+  .msg-box{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px;}
+  .msg-err{background:var(--danger-soft);color:var(--danger);}
+  .msg-ok{background:var(--ok-soft);color:var(--ok);}
+
+  /* login */
+  .login-gate{max-width:380px;margin:110px auto;padding:0 20px;}
+  .login-card{background:var(--paper);border:1px solid var(--outline);border-radius:14px;padding:28px;}
+  .login-card h2{font-size:22px;margin-bottom:2px;}
+
+  /* shell de esta pantalla: sin sidebar, sin nada más que el tablero */
+  .estacion-shell{display:none;min-height:100vh;flex-direction:column;}
+  .estacion-topbar{background:var(--sidebar-bg);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+  .estacion-topbar .brand{font-family:var(--serif);font-weight:800;font-size:18px;}
+  .estacion-toggle{display:flex;gap:8px;}
+  .estacion-toggle button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:13.5px;padding:9px 18px;border-radius:10px;cursor:pointer;}
+  .estacion-toggle button.active{background:var(--sage);border-color:var(--sage);}
+  .estacion-body{flex:1;padding:18px 22px;}
+
+  /* ---- tablero KDS (idéntico al del dashboard admin) ---- */
+  .kds-panel{display:flex;flex-direction:column;height:calc(100vh - 88px);}
+  .kds-statbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--outline);}
+  .kds-stat-pills{display:flex;gap:8px;}
+  .kds-pill{font-size:12px;font-weight:800;padding:5px 12px;border-radius:20px;border:1px solid transparent;}
+  .kds-pill-ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok);}
+  .kds-pill-warn{background:var(--warn-soft);color:var(--warn);border-color:var(--warn-soft);}
+  .kds-filtro-demorada{color:var(--danger)!important;border-color:var(--danger-soft)!important;background:var(--danger-soft)!important;}
+
+  .kds-cola{display:flex;gap:10px;overflow-x:auto;padding:14px 2px;flex-shrink:0;}
+  .kds-mini-card{flex-shrink:0;width:190px;background:var(--paper);border:2px solid var(--outline);border-radius:12px;padding:10px;cursor:pointer;position:relative;transition:border-color .15s;}
+  .kds-mini-card:hover{border-color:var(--sage);}
+  .kds-mini-card.enfocada{border-color:var(--sage);box-shadow:0 0 0 3px var(--ok-soft);}
+  .kds-mini-card.demorada{border-color:var(--danger);background:var(--danger-soft);}
+  .kds-mini-badge{position:absolute;top:-9px;right:8px;background:var(--sage);color:#fff;font-size:9px;font-weight:800;padding:2px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:.03em;}
+  .kds-mini-badge.demorada{background:var(--danger);}
+  .kds-mini-top{display:flex;justify-content:space-between;align-items:center;}
+  .kds-mini-mesa{font-size:12px;font-weight:800;background:var(--low);padding:2px 8px;border-radius:6px;}
+  .kds-mini-tiempo{font-size:12px;font-weight:800;color:var(--warn);}
+  .kds-mini-card.demorada .kds-mini-tiempo{color:var(--danger);}
+  .kds-mini-pedido{font-size:11.5px;font-weight:700;margin-top:6px;}
+  .kds-mini-items{font-size:10.5px;color:var(--on-var);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;}
+
+  .kds-ticket{flex:1;background:var(--paper);border:1px solid var(--outline);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+  .kds-ticket-head{background:var(--low);border-bottom:1px solid var(--outline);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+  .kds-ticket-icon{width:52px;height:52px;border-radius:14px;background:var(--ok-soft);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;font-size:26px;}
+  .kds-ticket-titulo{display:flex;align-items:baseline;gap:8px;}
+  .kds-ticket-titulo .lbl{font-size:11px;font-weight:800;color:var(--on-var);text-transform:uppercase;letter-spacing:.05em;}
+  .kds-ticket-titulo h2{font-family:var(--serif);font-size:30px;font-weight:800;margin:0;}
+  .kds-ticket-sub{font-size:12.5px;color:var(--on-var);margin-top:2px;}
+  .kds-timer{display:flex;align-items:center;gap:10px;background:var(--warn-soft);border:1px solid var(--warn);padding:8px 16px;border-radius:14px;}
+  .kds-timer.demorada{background:var(--danger-soft);border-color:var(--danger);}
+  .kds-timer .num{font-family:var(--serif);font-size:22px;font-weight:800;color:var(--warn);line-height:1;}
+  .kds-timer.demorada .num{color:var(--danger);}
+  .kds-timer .lbl{font-size:9.5px;font-weight:800;color:var(--warn);text-transform:uppercase;}
+  .kds-timer.demorada .lbl{color:var(--danger);}
+
+  .kds-ticket-body{flex:1;overflow-y:auto;padding:18px 24px;}
+  .kds-items-head{display:flex;justify-content:space-between;font-size:11.5px;font-weight:800;text-transform:uppercase;color:var(--on-var);border-bottom:1px solid var(--outline);padding-bottom:8px;margin-bottom:12px;}
+  .kds-items-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;}
+  .kds-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:var(--low);border:1px solid var(--outline);}
+  .kds-item .cant{width:38px;height:38px;border-radius:10px;background:var(--ok-soft);color:var(--ok);font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .kds-item .nombre{font-weight:700;font-size:15px;}
+  .kds-nota-box{margin-top:16px;padding:12px 14px;border-radius:14px;background:var(--warn-soft);border:1px solid var(--warn);display:flex;gap:10px;align-items:flex-start;}
+
+  .kds-acciones{background:var(--low);border-top:1px solid var(--outline);padding:14px 24px;flex-shrink:0;}
+  .kds-acciones-main{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .kds-btn-proceso, .kds-btn-fin{padding:16px;border-radius:16px;font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.02em;cursor:pointer;border:2px solid transparent;}
+  .kds-btn-proceso{background:var(--warn-soft);color:var(--warn);border-color:var(--warn);}
+  .kds-btn-proceso.activo{background:var(--warn);color:#fff;}
+  .kds-btn-fin{background:var(--sage);color:#fff;border-color:var(--sage);}
+  .kds-nav{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--outline);font-size:12px;}
+  .kds-nav button{background:var(--paper);border:1px solid var(--outline);padding:6px 12px;border-radius:8px;font-weight:700;cursor:pointer;}
+  @media(max-width:720px){
+    .kds-panel{height:auto;}
+    .kds-items-grid{grid-template-columns:1fr;}
+    .kds-acciones-main{grid-template-columns:1fr;}
+  }
+
+  /* comanda para imprimir */
+  #comandaPrint{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #comandaPrint, #comandaPrint *{visibility:visible;}
+    #comandaPrint{display:block;position:absolute;top:0;left:0;width:100%;padding:20px;font-family:'Courier New',monospace;color:#000;}
+    .comanda-header{text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:14px;}
+    .comanda-header h1{font-size:22px;margin:0 0 4px;}
+    .comanda-header .num{font-size:32px;font-weight:900;}
+    .comanda-meta{font-size:14px;margin-bottom:14px;line-height:1.6;}
+    .comanda-items{border-top:2px dashed #000;padding-top:10px;}
+    .comanda-item{font-size:16px;font-weight:700;margin-bottom:10px;}
+    .comanda-item .opciones{font-size:13px;font-weight:400;margin-left:14px;}
+    .comanda-footer{border-top:2px dashed #000;margin-top:14px;padding-top:10px;font-size:13px;text-align:center;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <h2>L'Orangerie</h2>
+    <p class="muted" style="margin:0 0 18px;">Cocina &amp; Barra</p>
+    <div class="field-group"><label>Correo</label><input type="text" id="admEmail"></div>
+    <div class="field-group"><label>Contraseña</label><input type="password" id="admPass"></div>
+    <button class="btn btn-primary" style="width:100%;height:46px;" onclick="adminLogin()">Iniciar sesión</button>
+    <div id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- TABLERO -->
+<div class="estacion-shell" id="shell">
+  <div class="estacion-topbar">
+    <span class="brand">🍽️ L'Orangerie — Cocina &amp; Barra</span>
+    <div class="estacion-toggle">
+      <button class="active" id="toggleCocina" onclick="cambiarEstacion('cocina')">🍳 Cocina</button>
+      <button id="toggleBarra" onclick="cambiarEstacion('barra')">🍹 Barra</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span class="muted" id="estacionEmailFoot" style="font-size:12.5px;"></span>
+      <button class="btn btn-ghost btn-sm" onclick="cerrarSesion()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="estacion-body">
+    <div id="tab-cocina" class="kds-panel">
+      <div class="kds-statbar">
+        <div class="kds-stat-pills">
+          <span class="kds-pill kds-pill-ok" id="kdsPillActivas_cocina">0 Activas</span>
+          <span class="kds-pill kds-pill-warn" id="kdsPillCola_cocina">0 en cola de espera</span>
+        </div>
+        <div class="tabs-row" id="comandasFiltro_cocina">
+          <button class="active" onclick="filtrarComandas('cocina', null, this)">Todos</button>
+          <button onclick="filtrarComandas('cocina', 'mesa', this)">🍽️ Comer aquí</button>
+          <button onclick="filtrarComandas('cocina', 'llevar', this)">🥡 Para llevar</button>
+          <button onclick="filtrarComandas('cocina', 'web', this)">🌐 Pedidos web</button>
+          <button onclick="filtrarComandas('cocina', 'demoradas', this)" class="kds-filtro-demorada">⏱ Demoradas (&gt;15m)</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="cargarComandas('cocina')">↻ Actualizar</button>
+      </div>
+      <div class="kds-cola" id="kdsCola_cocina"></div>
+      <div id="kdsEnfocada_cocina"></div>
+    </div>
+
+    <div id="tab-barra" class="kds-panel" style="display:none;">
+      <div class="kds-statbar">
+        <div class="kds-stat-pills">
+          <span class="kds-pill kds-pill-ok" id="kdsPillActivas_barra">0 Activas</span>
+          <span class="kds-pill kds-pill-warn" id="kdsPillCola_barra">0 en cola de espera</span>
+        </div>
+        <div class="tabs-row" id="comandasFiltro_barra">
+          <button class="active" onclick="filtrarComandas('barra', null, this)">Todos</button>
+          <button onclick="filtrarComandas('barra', 'mesa', this)">🍽️ Comer aquí</button>
+          <button onclick="filtrarComandas('barra', 'llevar', this)">🥡 Para llevar</button>
+          <button onclick="filtrarComandas('barra', 'web', this)">🌐 Pedidos web</button>
+          <button onclick="filtrarComandas('barra', 'demoradas', this)" class="kds-filtro-demorada">⏱ Demoradas (&gt;15m)</button>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="cargarComandas('barra')">↻ Actualizar</button>
+      </div>
+      <div class="kds-cola" id="kdsCola_barra"></div>
+      <div id="kdsEnfocada_barra"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Comanda para imprimir -->
+<div id="comandaPrint">
+  <div class="comanda-header">
+    <h1>L'Orangerie</h1>
+    <div class="num">Pedido <span id="comNum"></span></div>
+  </div>
+  <div class="comanda-meta">
+    <div>🍽️ Mesa / Servicio: <b id="comHorario"></b></div>
+    <div>📅 Fecha: <b id="comFecha"></b></div>
+  </div>
+  <div class="comanda-items" id="comItems"></div>
+  <div class="comanda-footer">Impreso: <span id="comImpreso"></span></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL  = "https://ijxihmmbufoagibdskza.supabase.co";
+const SUPABASE_ANON = "sb_publishable_oXyHnZYo0zuizNaGsnRqLw_aEiRRmTQ";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+function escHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+/* ---------- login (mismas cuentas que el dashboard admin) ---------- */
+async function adminLogin(){
+  const email = document.getElementById('admEmail').value.trim();
+  const password = document.getElementById('admPass').value;
+  const msg = document.getElementById('loginMsg');
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${error.message}</div>`; return; }
+  const rol = data.user.app_metadata?.rol;
+  if (!['admin', 'gerente', 'encargado'].includes(rol)){
+    msg.innerHTML = `<div class="msg-box msg-err">Esta cuenta no tiene permisos para entrar aquí.</div>`;
+    await sb.auth.signOut();
+    return;
+  }
+  entrarAlTablero(data.user);
+}
+
+function entrarAlTablero(user){
+  document.getElementById('loginGate').style.display = 'none';
+  document.getElementById('shell').style.display = 'flex';
+  document.getElementById('estacionEmailFoot').textContent = user.email;
+  cambiarEstacion('cocina');
+}
+
+async function intentarRestaurarSesion(){
+  const { data, error } = await sb.auth.getSession();
+  if (error || !data.session) return;
+  const rol = data.session.user.app_metadata?.rol;
+  if (!['admin', 'gerente', 'encargado'].includes(rol)){ await sb.auth.signOut(); return; }
+  entrarAlTablero(data.session.user);
+}
+document.addEventListener('DOMContentLoaded', intentarRestaurarSesion);
+
+async function cerrarSesion(){
+  if (comandasIntervalo) clearInterval(comandasIntervalo);
+  await sb.auth.signOut();
+  location.reload();
+}
+
+/* ---------- toggle Cocina / Barra ---------- */
+let ESTACION_ACTUAL = 'cocina';
+function cambiarEstacion(est){
+  ESTACION_ACTUAL = est;
+  document.getElementById('tab-cocina').style.display = est === 'cocina' ? 'flex' : 'none';
+  document.getElementById('tab-barra').style.display = est === 'barra' ? 'flex' : 'none';
+  document.getElementById('toggleCocina').classList.toggle('active', est === 'cocina');
+  document.getElementById('toggleBarra').classList.toggle('active', est === 'barra');
+  if (comandasIntervalo) clearInterval(comandasIntervalo);
+  cargarComandas(est);
+  comandasIntervalo = setInterval(() => cargarComandas(est), 20000);
+}
+
+/* ============================================================
+   TABLERO DE COMANDAS (idéntico en lógica al del dashboard admin)
+   ============================================================ */
+const KDS = {
+  cocina: { cache: [], filtro: null, enfocadaId: null },
+  barra:  { cache: [], filtro: null, enfocadaId: null },
+};
+let comandasIntervalo = null;
+
+async function cargarComandas(est){
+  const rpc = est === 'barra' ? 'admin_comandas_barra_activas' : 'admin_comandas_cocina_activas';
+  const { data, error } = await sb.rpc(rpc);
+  if (error){
+    document.getElementById('kdsEnfocada_' + est).innerHTML = `<p class="muted">${escHtml(error.message)}</p>`;
+    return;
+  }
+  if (!data || !data.length){
+    KDS[est].cache = [];
+    renderComandas(est);
+    return;
+  }
+  KDS[est].cache = await Promise.all(data.map(async (o) => {
+    const { data: items } = await sb.rpc('admin_detalle_pedido_estacion', { p_pedido: o.id, p_estacion: est });
+    return { ...o, items: items || [] };
+  }));
+  renderComandas(est);
+}
+
+function filtrarComandas(est, tipo, btn){
+  KDS[est].filtro = tipo;
+  document.querySelectorAll(`#comandasFiltro_${est} button`).forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderComandas(est);
+}
+
+function kdsMinutos(o){ return Math.floor((Date.now() - new Date(o.fecha_creacion).getTime()) / 60000); }
+function kdsEsDemorada(o){ return kdsMinutos(o) >= 15; }
+
+function kdsListaFiltrada(est){
+  const { cache, filtro } = KDS[est];
+  if (!filtro) return cache;
+  if (filtro === 'demoradas') return cache.filter(kdsEsDemorada);
+  if (filtro === 'web') return cache.filter(o => o.origen !== 'admin');
+  return cache.filter(o => o.origen === 'admin' && o.tipo_servicio === filtro);
+}
+
+function renderComandas(est){
+  const lista = kdsListaFiltrada(est);
+  const totalActivas = KDS[est].cache.length;
+  document.getElementById('kdsPillActivas_' + est).textContent = `${totalActivas} Activa${totalActivas===1?'':'s'}`;
+  document.getElementById('kdsPillCola_' + est).textContent = totalActivas > 1 ? `${totalActivas - 1} en cola de espera` : 'Sin cola de espera';
+  if (!lista.find(o => o.id === KDS[est].enfocadaId)){
+    KDS[est].enfocadaId = lista.length ? lista[0].id : null;
+  }
+  renderKdsCola(est, lista);
+  renderKdsEnfocada(est, lista);
+}
+
+function kdsIcono(o){ if (o.origen !== 'admin') return '🌐'; return o.tipo_servicio === 'llevar' ? '🥡' : '🍽️'; }
+function kdsEtiqueta(o){ if (o.origen !== 'admin') return 'Pedido web'; return o.tipo_servicio === 'llevar' ? 'Para llevar' : 'Mesa'; }
+
+function renderKdsCola(est, lista){
+  const cont = document.getElementById('kdsCola_' + est);
+  if (!lista.length){ cont.innerHTML = ''; return; }
+  cont.innerHTML = lista.map(o => {
+    const min = kdsMinutos(o);
+    const demorada = kdsEsDemorada(o);
+    const enfocada = o.id === KDS[est].enfocadaId;
+    const itemsTxt = o.items.map(it => it.nombre).join(', ') || 'Sin platillos';
+    return `
+      <div class="kds-mini-card ${enfocada?'enfocada':''} ${demorada?'demorada':''}" onclick="seleccionarComandaEnfocada('${est}', ${o.id})">
+        ${enfocada ? '<span class="kds-mini-badge">En pantalla</span>' : (demorada ? '<span class="kds-mini-badge demorada">Demorada</span>' : '')}
+        <div class="kds-mini-top">
+          <span class="kds-mini-mesa">${kdsIcono(o)} ${escHtml(o.mesa)}</span>
+          <span class="kds-mini-tiempo">${min} min</span>
+        </div>
+        <div class="kds-mini-pedido">Pedido #${o.id} · ${o.items.length} ítem${o.items.length===1?'':'s'}</div>
+        <div class="kds-mini-items">${escHtml(itemsTxt)}</div>
+      </div>`;
+  }).join('');
+}
+
+function seleccionarComandaEnfocada(est, id){
+  KDS[est].enfocadaId = id;
+  const lista = kdsListaFiltrada(est);
+  renderKdsCola(est, lista);
+  renderKdsEnfocada(est, lista);
+}
+
+function kdsNavegar(est, delta){
+  const lista = kdsListaFiltrada(est);
+  const idx = lista.findIndex(o => o.id === KDS[est].enfocadaId);
+  if (idx === -1 || !lista.length) return;
+  const nuevoIdx = (idx + delta + lista.length) % lista.length;
+  seleccionarComandaEnfocada(est, lista[nuevoIdx].id);
+}
+
+function renderKdsEnfocada(est, lista){
+  const cont = document.getElementById('kdsEnfocada_' + est);
+  const o = lista.find(x => x.id === KDS[est].enfocadaId);
+  if (!o){
+    cont.innerHTML = '<div class="kds-ticket" style="align-items:center;justify-content:center;"><p class="muted" style="padding:60px;text-align:center;">Sin comandas activas en este filtro. 🎉</p></div>';
+    return;
+  }
+  const min = kdsMinutos(o);
+  const demorada = kdsEsDemorada(o);
+  const esWeb = o.origen !== 'admin';
+  const idx = lista.findIndex(x => x.id === o.id);
+  const anterior = lista[(idx - 1 + lista.length) % lista.length];
+  const siguiente = lista[(idx + 1) % lista.length];
+
+  cont.innerHTML = `
+    <div class="kds-ticket">
+      <div class="kds-ticket-head">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div class="kds-ticket-icon">${kdsIcono(o)}</div>
+          <div>
+            <div class="kds-ticket-titulo">
+              <span class="lbl">${kdsEtiqueta(o)}</span>
+              <h2>${escHtml(o.mesa)}</h2>
+              <span class="badge ${esWeb?'b-cancelado':(o.tipo_servicio==='llevar'?'b-pendiente':'b-entregado')}">${kdsEtiqueta(o)}</span>
+            </div>
+            <div class="kds-ticket-sub">Pedido #${o.id} · Registrado a las ${new Date(o.fecha_creacion).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}${esWeb && o.horario_recogida ? ' · Recoge: ' + escHtml(o.horario_recogida) : ''}</div>
+          </div>
+        </div>
+        <div class="kds-timer ${demorada?'demorada':''}">
+          <span style="font-size:22px;">⏱</span>
+          <div>
+            <span class="lbl">Tiempo en ${est === 'barra' ? 'barra' : 'cocina'}</span>
+            <div class="num">${min} min</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="kds-ticket-body">
+        <div class="kds-items-head">
+          <span>Artículos a preparar (${o.items.length})</span>
+          <span>${o.en_preparacion ? '🟠 En proceso' : '🟡 Pendiente'}</span>
+        </div>
+        <div class="kds-items-grid">
+          ${o.items.length
+            ? o.items.map(it => `<div class="kds-item"><span class="cant">${it.cantidad}×</span><span class="nombre">${escHtml(it.nombre)}${it.opciones ? `<br><span style="font-size:12px;font-weight:600;color:var(--warn);">${escHtml(it.opciones)}</span>` : ''}${it.nota ? `<br><span style="font-size:12px;font-weight:700;color:#a66;">📝 ${escHtml(it.nota)}</span>` : ''}</span></div>`).join('')
+            : '<p class="muted">Sin platillos de esta estación en este pedido.</p>'}
+        </div>
+        ${o.nota ? `<div class="kds-nota-box"><span style="font-size:18px;">⚠️</span><div><span style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--warn);">Nota del pedido</span><p style="margin:2px 0 0;font-size:13px;">${escHtml(o.nota)}</p></div></div>` : ''}
+      </div>
+
+      <div class="kds-acciones">
+        <div class="kds-acciones-main">
+          <button class="kds-btn-proceso ${o.en_preparacion?'activo':''}" onclick="kdsToggleEnProceso('${est}', ${o.id}, ${o.en_preparacion})">${o.en_preparacion ? '⏸ Regresar a pendiente' : '🔥 Marcar en proceso'}</button>
+          <button class="kds-btn-fin" onclick="marcarEntregadoDesdeComanda('${est}', ${o.id})">✅ Finalizado</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="imprimirComandaEstacion('${est}', ${o.id})">🖨️ Imprimir</button>
+        </div>
+        <div class="kds-nav">
+          <button onclick="kdsNavegar('${est}', -1)">‹ Anterior <span class="muted">(${escHtml(anterior && anterior.mesa || '')})</span></button>
+          <span class="muted">Comanda ${idx+1} de ${lista.length} activas</span>
+          <button onclick="kdsNavegar('${est}', 1)">Siguiente <span style="color:var(--sage);font-weight:800;">(${escHtml(siguiente && siguiente.mesa || '')})</span> ›</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function kdsToggleEnProceso(est, id, actual){
+  const { error } = await sb.rpc('admin_pedido_marcar_en_preparacion', { p_pedido_id: id, p_en_preparacion: !actual });
+  if (error){ alert('Error: ' + error.message); return; }
+  const item = KDS[est].cache.find(o => o.id === id);
+  if (item) item.en_preparacion = !actual;
+  const lista = kdsListaFiltrada(est);
+  renderKdsCola(est, lista);
+  renderKdsEnfocada(est, lista);
+}
+
+async function marcarEntregadoDesdeComanda(est, id){
+  const rpc = est === 'barra' ? 'admin_finalizar_barra' : 'admin_finalizar_cocina';
+  const { error } = await sb.rpc(rpc, { p_pedido: id });
+  if (error){ alert('Error: ' + error.message); return; }
+  cargarComandas(est);
+}
+
+/* ---------- imprimir esta comanda (solo los platillos de esta estación) ---------- */
+async function imprimirComandaEstacion(est, id){
+  const pedido = KDS[est].cache.find(o => o.id === id);
+  if (!pedido) return;
+  document.getElementById('comNum').textContent = '#' + pedido.id;
+  document.getElementById('comHorario').textContent = `${kdsEtiqueta(pedido)} — ${pedido.mesa || ''}`;
+  document.getElementById('comFecha').textContent = new Date(pedido.fecha_creacion).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('comImpreso').textContent = new Date().toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('comItems').innerHTML = (pedido.items && pedido.items.length)
+    ? pedido.items.map(it => `
+        <div class="comanda-item">${it.cantidad}× ${escHtml(it.nombre)}
+          ${it.opciones ? `<div class="opciones">${escHtml(it.opciones)}</div>` : ''}
+          ${it.nota ? `<div class="opciones" style="font-weight:700;">📝 ${escHtml(it.nota)}</div>` : ''}
+        </div>`).join('')
+    : '<p>Sin platillos registrados.</p>';
+  window.print();
+}
+</script>
+</body>
+</html>

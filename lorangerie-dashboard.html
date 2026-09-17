@@ -2176,18 +2176,22 @@ function renderPedidosFiltrados(){
   const badgeClase = { pendiente:'b-pendiente', entregado:'b-entregado', cancelado:'b-cancelado' };
   cont.innerHTML = lista.map(p => {
     const esInvitado = p.es_invitado || p.invitado || p.guest_email;
+    const esAdmin = p.origen === 'admin';
+    const etiquetaPrincipal = esAdmin
+      ? (p.mesa ? `🍽️ ${escHtml(p.mesa)}` : '🥡 Para llevar')
+      : `#${p.id}`;
     return `
     <div class="pedido-card">
       <div class="pedido-card-head">
         <div class="pedido-card-id">
-          <span class="num">#${p.id}</span>
+          <span class="num">${etiquetaPrincipal}</span>
           <span class="badge ${badgeClase[p.estado]}">${p.estado}</span>
         </div>
         <span class="pedido-card-total">$${Number(p.total_a_pagar).toFixed(2)}</span>
       </div>
       <div>
-        <div class="pedido-card-cliente">${escHtml(p.cliente_email)}</div>
-        ${esInvitado ? '<div class="muted" style="font-size:12px;">(invitado)</div>' : ''}
+        <div class="pedido-card-cliente">${esAdmin ? `Pedido #${p.id}` : escHtml(p.cliente_email)}</div>
+        ${esInvitado && !esAdmin ? '<div class="muted" style="font-size:12px;">(invitado)</div>' : ''}
       </div>
       <div class="pedido-card-meta">
         <span>🕐 ${p.horario_recogida || 'Lo antes posible (15–20 min)'}</span>
