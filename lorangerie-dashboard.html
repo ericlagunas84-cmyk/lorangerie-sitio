@@ -471,10 +471,10 @@
       <p class="lb-sub">Panel de Administración</p>
 
       <div class="lb-field">
-        <div class="lb-field-head"><label>Correo</label></div>
+        <div class="lb-field-head"><label>Correo o usuario</label></div>
         <div class="lb-input-wrap">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <input type="text" id="admEmail" placeholder="admin@lorangerie.com">
+          <input type="text" id="admEmail" placeholder="Correo o usuario">
         </div>
       </div>
       <div class="lb-field">
@@ -1056,9 +1056,12 @@
     <div id="tab-usuarios" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Usuarios</h2>
-        <button class="btn btn-primary btn-sm" id="usrBtnInvitar" onclick="abrirModalInvitar()">+ Invitar usuario</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-cream btn-sm" id="usrBtnCrear" onclick="abrirModalCrearUsuario()">+ Crear con usuario y contraseña</button>
+          <button class="btn btn-primary btn-sm" id="usrBtnInvitar" onclick="abrirModalInvitar()">+ Invitar por correo</button>
+        </div>
       </div>
-      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Los usuarios nuevos reciben un correo con un enlace para crear su propia contraseña — nunca se genera ni se comparte una contraseña temporal. Suspender bloquea el acceso sin borrar su historial.</p>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Puedes crear una cuenta con solo <b>usuario y contraseña</b> (para personal sin correo) o invitar por correo real (recibe un enlace para crear su propia contraseña). Suspender bloquea el acceso sin borrar su historial.</p>
 
       <div class="tabs-row" style="margin:14px 0;">
         <button class="active" onclick="usrSubTab('cuentas', this)">Cuentas</button>
@@ -1083,7 +1086,7 @@
 
         <div class="card" style="padding:0;overflow-x:auto;">
           <table>
-            <thead><tr><th>Nombre</th><th>Correo</th><th>Puesto</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
+            <thead><tr><th>Nombre</th><th>Correo / Usuario</th><th>Puesto</th><th>Estado</th><th>Último acceso</th><th></th></tr></thead>
             <tbody id="usuariosTable"><tr><td colspan="6" class="loading">Cargando…</td></tr></tbody>
           </table>
         </div>
@@ -1368,6 +1371,40 @@
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalInvitar').classList.remove('show')">Cancelar</button>
       <button class="btn btn-primary" style="flex:1;" onclick="enviarInvitacion()">Enviar invitación</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: crear usuario con usuario + contraseña (sin correo real) -->
+<div class="modal-overlay" id="modalCrearUsuario">
+  <div class="modal-card">
+    <h3 style="font-size:18px;margin-bottom:6px;">Crear usuario</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Para personal sin correo. Entra al dashboard con este usuario y esta contraseña — nadie ve ni usa ningún correo. Si la olvida, solo Gerente/Admin puede resetearla (no hay recuperación sola).</p>
+    <div class="field-group"><label>Nombre</label><input type="text" id="cuNombre"></div>
+    <div class="field-group"><label>Usuario</label><input type="text" id="cuUsuario" placeholder="ej. maria (sin espacios ni @)"></div>
+    <div class="field-group"><label>Contraseña</label><input type="password" id="cuPassword" placeholder="Mínimo 6 caracteres"></div>
+    <div class="field-group">
+      <label>Puesto</label>
+      <select id="cuRol"></select>
+    </div>
+    <div id="modalCrearUsuarioMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCrearUsuario').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="crearUsuarioConPassword()">Crear usuario</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: resetear contraseña (cuentas sin correo) -->
+<div class="modal-overlay" id="modalResetPass">
+  <div class="modal-card" style="width:340px;">
+    <h3 style="font-size:18px;margin-bottom:6px;">Resetear contraseña</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;" id="modalResetPassNombre"></p>
+    <div class="field-group"><label>Contraseña nueva</label><input type="password" id="rpNuevaPass" placeholder="Mínimo 6 caracteres"></div>
+    <div id="modalResetPassMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalResetPass').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="confirmarResetPassword()">Guardar</button>
     </div>
   </div>
 </div>
@@ -1880,6 +1917,10 @@ async function recuperarContrasena(){
     email = prompt('Escribe tu correo para enviarte el enlace de recuperación:');
     if (!email) return;
   }
+  if (!email.includes('@')){
+    msg.innerHTML = `<div class="msg-box msg-err">Las cuentas con usuario (sin correo) no pueden recuperarse solas — pide a un Gerente o Admin que te reestablezca la contraseña desde Usuarios.</div>`;
+    return;
+  }
   const { error } = await sb.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.href.split('#')[0].split('?')[0],
   });
@@ -1916,7 +1957,8 @@ async function guardarNuevaContrasena(){
 let ROL_ACTUAL = null;
 
 async function adminLogin(){
-  const email = document.getElementById('admEmail').value.trim();
+  const raw = document.getElementById('admEmail').value.trim();
+  const email = raw.includes('@') ? raw : `${raw.toLowerCase()}@staff.lorangerie.local`;
   const password = document.getElementById('admPass').value;
   const msg = document.getElementById('loginMsg');
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
@@ -5200,7 +5242,7 @@ function renderUsuariosTabla(){
   const estadoF = document.getElementById('usrFiltroEstado').value;
 
   let lista = usuariosCache.filter(u =>
-    (u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)) &&
+    (u.nombre.toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) || (u.usuario || '').toLowerCase().includes(q)) &&
     (!rolF || String(u.puesto_id) === rolF) &&
     (!estadoF || u.estado === estadoF)
   );
@@ -5216,7 +5258,7 @@ function renderUsuariosTabla(){
     tbody.innerHTML = pagina.map(u => `
       <tr>
         <td>${u.nombre}</td>
-        <td class="muted">${u.email}</td>
+        <td class="muted">${u.email ? escHtml(u.email) : `👤 ${escHtml(u.usuario || '—')} <span style="font-size:10px;">(sin correo)</span>`}</td>
         <td>${escHtml(nombrePuestoDe(u))}</td>
         <td><span class="badge ${ESTADO_BADGE[u.estado]}">${ESTADO_LABEL[u.estado]}</span></td>
         <td class="muted">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : 'Nunca'}</td>
@@ -5229,6 +5271,7 @@ function renderUsuariosTabla(){
             ? `<button class="btn btn-primary btn-sm" onclick="reactivarUsuario('${u.id}')">Reactivar</button>`
             : `<button class="btn btn-danger btn-sm" onclick="suspenderUsuario('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">Suspender</button>`}
           ${u.estado === 'invitado' ? `<button class="btn btn-ghost btn-sm" onclick="reenviarInvitacion('${u.email}','${u.nombre.replace(/'/g,"\\'")}',${u.puesto_id})">Reenviar</button>` : ''}
+          ${!u.email ? `<button class="btn btn-ghost btn-sm" onclick="abrirModalResetPassword('${u.id}','${u.nombre.replace(/'/g,"\\'")}')">Resetear contraseña</button>` : ''}
         </td>
       </tr>`).join('');
   }
@@ -5275,6 +5318,51 @@ async function enviarInvitacion(){
 
   msg.innerHTML = `<div class="msg-box msg-ok">Invitación enviada a ${email}.</div>`;
   setTimeout(() => { document.getElementById('modalInvitar').classList.remove('show'); cargarUsuarios(); }, 1200);
+}
+
+async function abrirModalCrearUsuario(){
+  document.getElementById('modalCrearUsuarioMsg').innerHTML = '';
+  document.getElementById('cuNombre').value = '';
+  document.getElementById('cuUsuario').value = '';
+  document.getElementById('cuPassword').value = '';
+  if (!puestosCache.length) await cargarPuestos();
+  const sel = document.getElementById('cuRol');
+  sel.innerHTML = puestosCache.filter(p => !p.es_dueno).map(p => `<option value="${p.id}">${escHtml(p.nombre)}</option>`).join('');
+  document.getElementById('modalCrearUsuario').classList.add('show');
+}
+
+async function crearUsuarioConPassword(){
+  const nombre = document.getElementById('cuNombre').value.trim();
+  const usuario = document.getElementById('cuUsuario').value.trim();
+  const password = document.getElementById('cuPassword').value;
+  const puestoId = Number(document.getElementById('cuRol').value);
+  const msg = document.getElementById('modalCrearUsuarioMsg');
+  if (!nombre || !usuario || !password){ msg.innerHTML = '<div class="msg-box msg-err">Llena nombre, usuario y contraseña.</div>'; return; }
+  if (usuario.includes('@')){ msg.innerHTML = '<div class="msg-box msg-err">El usuario no debe llevar @ — si quieres usar un correo real, usa "Invitar por correo".</div>'; return; }
+
+  const data = await llamarAdminUsuarios({ action: 'create', usuario, nombre, password, puesto_id: puestoId });
+  if (!data.ok){ msg.innerHTML = `<div class="msg-box msg-err">${data.error}</div>`; return; }
+
+  msg.innerHTML = `<div class="msg-box msg-ok">Usuario "${escHtml(usuario)}" creado. Ya puede entrar al dashboard con ese usuario y esa contraseña.</div>`;
+  setTimeout(() => { document.getElementById('modalCrearUsuario').classList.remove('show'); cargarUsuarios(); }, 1500);
+}
+
+let RESET_PASS_ID = null;
+function abrirModalResetPassword(id, nombre){
+  RESET_PASS_ID = id;
+  document.getElementById('modalResetPassMsg').innerHTML = '';
+  document.getElementById('rpNuevaPass').value = '';
+  document.getElementById('modalResetPassNombre').textContent = `Cuenta: ${nombre}`;
+  document.getElementById('modalResetPass').classList.add('show');
+}
+async function confirmarResetPassword(){
+  const password = document.getElementById('rpNuevaPass').value;
+  const msg = document.getElementById('modalResetPassMsg');
+  if (!password || password.length < 6){ msg.innerHTML = '<div class="msg-box msg-err">La contraseña debe tener al menos 6 caracteres.</div>'; return; }
+  const data = await llamarAdminUsuarios({ action: 'reset_password', id: RESET_PASS_ID, password });
+  if (!data.ok){ msg.innerHTML = `<div class="msg-box msg-err">${data.error}</div>`; return; }
+  msg.innerHTML = '<div class="msg-box msg-ok">Contraseña actualizada.</div>';
+  setTimeout(() => { document.getElementById('modalResetPass').classList.remove('show'); }, 1200);
 }
 
 async function reenviarInvitacion(email, nombre, puestoId){
