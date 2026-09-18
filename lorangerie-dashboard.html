@@ -397,6 +397,8 @@
 
   /* Comanda: oculta en pantalla, solo aparece al imprimir */
   #comandaPrint{display:none;}
+  #ticketPrint{display:none;}
+  #cierreDiaPrint{display:none;}
   @media print{
     body *{visibility:hidden;}
     #comandaPrint, #comandaPrint *{visibility:visible;}
@@ -412,7 +414,6 @@
     .comanda-item .opciones{font-size:13px;font-weight:400;margin-left:14px;}
     .comanda-footer{border-top:2px dashed #000;margin-top:14px;padding-top:10px;font-size:13px;text-align:center;}
 
-    #ticketPrint{display:none;}
     body.imprimiendo-ticket *{visibility:hidden;}
     body.imprimiendo-ticket #ticketPrint, body.imprimiendo-ticket #ticketPrint *{visibility:visible;}
     body.imprimiendo-ticket #ticketPrint{display:block;position:absolute;top:0;left:0;width:300px;padding:14px;font-family:'Courier New',monospace;color:#000;font-size:12px;}
@@ -421,7 +422,6 @@
     .ticket-fila{display:flex;justify-content:space-between;gap:8px;}
     .ticket-total{font-size:16px;font-weight:900;}
 
-    #cierreDiaPrint{display:none;}
     body.imprimiendo-cierre *{visibility:hidden;}
     body.imprimiendo-cierre #cierreDiaPrint, body.imprimiendo-cierre #cierreDiaPrint *{visibility:visible;}
     body.imprimiendo-cierre #cierreDiaPrint{display:block;position:absolute;top:0;left:0;width:300px;padding:14px;font-family:'Courier New',monospace;color:#000;font-size:12px;}
