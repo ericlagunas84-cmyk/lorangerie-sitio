@@ -520,8 +520,9 @@
         <h2>Resumen y Ventas</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <select id="ventasRango" onchange="cambiarRangoVentas()">
+            <option value="hoy" selected>Hoy</option>
             <option value="7">Últimos 7 días</option>
-            <option value="30" selected>Últimos 30 días</option>
+            <option value="30">Últimos 30 días</option>
             <option value="90">Últimos 90 días</option>
             <option value="custom">Fecha personalizada…</option>
           </select>
@@ -2035,20 +2036,23 @@ function cambiarRangoVentas(){
   cargarResumen();
 }
 
-function calcularDiasSeleccionados(){
+function obtenerFiltroVentas(){
   const sel = document.getElementById('ventasRango').value;
-  if (sel !== 'custom') return Number(sel);
+  if (sel === 'hoy'){
+    return { p_fecha: new Date().toLocaleDateString('en-CA') }; // YYYY-MM-DD en la hora local del navegador
+  }
+  if (sel !== 'custom') return { p_dias: Number(sel) };
   const inputFecha = document.getElementById('ventasDesde');
-  if (!inputFecha.value) return 30;
+  if (!inputFecha.value) return { p_dias: 30 };
   const desde = new Date(inputFecha.value + 'T00:00:00');
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const dias = Math.round((hoy - desde) / 86400000);
-  return Math.max(1, dias);
+  return { p_dias: Math.max(1, dias) };
 }
 
 async function cargarResumen(){
-  const dias = calcularDiasSeleccionados();
-  const { data: resumen } = await sb.rpc('admin_reporte_ventas', { p_dias: Number(dias) });
+  const filtro = obtenerFiltroVentas();
+  const { data: resumen } = await sb.rpc('admin_reporte_ventas', filtro);
   const r = resumen?.[0] || { total_ventas:0, total_pedidos:0, ticket_promedio:0 };
   document.getElementById('statsCards').innerHTML = `
     <div class="stat-card"><div class="num">$${Number(r.total_ventas).toLocaleString('es-MX',{minimumFractionDigits:2})}</div><div class="lbl">Ventas totales</div></div>
@@ -2056,7 +2060,7 @@ async function cargarResumen(){
     <div class="stat-card"><div class="num">$${Number(r.ticket_promedio).toFixed(2)}</div><div class="lbl">Ticket promedio</div></div>
   `;
 
-  const { data: porDia } = await sb.rpc('admin_ventas_por_dia', { p_dias: Number(dias) });
+  const { data: porDia } = await sb.rpc('admin_ventas_por_dia', filtro);
   const maxVenta = Math.max(1, ...(porDia || []).map(d => Number(d.total)));
   document.getElementById('ventasPorDia').innerHTML = (porDia && porDia.length)
     ? porDia.map(d => `
@@ -2069,7 +2073,7 @@ async function cargarResumen(){
         </div>`).join('')
     : '<p class="muted">Sin ventas en este periodo.</p>';
 
-  const { data: top } = await sb.rpc('admin_top_platillos', { p_dias: Number(dias), p_limite: 500 });
+  const { data: top } = await sb.rpc('admin_top_platillos', { ...filtro, p_limite: 500 });
   document.getElementById('topPlatillos').innerHTML = (top && top.length)
     ? `<table><thead><tr><th>Platillo</th><th>Cantidad vendida</th><th>Ingresos</th></tr></thead><tbody>
         ${top.slice(0, 10).map(t => `<tr><td>${t.nombre}</td><td>${t.veces_vendido}</td><td>$${Number(t.total_ingresos).toFixed(2)}</td></tr>`).join('')}
