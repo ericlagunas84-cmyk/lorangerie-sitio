@@ -819,12 +819,14 @@
     <div id="tab-reportes" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Reportes de Ventas</h2>
-        <select id="reportesRango" onchange="cargarReportesVentas()" style="max-width:200px;">
+        <select id="reportesRango" onchange="cambiarRangoReportes()" style="max-width:200px;">
           <option value="7">Últimos 7 días</option>
           <option value="30" selected>Últimos 30 días</option>
           <option value="90">Últimos 90 días</option>
+          <option value="fecha">Fecha específica…</option>
           <option value="todos">Todo el historial</option>
         </select>
+        <input type="date" id="reportesFecha" style="display:none;max-width:170px;" onchange="cargarReportesVentas()">
       </div>
       <p class="muted" style="font-size:12.5px;margin-top:-10px;">Solo pedidos de mostrador ya cobrados (no incluye pedidos del sitio web ni pendientes). Las líneas marcadas como cortesía no suman a los ingresos.</p>
 
@@ -3667,16 +3669,31 @@ async function marcarEntregadoDesdeComanda(est, id){
 /* ============================================================
    REPORTES DE VENTAS (por producto, por método de pago/moneda)
    ============================================================ */
-function fechaMinimaReportes(){
+function cambiarRangoReportes(){
   const sel = document.getElementById('reportesRango').value;
-  if (sel === 'todos') return null;
+  document.getElementById('reportesFecha').style.display = sel === 'fecha' ? 'inline-block' : 'none';
+  cargarReportesVentas();
+}
+
+function rangoFechasReportes(){
+  const sel = document.getElementById('reportesRango').value;
+  if (sel === 'todos') return { desde: null, hasta: null };
+  if (sel === 'fecha'){
+    const val = document.getElementById('reportesFecha').value;
+    if (!val) return { desde: null, hasta: null };
+    const [y, m, d] = val.split('-').map(Number);
+    const desde = new Date(y, m - 1, d, 0, 0, 0);
+    const hasta = new Date(y, m - 1, d + 1, 0, 0, 0);
+    return { desde, hasta };
+  }
   const d = new Date(); d.setDate(d.getDate() - Number(sel)); d.setHours(0,0,0,0);
-  return d;
+  return { desde: d, hasta: null };
 }
 
 async function cargarReportesVentas(){
-  const desde = fechaMinimaReportes();
+  const { desde, hasta } = rangoFechasReportes();
   const desdeIso = desde ? desde.toISOString() : null;
+  const hastaIso = hasta ? hasta.toISOString() : null;
 
   const tbodyMetodo = document.getElementById('reportesMetodoTable');
   const tbodyProducto = document.getElementById('reportesProductoTable');
@@ -3684,8 +3701,8 @@ async function cargarReportesVentas(){
   tbodyProducto.innerHTML = '<tr><td colspan="3" class="loading">Cargando…</td></tr>';
 
   const [{ data: porMetodo, error: errMetodo }, { data: porProducto, error: errProducto }] = await Promise.all([
-    sb.rpc('admin_reporte_ventas_por_metodo', { p_desde: desdeIso }),
-    sb.rpc('admin_reporte_ventas_por_producto', { p_desde: desdeIso }),
+    sb.rpc('admin_reporte_ventas_por_metodo', { p_desde: desdeIso, p_hasta: hastaIso }),
+    sb.rpc('admin_reporte_ventas_por_producto', { p_desde: desdeIso, p_hasta: hastaIso }),
   ]);
 
   const metodoLabel = { efectivo: '💵 Efectivo', tarjeta_debito: '💳 Débito', tarjeta_credito: '💳 Crédito', cortesia: '🎁 Cortesía' };
