@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>L'Orangerie — Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@600;700;800&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --sage:#006838; --sage-dark:#00542d; --gold:#ba1a1a; --gold-dark:#006838;
@@ -48,6 +48,63 @@
     .login-split{flex-direction:column;}
     .login-split-visual{flex:none;height:180px;}
     .login-split-form{min-width:0;}
+  }
+
+  /* ---- Nuevo login "Portal de Administración" (paleta forest/evergreen/citrus) ---- */
+  #loginGate.login-brand{
+    --br-forest:#0F3824; --br-evergreen:#14452F; --br-emerald:#1F5F42;
+    --br-cream:#FAF8F5; --br-linen:#F4EFEA; --br-sand:#E8DFD5;
+    --br-terracotta:#D47343; --br-citrus:#EAA23E; --br-gold:#C89D54;
+    --br-espresso:#231815; --br-muted:#6E675F;
+    background:var(--br-cream);
+    background-image:radial-gradient(rgba(200,157,84,.08) 1px, transparent 0);
+    background-size:24px 24px;
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  #loginGate.login-brand, #loginGate.login-brand input, #loginGate.login-brand button{
+    font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  }
+  #loginGate.login-brand .lb-editorial{font-family:'Cormorant Garamond',Georgia,serif;}
+  #loginGate.login-brand .lb-shell{
+    width:100%; max-width:1100px; min-height:600px; display:grid; grid-template-columns:1.35fr 1fr;
+    background:#fff; border-radius:24px; overflow:hidden; border:1px solid var(--br-sand);
+    box-shadow:0 24px 60px -15px rgba(20,69,47,.2);
+  }
+  #loginGate.login-brand .lb-visual{position:relative; background:var(--br-forest); color:#fff; display:flex; flex-direction:column; justify-content:space-between; padding:44px;}
+  #loginGate.login-brand .lb-visual img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;}
+  #loginGate.login-brand .lb-visual::before{content:'';position:absolute;inset:0;background:linear-gradient(0deg,var(--br-forest) 0%,rgba(15,56,36,.65) 55%,rgba(15,56,36,.3) 100%);z-index:1;}
+  #loginGate.login-brand .lb-visual > *{position:relative;z-index:2;}
+  #loginGate.login-brand .lb-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.15);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;width:fit-content;}
+  #loginGate.login-brand .lb-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--br-citrus);}
+  #loginGate.login-brand .lb-quote{background:rgba(255,255,255,.12);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:22px;margin-top:24px;}
+  #loginGate.login-brand .lb-quote p{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:20px;font-weight:500;line-height:1.4;margin:0;}
+  #loginGate.login-brand .lb-address{display:flex;gap:10px;align-items:flex-start;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:13px;margin-top:16px;}
+  #loginGate.login-brand .lb-address .lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:var(--br-sand);opacity:.85;}
+  #loginGate.login-brand .lb-address .txt{font-size:12.5px;font-weight:500;line-height:1.4;}
+  #loginGate.login-brand .lb-form{padding:48px 44px;display:flex;flex-direction:column;justify-content:center;}
+  #loginGate.login-brand .lb-mark{width:48px;height:48px;border-radius:16px;background:var(--br-linen);border:1px solid var(--br-sand);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:18px;}
+  #loginGate.login-brand h1.lb-title{font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;font-size:38px;color:var(--br-espresso);margin:0;}
+  #loginGate.login-brand .lb-sub{font-size:14px;color:var(--br-muted);margin:4px 0 26px;font-weight:500;}
+  #loginGate.login-brand .lb-field{margin-bottom:16px;}
+  #loginGate.login-brand .lb-field-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+  #loginGate.login-brand .lb-field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--br-espresso);}
+  #loginGate.login-brand .lb-field a{font-size:12px;color:var(--br-evergreen);font-weight:600;cursor:pointer;}
+  #loginGate.login-brand .lb-field a:hover{text-decoration:underline;}
+  #loginGate.login-brand .lb-input-wrap{position:relative;}
+  #loginGate.login-brand .lb-input-wrap svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--br-muted);pointer-events:none;}
+  #loginGate.login-brand .lb-input-wrap input{width:100%;padding:12px 14px 12px 38px;font-size:14px;font-weight:500;color:var(--br-espresso);background:rgba(244,239,234,.4);border:1px solid var(--br-sand);border-radius:12px;transition:box-shadow .15s,border-color .15s;}
+  #loginGate.login-brand .lb-input-wrap input:focus{outline:none;border-color:var(--br-evergreen);box-shadow:0 0 0 3px rgba(20,69,47,.12);}
+  #loginGate.login-brand .lb-toggle-pw{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--br-muted);font-size:16px;padding:4px;}
+  #loginGate.login-brand .lb-remember{display:flex;align-items:center;gap:9px;margin:2px 0 20px;cursor:pointer;user-select:none;}
+  #loginGate.login-brand .lb-remember input{width:15px;height:15px;accent-color:var(--br-evergreen);}
+  #loginGate.login-brand .lb-remember span{font-size:12.5px;color:var(--br-espresso);font-weight:500;}
+  #loginGate.login-brand .lb-submit{width:100%;padding:14px;border-radius:12px;background:var(--br-evergreen);color:var(--br-cream);border:none;font-weight:600;font-size:14px;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s;}
+  #loginGate.login-brand .lb-submit:hover{background:var(--br-forest);}
+  #loginGate.login-brand .lb-footer{margin-top:26px;padding-top:18px;border-top:1px solid var(--br-sand);display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--br-muted);}
+  @media(max-width:900px){
+    #loginGate.login-brand .lb-shell{grid-template-columns:1fr;}
+    #loginGate.login-brand .lb-visual{min-height:220px;}
+    #loginGate.login-brand .lb-form{padding:34px 26px;}
   }
 
   /* shell */
@@ -390,37 +447,61 @@
 <body>
 
 <!-- LOGIN -->
-<div class="login-split" id="loginGate">
-  <div class="login-split-visual">
-    <img src="hero-barista.jpg" alt="">
-    <div class="login-split-visual-overlay"></div>
-    <div class="login-split-visual-text">
-      <div class="login-split-visual-brand">L'Orangerie</div>
-      <p>Blvd. Francisco Villarreal Torres 11204, Local 15 · Juárez, Chih.</p>
-    </div>
-  </div>
-  <div class="login-split-form">
-    <div class="login-split-form-inner">
-      <div class="login-split-logo">L'Orangerie</div>
-      <p class="login-split-tagline">Panel de Administración</p>
-
-      <div class="field-group"><label>Correo</label><input type="text" id="admEmail" placeholder="admin@lorangerie.com"></div>
-      <div class="field-group">
-        <label>Contraseña</label>
-        <div style="position:relative;">
-          <input type="password" id="admPass" style="padding-right:40px;">
-          <button type="button" aria-label="Mostrar contraseña" onclick="togglePasswordVisibility()" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:6px;line-height:1;">
-            <span id="pwToggleIcon">👁️</span>
-          </button>
+<div class="login-brand" id="loginGate">
+  <div class="lb-shell">
+    <div class="lb-visual">
+      <img src="hero-barista.jpg" alt="">
+      <div class="lb-badge"><span class="dot"></span> Especialidad &amp; Repostería</div>
+      <div>
+        <div class="lb-quote">
+          <p>"Donde cada grano tostado artesanalmente narra la calidez de nuestras mañanas."</p>
+        </div>
+        <div class="lb-address">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px;color:var(--br-citrus);"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>
+            <div class="lbl">Sucursal Principal</div>
+            <div class="txt">Blvd. Francisco Villarreal Torres 11204, Local 15 · Juárez, Chih.</div>
+          </div>
         </div>
       </div>
-      <button class="btn btn-primary" style="width:100%;margin-top:6px;height:48px;font-size:15px;" onclick="adminLogin()">Iniciar sesión</button>
-      <div style="text-align:center;margin-top:14px;">
-        <a href="#" onclick="recuperarContrasena(); return false;" style="font-size:13px;">¿Olvidaste tu contraseña?</a>
-      </div>
-      <div id="loginMsg"></div>
     </div>
-    <div class="login-split-accent-bar"></div>
+    <div class="lb-form">
+      <div class="lb-mark">🍊</div>
+      <h1 class="lb-title">L'Orangerie</h1>
+      <p class="lb-sub">Panel de Administración</p>
+
+      <div class="lb-field">
+        <div class="lb-field-head"><label>Correo</label></div>
+        <div class="lb-input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="text" id="admEmail" placeholder="admin@lorangerie.com">
+        </div>
+      </div>
+      <div class="lb-field">
+        <div class="lb-field-head">
+          <label>Contraseña</label>
+          <a onclick="recuperarContrasena()">¿Olvidaste tu contraseña?</a>
+        </div>
+        <div class="lb-input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="password" id="admPass" style="padding-right:38px;">
+          <button type="button" class="lb-toggle-pw" aria-label="Mostrar contraseña" onclick="togglePasswordVisibility()"><span id="pwToggleIcon">👁️</span></button>
+        </div>
+      </div>
+      <label class="lb-remember">
+        <input type="checkbox" checked>
+        <span>Recordar este equipo por 30 días</span>
+      </label>
+      <button class="lb-submit" onclick="adminLogin()">
+        <span>Iniciar sesión</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div id="loginMsg"></div>
+      <div class="lb-footer">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--br-gold)" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Conexión cifrada · Acceso restringido a colaboradores</span>
+      </div>
+    </div>
   </div>
 </div>
 
