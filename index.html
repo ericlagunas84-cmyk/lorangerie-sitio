@@ -2636,6 +2636,7 @@ async function confirmOrder(){
         updateAuthUI();
       }
       renderConfirmacion(data.pedido_id, data.subtotal, data.descuento_aplicado, data.total_a_pagar, data.puntos_ganados, data.puntos_canjeados, guestEmail);
+      cart = []; pointsToApply = 0; horarioModo = 'asap'; horarioSelectedIndex = 0; updateBadge();
     } catch(e){
       console.error('Error al procesar el pedido:', e);
       if (btn){ btn.disabled = false; btn.textContent = 'Confirmar pedido para recoger'; }
@@ -2663,6 +2664,7 @@ async function confirmOrder(){
   if (user){ user.points = user.points - ptsUsados + earn; updateAuthUI(); }
   const orderNum = Math.floor(1000 + Math.random()*9000);
   renderConfirmacion(orderNum, sub, descuento, Math.max(0, sub-descuento), earn, ptsUsados, guestEmail);
+  cart = []; pointsToApply = 0; horarioModo = 'asap'; horarioSelectedIndex = 0; updateBadge();
 }
 
 function renderConfirmacion(pedidoId, subtotal, descuento, totalAPagar, puntosGanados, puntosCanjeados, guestEmail){
@@ -2687,7 +2689,7 @@ function renderConfirmacion(pedidoId, subtotal, descuento, totalAPagar, puntosGa
       </div>
     </div>
   `;
-  document.getElementById('drawerFoot').innerHTML = `<button class="btn btn-cream" style="width:100%;" onclick="closeCart(); cart=[]; pointsToApply=0; updateBadge();">Volver al menú</button>`;
+  document.getElementById('drawerFoot').innerHTML = `<button class="btn btn-cream" style="width:100%;" onclick="closeCart();">Volver al menú</button>`;
 }
 
 function openCart(){
