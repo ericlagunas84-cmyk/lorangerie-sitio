@@ -1503,27 +1503,61 @@
   </div>
 </div>
 
-<!-- MODAL: cerrar caja (arqueo por denominaciones) -->
+<!-- MODAL: cerrar caja (arqueo por denominaciones, moneda y método) -->
 <div class="modal-overlay" id="modalCerrarCaja">
-  <div class="modal-card" style="width:420px;">
-    <h3 style="font-size:17px;margin-bottom:6px;text-align:center;">Cerrar caja — Arqueo</h3>
-    <p class="muted" style="font-size:12.5px;margin:0 0 14px;text-align:center;">Cuenta el efectivo físico por denominación antes de confirmar — el sistema calcula el total y la diferencia después.</p>
-    <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <input type="text" id="cerrarCajaUsuario" placeholder="Usuario" style="flex:1;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
-      <input type="password" id="cerrarCajaPin" inputmode="numeric" placeholder="PIN" style="flex:1;text-align:center;font-size:18px;letter-spacing:.2em;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+  <div class="modal-card" style="width:760px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+    <h3 style="font-size:22px;margin-bottom:6px;text-align:center;">Cerrar caja — Arqueo</h3>
+    <p class="muted" style="font-size:14px;margin:0 0 18px;text-align:center;">Cuenta el efectivo físico por denominación antes de confirmar — el sistema calcula el total y la diferencia después.</p>
+    <div style="display:flex;gap:10px;margin-bottom:18px;max-width:480px;margin-left:auto;margin-right:auto;">
+      <input type="text" id="cerrarCajaUsuario" placeholder="Usuario" style="flex:1;text-align:center;padding:12px;font-size:15px;border:1px solid var(--outline);border-radius:8px;">
+      <input type="password" id="cerrarCajaPin" inputmode="numeric" placeholder="PIN" style="flex:1;text-align:center;font-size:20px;letter-spacing:.2em;padding:12px;border:1px solid var(--outline);border-radius:8px;">
     </div>
-    <div style="max-height:280px;overflow-y:auto;border:1px solid var(--outline);border-radius:10px;padding:10px 14px;">
-      <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--on-var);margin-bottom:4px;">Billetes</div>
-      <div id="arqueoBilletes"></div>
-      <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--on-var);margin:10px 0 4px;">Monedas</div>
-      <div id="arqueoMonedas"></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="border:1px solid var(--outline);border-radius:12px;padding:16px;">
+        <div style="font-size:15px;font-weight:800;margin-bottom:10px;">💵 Efectivo MXN</div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--on-var);margin-bottom:4px;">Billetes</div>
+        <div id="arqueoBilletesMxn"></div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--on-var);margin:10px 0 4px;">Monedas</div>
+        <div id="arqueoMonedasMxn"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 14px;background:var(--low);border-radius:10px;">
+          <span style="font-weight:700;font-size:13.5px;">Total MXN</span>
+          <span style="font-weight:800;font-size:22px;" id="arqueoTotalMxn">$0.00</span>
+        </div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px;" id="arqueoEsperadoMxn"></div>
+      </div>
+
+      <div style="border:1px solid var(--outline);border-radius:12px;padding:16px;">
+        <div style="font-size:15px;font-weight:800;margin-bottom:10px;">💵 Dólares (USD)</div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--on-var);margin-bottom:4px;">Billetes</div>
+        <div id="arqueoBilletesUsd"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 14px;background:var(--low);border-radius:10px;">
+          <span style="font-weight:700;font-size:13.5px;">Total USD</span>
+          <span style="font-weight:800;font-size:22px;" id="arqueoTotalUsd">US$0.00</span>
+        </div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px;" id="arqueoEsperadoUsd"></div>
+      </div>
+
+      <div style="border:1px solid var(--outline);border-radius:12px;padding:16px;">
+        <div style="font-size:15px;font-weight:800;margin-bottom:10px;">💳 Tarjeta de Crédito</div>
+        <p class="muted" style="font-size:12px;margin:0 0 10px;">Calculado por el sistema — compáralo contra tu terminal bancaria.</p>
+        <div style="font-weight:800;font-size:22px;" id="arqueoTotalCredito">$0.00</div>
+      </div>
+
+      <div style="border:1px solid var(--outline);border-radius:12px;padding:16px;">
+        <div style="font-size:15px;font-weight:800;margin-bottom:10px;">💳 Tarjeta de Débito</div>
+        <p class="muted" style="font-size:12px;margin:0 0 10px;">Calculado por el sistema — compáralo contra tu terminal bancaria.</p>
+        <div style="font-weight:800;font-size:22px;" id="arqueoTotalDebito">$0.00</div>
+      </div>
+
+      <div style="border:1px solid var(--outline);border-radius:12px;padding:16px;grid-column:1 / -1;">
+        <div style="font-size:15px;font-weight:800;margin-bottom:6px;">🎫 Reservas</div>
+        <p class="muted" style="font-size:12px;margin:0;">$0.00 — esta función todavía no existe en el sistema.</p>
+      </div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:10px 14px;background:var(--low);border-radius:10px;">
-      <span style="font-weight:700;font-size:13px;">Total contado</span>
-      <span style="font-weight:800;font-size:20px;" id="arqueoTotalContado">$0.00</span>
-    </div>
+
     <div id="cerrarCajaMsg"></div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
+    <div style="display:flex;gap:10px;margin-top:18px;max-width:480px;margin-left:auto;margin-right:auto;">
       <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCerrarCaja').classList.remove('show')">Cancelar</button>
       <button class="btn btn-danger" style="flex:1;" onclick="confirmarCerrarCaja()">Cerrar caja</button>
     </div>
@@ -5394,38 +5428,62 @@ async function confirmarMovimientoCaja(){
 
 const DENOMINACIONES_BILLETES = [1000, 500, 200, 100, 50, 20];
 const DENOMINACIONES_MONEDAS = [10, 5, 2, 1, 0.5];
+const DENOMINACIONES_USD = [100, 50, 20, 10, 5, 1];
 
-function filaDenominacion(valor){
-  const etiqueta = valor >= 1 ? `$${valor}` : `$${valor.toFixed(2)}`;
+function filaDenominacion(valor, grupo, simbolo){
+  const etiqueta = valor >= 1 ? `${simbolo}${valor}` : `${simbolo}${valor.toFixed(2)}`;
   return `
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;">
-      <span style="font-size:13px;width:60px;">${etiqueta}</span>
-      <input type="number" min="0" step="1" placeholder="0" data-denom="${valor}" class="arqueo-input" oninput="recalcularArqueo()" style="width:70px;text-align:center;padding:6px;">
-      <span class="muted" style="font-size:12px;width:80px;text-align:right;" id="arqueoSub_${valor}">$0.00</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;">
+      <span style="font-size:15px;width:70px;">${etiqueta}</span>
+      <input type="number" min="0" step="1" placeholder="0" data-denom="${valor}" data-grupo="${grupo}" class="arqueo-input arqueo-${grupo}" oninput="recalcularArqueo()" style="width:90px;text-align:center;padding:8px;font-size:15px;">
+      <span class="muted" style="font-size:13px;width:90px;text-align:right;" id="arqueoSub_${grupo}_${valor}">${simbolo}0.00</span>
     </div>`;
 }
 
 function recalcularArqueo(){
-  let total = 0;
-  document.querySelectorAll('.arqueo-input').forEach(inp => {
+  let totalMxn = 0, totalUsd = 0;
+  document.querySelectorAll('.arqueo-mxn').forEach(inp => {
     const valor = parseFloat(inp.dataset.denom);
     const cant = parseInt(inp.value, 10) || 0;
     const sub = valor * cant;
-    total += sub;
-    const subEl = document.getElementById('arqueoSub_' + valor);
+    totalMxn += sub;
+    const subEl = document.getElementById('arqueoSub_mxn_' + valor);
     if (subEl) subEl.textContent = '$' + sub.toFixed(2);
   });
-  document.getElementById('arqueoTotalContado').textContent = '$' + total.toFixed(2);
+  document.querySelectorAll('.arqueo-usd').forEach(inp => {
+    const valor = parseFloat(inp.dataset.denom);
+    const cant = parseInt(inp.value, 10) || 0;
+    const sub = valor * cant;
+    totalUsd += sub;
+    const subEl = document.getElementById('arqueoSub_usd_' + valor);
+    if (subEl) subEl.textContent = 'US$' + sub.toFixed(2);
+  });
+  document.getElementById('arqueoTotalMxn').textContent = '$' + totalMxn.toFixed(2);
+  document.getElementById('arqueoTotalUsd').textContent = 'US$' + totalUsd.toFixed(2);
 }
 
-function abrirModalCerrarCaja(){
+async function abrirModalCerrarCaja(){
   document.getElementById('cerrarCajaUsuario').value = '';
   document.getElementById('cerrarCajaPin').value = '';
   document.getElementById('cerrarCajaMsg').innerHTML = '';
-  document.getElementById('arqueoBilletes').innerHTML = DENOMINACIONES_BILLETES.map(filaDenominacion).join('');
-  document.getElementById('arqueoMonedas').innerHTML = DENOMINACIONES_MONEDAS.map(filaDenominacion).join('');
-  document.getElementById('arqueoTotalContado').textContent = '$0.00';
+  document.getElementById('arqueoBilletesMxn').innerHTML = DENOMINACIONES_BILLETES.map(v => filaDenominacion(v, 'mxn', '$')).join('');
+  document.getElementById('arqueoMonedasMxn').innerHTML = DENOMINACIONES_MONEDAS.map(v => filaDenominacion(v, 'mxn', '$')).join('');
+  document.getElementById('arqueoBilletesUsd').innerHTML = DENOMINACIONES_USD.map(v => filaDenominacion(v, 'usd', 'US$')).join('');
+  document.getElementById('arqueoTotalMxn').textContent = '$0.00';
+  document.getElementById('arqueoTotalUsd').textContent = 'US$0.00';
+  document.getElementById('arqueoTotalCredito').textContent = '…';
+  document.getElementById('arqueoTotalDebito').textContent = '…';
+  document.getElementById('arqueoEsperadoMxn').textContent = '';
+  document.getElementById('arqueoEsperadoUsd').textContent = '';
   document.getElementById('modalCerrarCaja').classList.add('show');
+
+  const { data, error } = await sb.rpc('admin_turno_totales_en_vivo');
+  if (!error && data && data.hay_turno){
+    document.getElementById('arqueoTotalCredito').textContent = '$' + Number(data.total_tarjeta_credito).toFixed(2);
+    document.getElementById('arqueoTotalDebito').textContent = '$' + Number(data.total_tarjeta_debito).toFixed(2);
+    document.getElementById('arqueoEsperadoMxn').textContent = `Esperado (sistema): $${Number(data.efectivo_esperado_mxn).toFixed(2)}`;
+    document.getElementById('arqueoEsperadoUsd').textContent = `Esperado (sistema): US$${Number(data.dolares_esperado).toFixed(2)} · 1 USD=$${Number(data.tipo_cambio).toFixed(2)} MXN`;
+  }
 }
 async function confirmarCerrarCaja(){
   const usuario = document.getElementById('cerrarCajaUsuario').value.trim();
@@ -5435,25 +5493,34 @@ async function confirmarCerrarCaja(){
     msg.innerHTML = '<div class="msg-box msg-err">Completa usuario y PIN.</div>';
     return;
   }
-  const denominaciones = {};
-  document.querySelectorAll('.arqueo-input').forEach(inp => {
+  const denominacionesMxn = {}, denominacionesUsd = {};
+  document.querySelectorAll('.arqueo-mxn').forEach(inp => {
     const cant = parseInt(inp.value, 10) || 0;
-    if (cant > 0) denominaciones[inp.dataset.denom] = cant;
+    if (cant > 0) denominacionesMxn[inp.dataset.denom] = cant;
   });
-  const { data, error } = await sb.rpc('admin_cerrar_turno', { p_usuario: usuario, p_pin: pin, p_denominaciones: denominaciones });
+  document.querySelectorAll('.arqueo-usd').forEach(inp => {
+    const cant = parseInt(inp.value, 10) || 0;
+    if (cant > 0) denominacionesUsd[inp.dataset.denom] = cant;
+  });
+  const { data, error } = await sb.rpc('admin_cerrar_turno', {
+    p_usuario: usuario, p_pin: pin, p_denominaciones_mxn: denominacionesMxn, p_denominaciones_usd: denominacionesUsd,
+  });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; return; }
+
   const dif = Number(data.diferencia);
   const estatus = Math.abs(dif) < 0.01 ? '✅ Cuadrado' : (dif < 0 ? `⚠️ Faltante $${Math.abs(dif).toFixed(2)}` : `⚠️ Sobrante $${dif.toFixed(2)}`);
   const claseDif = Math.abs(dif) < 0.01 ? 'msg-ok' : 'msg-err';
+  const difUsd = Number(data.dolares_diferencia);
+  const estatusUsd = Math.abs(difUsd) < 0.01 ? '✅ Cuadrado' : (difUsd < 0 ? `⚠️ Faltante US$${Math.abs(difUsd).toFixed(2)}` : `⚠️ Sobrante US$${difUsd.toFixed(2)}`);
   msg.innerHTML = `<div class="msg-box ${claseDif}">
-    <b>${estatus}</b><br>
-    Efectivo esperado: $${Number(data.efectivo_esperado).toFixed(2)} — Contado: $${Number(data.efectivo_contado).toFixed(2)}<br>
+    <b>Efectivo MXN: ${estatus}</b> — esperado $${Number(data.efectivo_esperado).toFixed(2)}, contado $${Number(data.efectivo_contado).toFixed(2)}<br>
+    <b>Dólares: ${estatusUsd}</b> — esperado US$${Number(data.dolares_esperado).toFixed(2)}, contado US$${Number(data.dolares_contado).toFixed(2)}<br>
     Tarjeta Débito (terminal): $${Number(data.total_tarjeta_debito).toFixed(2)} — Tarjeta Crédito (terminal): $${Number(data.total_tarjeta_credito).toFixed(2)}
   </div>`;
   setTimeout(() => {
     document.getElementById('modalCerrarCaja').classList.remove('show');
     cargarCajas();
-  }, 3500);
+  }, 4500);
 }
 
 /* ---- Empleados con PIN (solo Gerente/Admin) ---- */
@@ -5532,6 +5599,9 @@ async function verCierreDia(){
             Fondo inicial $${f2(c.fondo_inicial)} · Efvo. esperado $${f2(c.efectivo_esperado)} · Efvo. contado $${f2(c.efectivo_contado)} — <b>${estatus}</b>
           </div>
           <div class="muted" style="font-size:11.5px;">
+            Dólares — esperado US$${f2(c.dolares_esperado)} · contado US$${f2(c.dolares_contado)} · dif. US$${f2(c.dolares_diferencia)}
+          </div>
+          <div class="muted" style="font-size:11.5px;">
             Terminal — Débito $${f2(c.total_tarjeta_debito)} · Crédito $${f2(c.total_tarjeta_credito)}
           </div>
         </div>`;
@@ -5604,6 +5674,7 @@ function imprimirCierreDia(){
       return `
       <div class="ticket-fila"><span># Corte ${c.turno_id}</span><span>$${f2(c.venta_total)}</span></div>
       <div style="font-size:9px;">Efvo esp/cont: $${f2(c.efectivo_esperado)} / $${f2(c.efectivo_contado)} — ${estatus}</div>
+      <div style="font-size:9px;">Dólares esp/cont: US$${f2(c.dolares_esperado)} / US$${f2(c.dolares_contado)}</div>
       <div style="font-size:9px;">Terminal: Débito $${f2(c.total_tarjeta_debito)} · Crédito $${f2(c.total_tarjeta_credito)}</div>`;
     }).join('')}
     <div class="ticket-fila ticket-total"><span>Venta total</span><span>$${f2(data.venta_total_dia)}</span></div>
