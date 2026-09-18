@@ -2338,6 +2338,8 @@ function renderDrawer(){
   }
   totalRows += `<div class="sumrow total"><span>Total a pagar</span><span>$${(descuento>0?remaining:sub).toFixed(2)} MXN</span></div>`;
 
+  const tienda = estadoTienda();
+
   body.innerHTML = `
     ${loyaltyHTML}
 
@@ -2365,9 +2367,12 @@ function renderDrawer(){
           <div class="bd-card-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <span class="bd-card-title">Horario para recoger</span>
         </div>
-        <span class="store-status"><span class="pulse"></span> Abierto</span>
+        <span class="store-status" ${tienda.abierto ? '' : 'style="background:rgba(253,226,226,.8);color:#991b1b;border-color:rgba(220,38,38,.3);"'}>
+          <span class="pulse" ${tienda.abierto ? '' : 'style="background:#dc2626;"'}></span> ${tienda.abierto ? 'Abierto' : 'Cerrado'}
+        </span>
       </div>
-      <div class="pill-options">
+      ${!tienda.abierto ? `<p style="font-size:12px;color:#991b1b;background:rgba(253,226,226,.6);border:1px solid rgba(220,38,38,.25);border-radius:10px;padding:9px 11px;margin-bottom:11px;">⚠️ ${tienda.mensaje}. No podemos tomar pedidos en este momento.</p>` : ''}
+      <div class="pill-options" style="${tienda.abierto ? '' : 'opacity:.45;pointer-events:none;'}">
         <div class="pill-option active" id="pillAsap" onclick="elegirHorarioAsap()">
           <div class="pill-option-top"><span>Lo antes posible</span><span class="pill-dot"></span></div>
           <span class="pill-option-sub">~${TIEMPO_ESPERA_MIN}-${TIEMPO_ESPERA_MAX} min</span>
@@ -2392,7 +2397,7 @@ function renderDrawer(){
 
   // Restaura la selección de horario tras cada render (ASAP vs programado)
   const selPickup = document.getElementById('pickupTime');
-  if (selPickup && horarioModo === 'programado'){
+  if (selPickup && horarioModo === 'programado' && tienda.abierto){
     selPickup.style.display = 'block';
     if (horarioSelectedIndex < selPickup.options.length) selPickup.selectedIndex = horarioSelectedIndex;
     document.getElementById('pillProgramado')?.classList.add('active');
@@ -2401,8 +2406,8 @@ function renderDrawer(){
 
   foot.innerHTML = `
     <div class="checkout-bar">
-      <button class="checkout-confirm" onclick="confirmOrder()">
-        <span>Confirmar pedido para recoger</span>
+      <button class="checkout-confirm" onclick="confirmOrder()" ${tienda.abierto ? '' : 'disabled style="opacity:.5;cursor:not-allowed;"'}>
+        <span>${tienda.abierto ? 'Confirmar pedido para recoger' : 'Cerrado por ahora'}</span>
         <span class="amt">$${(descuento>0?remaining:sub).toFixed(2)}</span>
       </button>
       <a class="checkout-wa" href="https://wa.me/526563185717?text=${encodeURIComponent("Hola L'Orangerie, tengo una duda sobre mi pedido para recoger")}" target="_blank" rel="noopener noreferrer" aria-label="Ayuda por WhatsApp" title="¿Dudas con tu orden? Escríbenos">
@@ -2452,15 +2457,23 @@ function aplicarMaximo(maxPts){
   renderDrawer();
 }
 
-function pickupSlotsHTML(){
+function estadoTienda(){
   const ahora = new Date();
   const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
   const isSunday = ahora.getDay() === 0; // 0 = domingo
-  const open = 7*60+30;                  // 7:30 am, todos los días
+  const open = 7*60+30;                   // 7:30 am, todos los días
   const close = isSunday ? 13*60 : 22*60; // domingo hasta 1pm, resto hasta 10pm
+  const abierto = minutosAhora >= open && minutosAhora < close;
+  const mensaje = minutosAhora < open
+    ? `Abrimos hoy a las 7:30 am`
+    : `Ya cerramos por hoy — abrimos mañana a las 7:30 am`;
+  return { abierto, mensaje, open, close, minutosAhora };
+}
 
-  if (minutosAhora >= close){
-    return `<option disabled selected>Ya cerramos por hoy — inténtalo mañana</option>`;
+function pickupSlotsHTML(){
+  const { abierto, mensaje, open, close, minutosAhora } = estadoTienda();
+  if (!abierto){
+    return `<option disabled selected>${mensaje}</option>`;
   }
 
   let opts = [`<option>Lo antes posible (${TIEMPO_ESPERA_MIN}–${TIEMPO_ESPERA_MAX} min)</option>`];
@@ -2484,6 +2497,19 @@ function pickupSlotsHTML(){
 }
 
 async function confirmOrder(){
+  const tienda = estadoTienda();
+  if (!tienda.abierto){
+    const msg = document.getElementById('drawerFoot');
+    let errBox = document.getElementById('orderErrorBox');
+    if (!errBox){
+      errBox = document.createElement('div');
+      errBox.id = 'orderErrorBox';
+      errBox.style.cssText = 'background:#f6e5e5;color:#8c3c3c;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:13px;';
+      msg.appendChild(errBox);
+    }
+    errBox.textContent = `${tienda.mensaje}. No podemos tomar pedidos en este momento.`;
+    return;
+  }
   const sub = subtotal();
   const pickupTimeVal = document.getElementById('pickupTime')?.value || 'Lo antes posible';
   const btn = document.querySelector('#drawerFoot .checkout-confirm');
