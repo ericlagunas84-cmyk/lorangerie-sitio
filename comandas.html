@@ -151,7 +151,7 @@
   <div class="login-card">
     <h2>L'Orangerie</h2>
     <p class="muted" style="margin:0 0 18px;">Cocina &amp; Barra</p>
-    <div class="field-group"><label>Correo</label><input type="text" id="admEmail"></div>
+    <div class="field-group"><label>Correo o usuario</label><input type="text" id="admEmail" placeholder="Correo o usuario"></div>
     <div class="field-group"><label>Contraseña</label><input type="password" id="admPass"></div>
     <button class="btn btn-primary" style="width:100%;height:46px;" onclick="adminLogin()">Iniciar sesión</button>
     <div id="loginMsg"></div>
@@ -262,7 +262,8 @@ function escHtml(str){
 
 /* ---------- login (mismas cuentas que el dashboard admin) ---------- */
 async function adminLogin(){
-  const email = document.getElementById('admEmail').value.trim();
+  const raw = document.getElementById('admEmail').value.trim();
+  const email = raw.includes('@') ? raw : `${raw.toLowerCase()}@staff.lorangerie.local`;
   const password = document.getElementById('admPass').value;
   const msg = document.getElementById('loginMsg');
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
