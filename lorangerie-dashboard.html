@@ -1670,6 +1670,18 @@
 </div>
 
 <!-- MODAL: cerrar caja (arqueo manual por categoría) -->
+<!-- MODAL: resumen individual desglosado de UN corte (con fondo con el que abrió) -->
+<div class="modal-overlay" id="modalCorteDetalle">
+  <div class="modal-card" style="width:480px;max-width:95vw;max-height:85vh;overflow-y:auto;">
+    <h3 style="font-size:18px;margin-bottom:6px;" id="corteDetalleTitulo">Detalle del corte</h3>
+    <div id="corteDetalleMsg"></div>
+    <div id="corteDetalleBody"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCorteDetalle').classList.remove('show')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalCerrarCaja">
   <div class="modal-card" style="width:520px;max-width:95vw;">
     <h3 style="font-size:22px;margin-bottom:6px;text-align:center;">Cerrar caja — Arqueo</h3>
@@ -5891,6 +5903,7 @@ async function verCierreDia(){
             Crédito — esperado $${f2(c.total_tarjeta_credito)} · declarado $${f2(c.tarjeta_credito_contado)} · dif. $${f2(c.tarjeta_credito_diferencia)}
           </div>
           ${Number(c.reservas_monto) > 0 ? `<div class="muted" style="font-size:11.5px;">Reservas: $${f2(c.reservas_monto)}</div>` : ''}
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="verDetalleCorte(${c.turno_id})">📄 Ver resumen individual de este corte</button>
         </div>`;
       }).join('')}
       <table style="width:100%;font-size:12.5px;margin-bottom:6px;">
@@ -5948,6 +5961,97 @@ async function verCierreDia(){
   `;
 }
 
+// Resumen individual desglosado de UN solo corte (no del día completo):
+// mismo formato que el Cierre del día (fondo con el que abrió, tipos de
+// pago, dólares, órdenes, descuentos, artículos cancelados, propinas por
+// método, resumen de ventas), pero acotado solo a ese turno.
+async function verDetalleCorte(turnoId){
+  const modal = document.getElementById('modalCorteDetalle');
+  const msg = document.getElementById('corteDetalleMsg');
+  const body = document.getElementById('corteDetalleBody');
+  document.getElementById('corteDetalleTitulo').textContent = `Detalle del corte #${turnoId}`;
+  msg.innerHTML = ''; body.innerHTML = '<div class="loading">Cargando…</div>';
+  modal.classList.add('show');
+
+  const { data, error } = await sb.rpc('admin_corte_detalle', { p_turno_id: turnoId });
+  if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; body.innerHTML = ''; return; }
+
+  const f2 = (n) => Number(n || 0).toFixed(2);
+  const dt = (s) => s ? new Date(s).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+  const estatus = data.estatus === 'cuadrado' ? '✅ Cuadrado' : (data.estatus === 'faltante' ? `⚠️ Faltante $${f2(Math.abs(data.diferencia))}` : `⚠️ Sobrante $${f2(data.diferencia)}`);
+
+  body.innerHTML = `
+    <p class="muted" style="font-size:12.5px;margin:0 0 12px;">
+      Abierto por <b>${escHtml(data.empleado_apertura)}</b> el ${dt(data.fecha_apertura)}
+      ${data.empleado_cierre ? ` — cerrado por <b>${escHtml(data.empleado_cierre)}</b> el ${dt(data.fecha_cierre)}` : ' — todavía abierto'}
+    </p>
+
+    <div style="border:1px solid var(--outline);border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;">💵 Con cuánto abrió (fondo inicial)</div>
+      <div style="font-size:14px;">$${f2(data.fondo_inicial)} MXN${Number(data.fondo_inicial_usd) > 0 ? ` &nbsp;·&nbsp; US$${f2(data.fondo_inicial_usd)}` : ''}</div>
+    </div>
+
+    <table style="width:100%;font-size:12.5px;margin-bottom:10px;">
+      <tr style="font-weight:700;"><td>Venta de este corte (sin propina)</td><td style="text-align:right;">$${f2(data.venta_total)}</td></tr>
+      <tr><td class="muted">Propina de este corte</td><td style="text-align:right;" class="muted">$${f2(data.propina_total)}</td></tr>
+    </table>
+
+    <div style="font-size:13px;font-weight:700;margin-top:10px;">Arqueo de caja</div>
+    <table style="width:100%;font-size:12.5px;">
+      <tr><td>Efectivo</td><td style="text-align:right;">esperado $${f2(data.efectivo_esperado)} · contado $${f2(data.efectivo_contado)}</td></tr>
+      <tr><td>Dólares</td><td style="text-align:right;">esperado US$${f2(data.dolares_esperado)} · contado US$${f2(data.dolares_contado)}</td></tr>
+      <tr><td>Débito</td><td style="text-align:right;">esperado $${f2(data.total_tarjeta_debito)} · declarado $${f2(data.tarjeta_debito_contado)}</td></tr>
+      <tr><td>Crédito</td><td style="text-align:right;">esperado $${f2(data.total_tarjeta_credito)} · declarado $${f2(data.tarjeta_credito_contado)}</td></tr>
+      ${Number(data.reservas_monto) > 0 ? `<tr><td>Reservas</td><td style="text-align:right;">$${f2(data.reservas_monto)}</td></tr>` : ''}
+      <tr style="font-weight:700;"><td>Resultado</td><td style="text-align:right;">${estatus}</td></tr>
+    </table>
+
+    <div style="font-size:13px;font-weight:700;margin-top:14px;">Tipos de pago (de este corte)</div>
+    <table style="width:100%;font-size:12.5px;">
+      ${['efectivo','tarjeta_debito','tarjeta_credito'].map(m => `
+        <tr><td>${metodoLabel(m)} <span class="muted">(${data.tipos_pago[m]?.pagos || 0} pagos)</span></td><td style="text-align:right;">$${f2(data.tipos_pago[m]?.total)}</td></tr>
+      `).join('')}
+      <tr><td>Dólares <span class="muted">(${data.dolares.pagos} pagos, 1 USD=$${f2(data.dolares.tipo_cambio)} MXN)</span></td><td style="text-align:right;">$${f2(data.dolares.total_mxn)} <span class="muted">(US$${f2(data.dolares.total_usd)})</span></td></tr>
+    </table>
+
+    <div style="font-size:13px;font-weight:700;margin-top:14px;">Órdenes (de este corte)</div>
+    <table style="width:100%;font-size:12.5px;">
+      <tr><td># Abiertas</td><td style="text-align:right;">${data.ordenes.abiertas}</td></tr>
+      <tr><td># Cerradas</td><td style="text-align:right;">${data.ordenes.cerradas}</td></tr>
+      <tr><td># Canceladas</td><td style="text-align:right;">${data.ordenes.canceladas}</td></tr>
+    </table>
+
+    <div style="font-size:13px;font-weight:700;margin-top:14px;">Descuentos</div>
+    <table style="width:100%;font-size:12.5px;">
+      <tr><td># Órdenes con descuento</td><td style="text-align:right;">${data.descuentos.ordenes}</td></tr>
+      <tr><td>Total descuentos</td><td style="text-align:right;">$${f2(data.descuentos.total)}</td></tr>
+    </table>
+
+    <div style="font-size:13px;font-weight:700;margin-top:14px;">Artículos cancelados</div>
+    <table style="width:100%;font-size:12.5px;">
+      <tr><td># Artículos cancelados</td><td style="text-align:right;">${data.articulos_cancelados.cantidad}</td></tr>
+      <tr><td>Total artículos cancelados</td><td style="text-align:right;">$${f2(data.articulos_cancelados.total)}</td></tr>
+    </table>
+
+    <div style="font-size:13px;font-weight:700;margin-top:14px;">Propinas por método (de este corte)</div>
+    <table style="width:100%;font-size:12.5px;">
+      <tr><td>Efectivo</td><td style="text-align:right;">$${f2(data.propinas.efectivo)}</td></tr>
+      <tr><td>Tarjeta de Débito</td><td style="text-align:right;">$${f2(data.propinas.tarjeta_debito)}</td></tr>
+      <tr><td>Tarjeta de Crédito</td><td style="text-align:right;">$${f2(data.propinas.tarjeta_credito)}</td></tr>
+      <tr style="font-weight:700;"><td>Total de propinas</td><td style="text-align:right;">$${f2(data.propinas.total)}</td></tr>
+    </table>
+
+    <div style="font-size:13px;font-weight:700;margin-top:14px;">Resumen de ventas (de este corte)</div>
+    <table style="width:100%;font-size:12.5px;">
+      <tr><td>Venta bruta</td><td style="text-align:right;">$${f2(data.resumen_ventas.venta_bruta)}</td></tr>
+      <tr><td>Descuentos</td><td style="text-align:right;">−$${f2(data.resumen_ventas.descuentos)}</td></tr>
+      <tr style="font-weight:700;"><td>Venta total</td><td style="text-align:right;">$${f2(data.resumen_ventas.venta_total)}</td></tr>
+      <tr><td>Impuestos (IVA 8% frontera)</td><td style="text-align:right;">−$${f2(data.resumen_ventas.impuestos)}</td></tr>
+      <tr style="font-weight:700;"><td>Venta neta</td><td style="text-align:right;">$${f2(data.resumen_ventas.venta_neta)}</td></tr>
+    </table>
+  `;
+}
+
 function imprimirCierreDia(){
   const data = CIERRE_DIA_ACTUAL;
   if (!data) return;
@@ -5961,6 +6065,7 @@ function imprimirCierreDia(){
       const estatus = c.estatus === 'cuadrado' ? 'Cuadrado' : (c.estatus === 'faltante' ? `Faltante $${f2(Math.abs(c.diferencia))}` : `Sobrante $${f2(c.diferencia)}`);
       return `
       <div class="ticket-fila"><span># Corte ${c.turno_id}</span><span>$${f2(c.venta_total)}</span></div>
+      <div style="font-size:9px;">Abrió con: $${f2(c.fondo_inicial)} MXN${Number(c.fondo_inicial_usd) > 0 ? ` / US$${f2(c.fondo_inicial_usd)}` : ''}</div>
       <div style="font-size:9px;">Propina de este corte: $${f2(c.propina_total)} (aparte)</div>
       <div style="font-size:9px;">Efvo esp/cont: $${f2(c.efectivo_esperado)} / $${f2(c.efectivo_contado)} — ${estatus}</div>
       <div style="font-size:9px;">Dólares esp/cont: US$${f2(c.dolares_esperado)} / US$${f2(c.dolares_contado)}</div>
