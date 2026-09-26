@@ -1942,6 +1942,17 @@ function escHtml(str){
     .replaceAll("'", '&#39;');
 }
 
+// Fecha de HOY en la zona horaria de la sucursal (America/Ciudad_Juarez),
+// como YYYY-MM-DD. IMPORTANTE: nunca usar new Date().toISOString() para
+// esto — toISOString() siempre da la fecha en UTC, y Ciudad Juárez está
+// 6 horas atrás, así que después de las ~6pm locales toISOString() ya
+// "cree" que es mañana. Eso hacía que los selectores de fecha (ej. el
+// de Cierre del día) apuntaran al día equivocado — un día sin datos.
+function fechaLocalISO(d){
+  d = d || new Date();
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Ciudad_Juarez' }).format(d); // en-CA = YYYY-MM-DD
+}
+
 let pedidosCache = [];
 let clientesCache = [];
 let menuCache = [];
@@ -2250,7 +2261,7 @@ function cambiarRangoVentas(){
     inputFecha.style.display = 'inline-block';
     if (!inputFecha.value){
       const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
-      inputFecha.value = hace30.toISOString().slice(0, 10);
+      inputFecha.value = fechaLocalISO(hace30);
     }
   } else {
     inputFecha.style.display = 'none';
@@ -2414,7 +2425,7 @@ function cambiarRangoPedidos(){
     inputFecha.style.display = 'inline-block';
     if (!inputFecha.value){
       const hace30 = new Date(); hace30.setDate(hace30.getDate() - 30);
-      inputFecha.value = hace30.toISOString().slice(0, 10);
+      inputFecha.value = fechaLocalISO(hace30);
     }
   } else {
     inputFecha.style.display = 'none';
@@ -5632,7 +5643,7 @@ async function cargarCajas(){
     cargarPuestosParaEmpleado();
     cargarListaEmpleados();
     if (!document.getElementById('cierreDiaFecha').value){
-      document.getElementById('cierreDiaFecha').value = new Date().toISOString().slice(0,10);
+      document.getElementById('cierreDiaFecha').value = fechaLocalISO();
     }
   }
 
@@ -5862,9 +5873,12 @@ async function verCierreDia(){
         <div style="border:1px solid var(--outline);border-radius:10px;padding:10px 12px;margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;">
             <span>#Corte ${c.turno_id} <span class="muted" style="font-weight:400;">(${escHtml(c.empleado_apertura)} → ${escHtml(c.empleado_cierre || '—')})</span></span>
-            <span>$${f2(c.venta_total)}</span>
+            <span>$${f2(c.venta_total)}<span class="muted" style="font-weight:400;"> + $${f2(c.propina_total)} propina</span></span>
           </div>
           <div class="muted" style="font-size:11.5px;margin-top:4px;">
+            Venta $${f2(c.venta_total)} · <b>Propina $${f2(c.propina_total)}</b> (separada, no incluida en la venta)
+          </div>
+          <div class="muted" style="font-size:11.5px;">
             Fondo inicial $${f2(c.fondo_inicial)} MXN${Number(c.fondo_inicial_usd) > 0 ? ` · US$${f2(c.fondo_inicial_usd)}` : ''} · Efvo. esperado $${f2(c.efectivo_esperado)} · Efvo. contado $${f2(c.efectivo_contado)} — <b>${estatus}</b>
           </div>
           <div class="muted" style="font-size:11.5px;">
@@ -5880,7 +5894,8 @@ async function verCierreDia(){
         </div>`;
       }).join('')}
       <table style="width:100%;font-size:12.5px;margin-bottom:6px;">
-        <tr style="font-weight:700;border-top:1px solid var(--outline);"><td>Venta total</td><td style="text-align:right;">$${f2(data.venta_total_dia)}</td></tr>
+        <tr style="font-weight:700;border-top:1px solid var(--outline);"><td>Venta total (sin propina)</td><td style="text-align:right;">$${f2(data.venta_total_dia)}</td></tr>
+        <tr><td class="muted">Propina total del día</td><td style="text-align:right;" class="muted">$${f2(data.propina_total_dia)}</td></tr>
       </table>
 
       <div style="font-size:13px;font-weight:700;margin-top:14px;">Tipos de pago</div>
@@ -5946,12 +5961,14 @@ function imprimirCierreDia(){
       const estatus = c.estatus === 'cuadrado' ? 'Cuadrado' : (c.estatus === 'faltante' ? `Faltante $${f2(Math.abs(c.diferencia))}` : `Sobrante $${f2(c.diferencia)}`);
       return `
       <div class="ticket-fila"><span># Corte ${c.turno_id}</span><span>$${f2(c.venta_total)}</span></div>
+      <div style="font-size:9px;">Propina de este corte: $${f2(c.propina_total)} (aparte)</div>
       <div style="font-size:9px;">Efvo esp/cont: $${f2(c.efectivo_esperado)} / $${f2(c.efectivo_contado)} — ${estatus}</div>
       <div style="font-size:9px;">Dólares esp/cont: US$${f2(c.dolares_esperado)} / US$${f2(c.dolares_contado)}</div>
       <div style="font-size:9px;">Débito esp/decl: $${f2(c.total_tarjeta_debito)} / $${f2(c.tarjeta_debito_contado)}</div>
       <div style="font-size:9px;">Crédito esp/decl: $${f2(c.total_tarjeta_credito)} / $${f2(c.tarjeta_credito_contado)}</div>`;
     }).join('')}
-    <div class="ticket-fila ticket-total"><span>Venta total</span><span>$${f2(data.venta_total_dia)}</span></div>
+    <div class="ticket-fila ticket-total"><span>Venta total (sin propina)</span><span>$${f2(data.venta_total_dia)}</span></div>
+    <div class="ticket-fila"><span>Propina total del día</span><span>$${f2(data.propina_total_dia)}</span></div>
   `;
   document.getElementById('cdTiposPago').innerHTML = `
     ${['efectivo','tarjeta_debito','tarjeta_credito'].map(m => `
