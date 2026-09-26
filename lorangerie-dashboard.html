@@ -465,7 +465,7 @@
         </div>
       </div>
     </div>
-    <div class="lb-form">
+    <div class="lb-form" id="loginFormNormal">
       <div class="lb-mark">🍊</div>
       <h1 class="lb-title">L'Orangerie</h1>
       <p class="lb-sub">Panel de Administración</p>
@@ -497,9 +497,35 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <div id="loginMsg"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <a onclick="mostrarLoginPin()" style="font-size:12.5px;color:var(--br-evergreen);font-weight:600;cursor:pointer;">🔢 Soy mesero — Entrar con PIN</a>
+      </div>
       <div class="lb-footer">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--br-gold)" stroke-width="2"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span>Conexión cifrada · Acceso restringido a colaboradores</span>
+      </div>
+    </div>
+
+    <!-- Acceso rápido para meseros: solo PIN, sin usuario ni contraseña -->
+    <div class="lb-form" id="loginFormPin" style="display:none;">
+      <div class="lb-mark">🔢</div>
+      <h1 class="lb-title">L'Orangerie</h1>
+      <p class="lb-sub">Entrar con PIN (mesero)</p>
+
+      <div class="lb-field">
+        <div class="lb-field-head"><label>PIN</label></div>
+        <div class="lb-input-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <input type="password" id="loginPinInput" inputmode="numeric" placeholder="••••" style="letter-spacing:.3em;font-size:18px;" onkeydown="if(event.key==='Enter') loginConPin();">
+        </div>
+      </div>
+      <button class="lb-submit" onclick="loginConPin()">
+        <span>Entrar</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 5l7 7m0 0l-7 7m7-7H3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div id="loginPinMsg"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <a onclick="mostrarLoginNormal()" style="font-size:12.5px;color:var(--br-evergreen);font-weight:600;cursor:pointer;">← Entrar con usuario y contraseña</a>
       </div>
     </div>
   </div>
@@ -1056,12 +1082,13 @@
     <div id="tab-usuarios" class="tab-panel" style="display:none;">
       <div class="section-head">
         <h2>Usuarios</h2>
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-cream btn-sm" id="usrBtnMeseroPin" onclick="abrirModalCrearMeseroPin()">+ Crear mesero (solo PIN)</button>
           <button class="btn btn-cream btn-sm" id="usrBtnCrear" onclick="abrirModalCrearUsuario()">+ Crear con usuario y contraseña</button>
           <button class="btn btn-primary btn-sm" id="usrBtnInvitar" onclick="abrirModalInvitar()">+ Invitar por correo</button>
         </div>
       </div>
-      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Puedes crear una cuenta con solo <b>usuario y contraseña</b> (para personal sin correo) o invitar por correo real (recibe un enlace para crear su propia contraseña). Suspender bloquea el acceso sin borrar su historial.</p>
+      <p class="muted" style="font-size:12.5px;margin-top:-10px;">Para <b>meseros</b> usa "Crear mesero (solo PIN)": solo pides su nombre y le asignas un PIN — sin usuario ni contraseña; después entran al sistema tecleando ese PIN en el login. También puedes crear una cuenta con <b>usuario y contraseña</b> (para otro personal sin correo) o invitar por correo real (recibe un enlace para crear su propia contraseña). Suspender bloquea el acceso sin borrar su historial.</p>
 
       <div class="tabs-row" style="margin:14px 0;">
         <button class="active" onclick="usrSubTab('cuentas', this)">Cuentas</button>
@@ -1395,6 +1422,21 @@
   </div>
 </div>
 
+<!-- MODAL: crear mesero SOLO con PIN (sin usuario ni contraseña) -->
+<div class="modal-overlay" id="modalCrearMeseroPin">
+  <div class="modal-card" style="width:340px;">
+    <h3 style="font-size:18px;margin-bottom:6px;">Crear mesero (solo PIN)</h3>
+    <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Solo el nombre y un PIN. El mesero entra al sistema tecleando este PIN — no necesita usuario ni contraseña.</p>
+    <div class="field-group"><label>Nombre</label><input type="text" id="mpNombre" placeholder="ej. Carlos"></div>
+    <div class="field-group"><label>PIN</label><input type="password" id="mpPin" inputmode="numeric" placeholder="4 a 8 dígitos" style="letter-spacing:.2em;"></div>
+    <div id="modalCrearMeseroPinMsg"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalCrearMeseroPin').classList.remove('show')">Cancelar</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="crearMeseroPin()">Crear mesero</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: resetear contraseña (cuentas sin correo) -->
 <div class="modal-overlay" id="modalResetPass">
   <div class="modal-card" style="width:340px;">
@@ -1598,7 +1640,10 @@
     <p class="muted" style="font-size:12.5px;margin:0 0 16px;">Ingresa tu usuario, tu PIN, y el fondo con el que empiezas.</p>
     <input type="text" id="abrirCajaUsuario" placeholder="Usuario" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
     <input type="password" id="abrirCajaPin" inputmode="numeric" placeholder="PIN" style="width:100%;text-align:center;font-size:20px;letter-spacing:.2em;padding:12px;border:1px solid var(--outline);border-radius:8px;margin-bottom:8px;">
-    <input type="number" id="abrirCajaFondo" min="0" step="0.01" placeholder="Fondo inicial ($)" style="width:100%;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input type="number" id="abrirCajaFondo" min="0" step="0.01" placeholder="Fondo inicial ($ MXN)" style="flex:1;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+      <input type="number" id="abrirCajaFondoUsd" min="0" step="0.01" placeholder="Fondo inicial (US$)" style="flex:1;text-align:center;padding:10px;border:1px solid var(--outline);border-radius:8px;">
+    </div>
     <div id="abrirCajaMsg"></div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="btn btn-ghost" style="flex:1;" onclick="document.getElementById('modalAbrirCaja').classList.remove('show')">Cancelar</button>
@@ -1971,6 +2016,58 @@ async function adminLogin(){
   }
   sb.rpc('registrar_login', { p_user_agent: navigator.userAgent }); // no bloquea el login si falla
   entrarAlShell(data.user, rol);
+}
+
+function mostrarLoginPin(){
+  document.getElementById('loginFormNormal').style.display = 'none';
+  document.getElementById('loginFormPin').style.display = 'flex';
+  document.getElementById('loginPinMsg').innerHTML = '';
+  document.getElementById('loginPinInput').value = '';
+  document.getElementById('loginPinInput').focus();
+}
+function mostrarLoginNormal(){
+  document.getElementById('loginFormPin').style.display = 'none';
+  document.getElementById('loginFormNormal').style.display = 'flex';
+}
+
+// Login de mesero: solo PIN, sin usuario ni contraseña. Por debajo el
+// mesero ya tiene una cuenta normal de Supabase Auth (creada al darlo
+// de alta con "Crear mesero (solo PIN)"), pero su contraseña es
+// aleatoria y nadie la conoce — el servidor (Edge Function
+// mesero-pin-login) verifica el PIN y entrega una sesión ya lista.
+async function loginConPin(){
+  const pin = document.getElementById('loginPinInput').value.trim();
+  const msg = document.getElementById('loginPinMsg');
+  if (!/^[0-9]{4,8}$/.test(pin)){
+    msg.innerHTML = '<div class="msg-box msg-err">Escribe tu PIN (4 a 8 dígitos).</div>';
+    return;
+  }
+  msg.innerHTML = '<div class="loading">Entrando…</div>';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/mesero-pin-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
+      body: JSON.stringify({ pin }),
+    });
+    const data = await res.json();
+    if (!data.ok){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(data.error || 'PIN incorrecto.')}</div>`; return; }
+
+    const { data: sessData, error: setErr } = await sb.auth.setSession({
+      access_token: data.access_token, refresh_token: data.refresh_token,
+    });
+    if (setErr || !sessData.session){ msg.innerHTML = '<div class="msg-box msg-err">No se pudo iniciar sesión. Intenta de nuevo.</div>'; return; }
+
+    const rol = sessData.user.app_metadata?.rol;
+    if (!['admin', 'gerente', 'encargado'].includes(rol)){
+      msg.innerHTML = '<div class="msg-box msg-err">Esta cuenta no tiene permisos de acceso.</div>';
+      await sb.auth.signOut();
+      return;
+    }
+    sb.rpc('registrar_login', { p_user_agent: navigator.userAgent });
+    entrarAlShell(sessData.user, rol);
+  } catch(e){
+    msg.innerHTML = '<div class="msg-box msg-err">No se pudo conectar. Intenta de nuevo.</div>';
+  }
 }
 
 // Todo lo que pasa al "entrar" al panel, ya sea porque alguien acaba de
@@ -3119,6 +3216,7 @@ async function enviarOrdenCompleta(){
         horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
         guest_email: guestEmail,
         guest_nombre: nombreCliente,
+        origen: 'admin', // pedido tomado por el mesero: el teléfono no es obligatorio
       }),
     });
     const data = await res.json();
@@ -3247,6 +3345,7 @@ async function confirmarCobro(){
           horario_recogida: posTipoServicioActual === 'mesa' ? 'Pedido de mostrador' : 'Para llevar',
           guest_email: guestEmail,
           guest_nombre: nombreCliente,
+          origen: 'admin', // pedido tomado por el mesero: el teléfono no es obligatorio
         }),
       });
       const data = await res.json();
@@ -5347,6 +5446,27 @@ async function crearUsuarioConPassword(){
   setTimeout(() => { document.getElementById('modalCrearUsuario').classList.remove('show'); cargarUsuarios(); }, 1500);
 }
 
+function abrirModalCrearMeseroPin(){
+  document.getElementById('modalCrearMeseroPinMsg').innerHTML = '';
+  document.getElementById('mpNombre').value = '';
+  document.getElementById('mpPin').value = '';
+  document.getElementById('modalCrearMeseroPin').classList.add('show');
+}
+
+async function crearMeseroPin(){
+  const nombre = document.getElementById('mpNombre').value.trim();
+  const pin = document.getElementById('mpPin').value.trim();
+  const msg = document.getElementById('modalCrearMeseroPinMsg');
+  if (!nombre){ msg.innerHTML = '<div class="msg-box msg-err">Escribe el nombre del mesero.</div>'; return; }
+  if (!/^[0-9]{4,8}$/.test(pin)){ msg.innerHTML = '<div class="msg-box msg-err">El PIN debe ser numérico, de 4 a 8 dígitos.</div>'; return; }
+
+  const data = await llamarAdminUsuarios({ action: 'create_mesero_pin', nombre, pin });
+  if (!data.ok){ msg.innerHTML = `<div class="msg-box msg-err">${data.error}</div>`; return; }
+
+  msg.innerHTML = `<div class="msg-box msg-ok">Mesero "${escHtml(nombre)}" creado. Ya puede entrar tecleando su PIN en la pantalla de acceso (botón "Entrar con PIN").</div>`;
+  setTimeout(() => { document.getElementById('modalCrearMeseroPin').classList.remove('show'); cargarUsuarios(); }, 1800);
+}
+
 let RESET_PASS_ID = null;
 function abrirModalResetPassword(id, nombre){
   RESET_PASS_ID = id;
@@ -5533,7 +5653,7 @@ async function cargarCajas(){
   const empApertura = EMPLEADOS_DIRECTORIO_CACHE[turno.empleado_apertura_id] || '—';
   cont.innerHTML = `
     <h3 style="font-size:15px;margin-bottom:4px;">Caja abierta</h3>
-    <p class="muted" style="font-size:13px;margin:0 0 4px;">Abierta por <b>${escHtml(empApertura)}</b> — fondo inicial $${Number(turno.fondo_inicial).toFixed(2)} — desde ${desde.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
+    <p class="muted" style="font-size:13px;margin:0 0 4px;">Abierta por <b>${escHtml(empApertura)}</b> — fondo inicial $${Number(turno.fondo_inicial).toFixed(2)} MXN${Number(turno.fondo_inicial_usd) > 0 ? ` · US$${Number(turno.fondo_inicial_usd).toFixed(2)}` : ''} — desde ${desde.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
     <div style="display:flex;gap:10px;margin:14px 0;flex-wrap:wrap;">
       <button class="btn btn-ghost" onclick="abrirModalMovimiento('deposito')">➕ Depósito</button>
       <button class="btn btn-ghost" onclick="abrirModalMovimiento('retiro')">➖ Retiro</button>
@@ -5568,6 +5688,7 @@ function abrirModalAbrirCaja(){
   document.getElementById('abrirCajaUsuario').value = '';
   document.getElementById('abrirCajaPin').value = '';
   document.getElementById('abrirCajaFondo').value = '';
+  document.getElementById('abrirCajaFondoUsd').value = '';
   document.getElementById('abrirCajaMsg').innerHTML = '';
   document.getElementById('modalAbrirCaja').classList.add('show');
 }
@@ -5575,12 +5696,14 @@ async function confirmarAbrirCaja(){
   const usuario = document.getElementById('abrirCajaUsuario').value.trim();
   const pin = document.getElementById('abrirCajaPin').value.trim();
   const fondo = parseFloat(document.getElementById('abrirCajaFondo').value);
+  const fondoUsdRaw = document.getElementById('abrirCajaFondoUsd').value.trim();
+  const fondoUsd = fondoUsdRaw === '' ? 0 : parseFloat(fondoUsdRaw);
   const msg = document.getElementById('abrirCajaMsg');
-  if (!usuario || !pin || isNaN(fondo) || fondo < 0){
-    msg.innerHTML = '<div class="msg-box msg-err">Completa usuario, PIN y un fondo inicial válido.</div>';
+  if (!usuario || !pin || isNaN(fondo) || fondo < 0 || isNaN(fondoUsd) || fondoUsd < 0){
+    msg.innerHTML = '<div class="msg-box msg-err">Completa usuario, PIN y un fondo inicial válido (pesos y/o dólares).</div>';
     return;
   }
-  const { error } = await sb.rpc('admin_abrir_turno', { p_usuario: usuario, p_pin: pin, p_fondo_inicial: fondo });
+  const { error } = await sb.rpc('admin_abrir_turno', { p_usuario: usuario, p_pin: pin, p_fondo_inicial: fondo, p_fondo_inicial_usd: fondoUsd });
   if (error){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(error.message)}</div>`; return; }
   document.getElementById('modalAbrirCaja').classList.remove('show');
   cargarCajas();
@@ -5742,7 +5865,7 @@ async function verCierreDia(){
             <span>$${f2(c.venta_total)}</span>
           </div>
           <div class="muted" style="font-size:11.5px;margin-top:4px;">
-            Fondo inicial $${f2(c.fondo_inicial)} · Efvo. esperado $${f2(c.efectivo_esperado)} · Efvo. contado $${f2(c.efectivo_contado)} — <b>${estatus}</b>
+            Fondo inicial $${f2(c.fondo_inicial)} MXN${Number(c.fondo_inicial_usd) > 0 ? ` · US$${f2(c.fondo_inicial_usd)}` : ''} · Efvo. esperado $${f2(c.efectivo_esperado)} · Efvo. contado $${f2(c.efectivo_contado)} — <b>${estatus}</b>
           </div>
           <div class="muted" style="font-size:11.5px;">
             Dólares — esperado US$${f2(c.dolares_esperado)} · contado US$${f2(c.dolares_contado)} · dif. US$${f2(c.dolares_diferencia)}

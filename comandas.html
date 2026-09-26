@@ -148,13 +148,26 @@
 
 <!-- LOGIN -->
 <div class="login-gate" id="loginGate">
-  <div class="login-card">
+  <div class="login-card" id="loginCardNormal">
     <h2>L'Orangerie</h2>
     <p class="muted" style="margin:0 0 18px;">Cocina &amp; Barra</p>
     <div class="field-group"><label>Correo o usuario</label><input type="text" id="admEmail" placeholder="Correo o usuario"></div>
     <div class="field-group"><label>Contraseña</label><input type="password" id="admPass"></div>
     <button class="btn btn-primary" style="width:100%;height:46px;" onclick="adminLogin()">Iniciar sesión</button>
     <div id="loginMsg"></div>
+    <div style="text-align:center;margin-top:14px;">
+      <a onclick="mostrarLoginPin()" style="font-size:12.5px;font-weight:600;cursor:pointer;">🔢 Soy mesero — Entrar con PIN</a>
+    </div>
+  </div>
+  <div class="login-card" id="loginCardPin" style="display:none;">
+    <h2>L'Orangerie</h2>
+    <p class="muted" style="margin:0 0 18px;">Entrar con PIN (mesero)</p>
+    <div class="field-group"><label>PIN</label><input type="password" id="loginPinInput" inputmode="numeric" placeholder="••••" style="letter-spacing:.3em;font-size:18px;" onkeydown="if(event.key==='Enter') loginConPin();"></div>
+    <button class="btn btn-primary" style="width:100%;height:46px;" onclick="loginConPin()">Entrar</button>
+    <div id="loginPinMsg"></div>
+    <div style="text-align:center;margin-top:14px;">
+      <a onclick="mostrarLoginNormal()" style="font-size:12.5px;font-weight:600;cursor:pointer;">← Entrar con usuario y contraseña</a>
+    </div>
   </div>
 </div>
 
@@ -275,6 +288,54 @@ async function adminLogin(){
     return;
   }
   entrarAlTablero(data.user);
+}
+
+function mostrarLoginPin(){
+  document.getElementById('loginCardNormal').style.display = 'none';
+  document.getElementById('loginCardPin').style.display = 'block';
+  document.getElementById('loginPinMsg').innerHTML = '';
+  document.getElementById('loginPinInput').value = '';
+  document.getElementById('loginPinInput').focus();
+}
+function mostrarLoginNormal(){
+  document.getElementById('loginCardPin').style.display = 'none';
+  document.getElementById('loginCardNormal').style.display = 'block';
+}
+
+// Login de mesero: solo PIN, sin usuario ni contraseña (misma
+// Edge Function mesero-pin-login que usa el dashboard).
+async function loginConPin(){
+  const pin = document.getElementById('loginPinInput').value.trim();
+  const msg = document.getElementById('loginPinMsg');
+  if (!/^[0-9]{4,8}$/.test(pin)){
+    msg.innerHTML = '<div class="msg-box msg-err">Escribe tu PIN (4 a 8 dígitos).</div>';
+    return;
+  }
+  msg.innerHTML = '<div class="loading">Entrando…</div>';
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/mesero-pin-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON },
+      body: JSON.stringify({ pin }),
+    });
+    const data = await res.json();
+    if (!data.ok){ msg.innerHTML = `<div class="msg-box msg-err">${escHtml(data.error || 'PIN incorrecto.')}</div>`; return; }
+
+    const { data: sessData, error: setErr } = await sb.auth.setSession({
+      access_token: data.access_token, refresh_token: data.refresh_token,
+    });
+    if (setErr || !sessData.session){ msg.innerHTML = '<div class="msg-box msg-err">No se pudo iniciar sesión. Intenta de nuevo.</div>'; return; }
+
+    const rol = sessData.user.app_metadata?.rol;
+    if (!['admin', 'gerente', 'encargado'].includes(rol)){
+      msg.innerHTML = '<div class="msg-box msg-err">Esta cuenta no tiene permisos para entrar aquí.</div>';
+      await sb.auth.signOut();
+      return;
+    }
+    entrarAlTablero(sessData.user);
+  } catch(e){
+    msg.innerHTML = '<div class="msg-box msg-err">No se pudo conectar. Intenta de nuevo.</div>';
+  }
 }
 
 function entrarAlTablero(user){
