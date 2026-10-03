@@ -4064,7 +4064,7 @@ async function cargarReportesVentas(){
     sb.rpc('admin_reporte_ventas_por_producto', { p_desde: desdeIso, p_hasta: hastaIso }),
   ]);
 
-  const metodoLabel = { efectivo: '💵 Efectivo', tarjeta_debito: '💳 Débito', tarjeta_credito: '💳 Crédito', cortesia: '🎁 Cortesía' };
+  const metodoLabel = { efectivo: '💵 Efectivo', tarjeta_debito: '💳 Débito', tarjeta_credito: '💳 Crédito', cortesia: '🎁 Cortesía', liga_pago: '🔗 Liga de pago (EVO Click)', mixto: '🔀 Mixto' };
   const monedaLabel = { MXN: '🇲🇽 Pesos', USD: '🇺🇸 Dólares' };
 
   if (errMetodo){
